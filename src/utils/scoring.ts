@@ -1,21 +1,20 @@
-import type { Card } from "../types/card";
-import { CARD_POINTS } from "../types/card";
+import { CARD_POINTS, type Card } from "../types/card";
 import { validate_sequence } from "./rules_logic";
 
-// Configuração de Pontos (Regras Padrão)
+// Configuração de Pontos
 const POINTS = {
-  BATIDA: 100, // Bónus por bater
-  CANASTRA_SUJA: 100, // Bónus Canastra Suja
-  CANASTRA_LIMPA: 200, // Bónus Canastra Limpa
-  CANASTRA_REAL_500: 500, // Bónus A a K ou similar
-  CANASTRA_REAL_1000: 1000, // Bónus A a A
+  BATIDA: 100,
+  CANASTRA_SUJA: 100,
+  CANASTRA_LIMPA: 200,
+  CANASTRA_REAL_500: 500,
+  CANASTRA_REAL_1000: 1000,
 };
 
 export interface ScoreResult {
   total_score: number;
-  base_points: number; // Soma das cartas baixadas
-  bonus_points: number; // Canastras + Batida
-  penalty_points: number; // Cartas na mão
+  base_points: number;
+  bonus_points: number;
+  penalty_points: number;
   details: {
     canastras_sujas: number;
     canastras_limpas: number;
@@ -26,8 +25,8 @@ export interface ScoreResult {
 
 export const calculate_score = (
   melds: Card[][],
-  hand: Card[],
-  did_beat: boolean // Se este jogador foi quem bateu
+  hands_to_penalize: Card[][], // Aceita Array de mãos (ex: [mao_p1, mao_p3])
+  did_beat: boolean
 ): ScoreResult => {
   let base_points = 0;
   let bonus_points = 0;
@@ -40,18 +39,14 @@ export const calculate_score = (
     canastras_1000: 0,
   };
 
-  // 1. Somar pontos das cartas baixadas (Base) e verificar Canastras
+  // 1. Pontos na Mesa (Melds)
   for (const meld of melds) {
-    // Soma valor individual de cada carta (ex: 3 vale 5, Rei vale 10)
     for (const card of meld) {
       base_points += CARD_POINTS[card.value];
     }
 
-    // Verifica Bónus de Canastra (se tiver 7 ou mais cartas)
     if (meld.length >= 7) {
-      // Reutilizamos a lógica de validação para saber o tipo exato
       const validation = validate_sequence(meld);
-
       switch (validation.canastra_type) {
         case "dirty":
           bonus_points += POINTS.CANASTRA_SUJA;
@@ -78,9 +73,11 @@ export const calculate_score = (
     bonus_points += POINTS.BATIDA;
   }
 
-  // 3. Penalidade (Cartas que sobraram na mão)
-  for (const card of hand) {
-    penalty_points += CARD_POINTS[card.value];
+  // 3. Penalidade (Soma das cartas nas mãos de TODOS os parceiros do time)
+  for (const hand of hands_to_penalize) {
+    for (const card of hand) {
+      penalty_points += CARD_POINTS[card.value];
+    }
   }
 
   const total_score = base_points + bonus_points - penalty_points;

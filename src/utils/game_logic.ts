@@ -1,11 +1,9 @@
 import { type Card, SYMBOLS, VALUES } from "../types/card";
 
 export interface InitialDistribution {
-  player_1_hand: Card[];
-  player_2_hand: Card[];
-  dead_pile_1: Card[];
-  dead_pile_2: Card[];
-  remaining_deck: Card[]; // renomeado de draw_pile para manter consistência
+  hands: Record<number, Card[]>; // Ex: { 1: [...], 2: [...] }
+  dead_piles: Card[][];
+  remaining_deck: Card[];
 }
 
 const shuffle = (array: Card[]): Card[] => {
@@ -17,7 +15,6 @@ const shuffle = (array: Card[]): Card[] => {
   return new_array;
 };
 
-// Trouxemos para cá para não depender de config/deck.ts
 export const create_deck = (): Card[] => {
   const NUMBER_OF_DECKS = 2;
   const deck: Card[] = Array.from({ length: NUMBER_OF_DECKS }).flatMap(
@@ -37,14 +34,26 @@ export const create_deck = (): Card[] => {
 };
 
 export const distribute_cards = (
-  shuffled_deck: Card[]
+  shuffled_deck: Card[],
+  mode: "1v1" | "2v2"
 ): InitialDistribution => {
   const temp_deck = [...shuffled_deck];
+  const hands: Record<number, Card[]> = {};
+
+  const num_players = mode === "1v1" ? 2 : 4;
+
+  // Distribui 11 cartas para cada jogador (seja 2 ou 4)
+  for (let i = 1; i <= num_players; i++) {
+    hands[i] = temp_deck.splice(0, 11);
+  }
+
+  // Dois mortos de 11 cartas
+  const dead_pile_1 = temp_deck.splice(0, 11);
+  const dead_pile_2 = temp_deck.splice(0, 11);
+
   return {
-    player_1_hand: temp_deck.splice(0, 11),
-    player_2_hand: temp_deck.splice(0, 11),
-    dead_pile_1: temp_deck.splice(0, 11),
-    dead_pile_2: temp_deck.splice(0, 11),
+    hands,
+    dead_piles: [dead_pile_1, dead_pile_2],
     remaining_deck: temp_deck,
   };
 };

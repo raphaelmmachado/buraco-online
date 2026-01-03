@@ -3,6 +3,7 @@ import type { Card } from "../types/card";
 import { distribute_cards, create_deck } from "../utils/game_logic";
 import { sort_cards } from "../utils/sort_cards";
 import { validate_sequence } from "../utils/rules_logic";
+import { calculate_score, type ScoreResult } from "../utils/scoring";
 
 interface GameState {
   status: "LOBBY" | "PLAYING" | "FINISHED";
@@ -16,6 +17,12 @@ interface GameState {
   turn_phase: "DRAW" | "ACTION" | "DISCARD";
   current_turn: 1 | 2;
   has_taken_dead_pile: [boolean, boolean];
+  final_score: {
+    player_1: number;
+    player_2: number;
+    details_p1: ScoreResult;
+    details_p2: ScoreResult;
+  } | null;
 }
 
 interface GameActions {
@@ -46,6 +53,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   has_taken_dead_pile: [false, false], // Começa ninguém tendo pego
   turn_phase: "DRAW",
   current_turn: 1,
+  final_score: null,
 
   start_game: () => {
     const full_deck = create_deck();
@@ -62,11 +70,23 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       opponent_melds: [],
       turn_phase: "DRAW",
       current_turn: 1,
+      final_score: null,
     });
   },
 
   draw_card_from_deck: () => {
-    const { deck, player_hand, turn_phase, current_turn, dead_piles } = get();
+    // Adicionei player_melds, opponent_melds e opponent_hand no destructuring
+    // pois precisamos deles para calcular os pontos se o jogo acabar aqui.
+    const {
+      deck,
+      player_hand,
+      turn_phase,
+      current_turn,
+      dead_piles,
+      player_melds,
+      opponent_melds,
+      opponent_hand,
+    } = get();
 
     if (current_turn !== 1) return;
 
@@ -77,13 +97,11 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     if (current_deck.length === 0) {
       if (current_dead_piles.length > 0) {
         // Pega o primeiro morto disponível e transforma em monte
-        // (Geralmente acontece se um dos jogadores não pegou o morto e o jogo se estendeu)
         const [new_deck_source, ...remaining_dead_piles] = current_dead_piles;
 
         current_deck = new_deck_source;
         current_dead_piles = remaining_dead_piles;
 
-        // Atualiza o estado imediatamente para refletir a mudança
         set({
           deck: current_deck,
           dead_piles: current_dead_piles,
@@ -93,7 +111,20 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       } else {
         // Se não tem deck e não tem morto sobrando -> FIM DE JOGO
         console.log("Fim de jogo: Cartas esgotadas.");
-        set({ status: "FINISHED" });
+
+        // CALCULA PONTUAÇÃO (Ninguém bateu, então did_beat = false para ambos)
+        const p1_score = calculate_score(player_melds, player_hand, false);
+        const p2_score = calculate_score(opponent_melds, opponent_hand, false);
+
+        set({
+          status: "FINISHED",
+          final_score: {
+            player_1: p1_score.total_score,
+            player_2: p2_score.total_score,
+            details_p1: p1_score,
+            details_p2: p2_score,
+          },
+        });
         return;
       }
     }
@@ -346,7 +377,15 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     return true;
   },
   internal_handle_empty_hand: (type) => {
-    const { dead_piles, has_taken_dead_pile, current_turn } = get();
+    const {
+      dead_piles,
+      player_melds,
+      player_hand,
+      opponent_hand,
+      opponent_melds,
+      has_taken_dead_pile,
+      current_turn,
+    } = get();
 
     // Indice do jogador no array (Player 1 é indice 0)
     const player_index = current_turn - 1;
@@ -356,7 +395,24 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       // TODO: Verificar se é uma batida válida (Canastra Limpa exigida?)
       // Por enquanto, assumimos que bateu e acabou.
       console.log("Jogador bateu final!");
-      set({ status: "FINISHED" });
+      // CALCULAR PONTUAÇÃO
+      const p1_did_beat = current_turn === 1;
+
+      const p1_score = calculate_score(player_melds, player_hand, p1_did_beat);
+      const p2_score = calculate_score(
+        opponent_melds,
+        opponent_hand,
+        !p1_did_beat
+      );
+      set({
+        status: "FINISHED",
+        final_score: {
+          player_1: p1_score.total_score,
+          player_2: p2_score.total_score,
+          details_p1: p1_score,
+          details_p2: p2_score,
+        },
+      });
       return;
     }
 

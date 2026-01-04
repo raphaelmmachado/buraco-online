@@ -9,29 +9,17 @@ export interface MeldValidation {
 /**
  * @function validate_sequence
  * @description Valida uma sequência de cartas para determinar se é um "jogo" válido no Buraco.
- *              Esta é a função principal de validação de regras.
- * @param {Card[]} cards - Um array de objetos de carta a serem validados.
- * @returns {MeldValidation} Um objeto indicando se a sequência é válida, se é limpa e o tipo de canastra.
  */
 export const validate_sequence = (cards: Card[]): MeldValidation => {
   // 1. Validação de Tamanho Mínimo
   if (cards.length < 3) {
-    console.warn(
-      "[RULE] Inválido: A sequência deve ter no mínimo 3 cartas.",
-      cards
-    );
     return { is_valid: false, is_clean: false, canastra_type: "none" };
   }
 
-  // Filtra as cartas que não são "2" para checar o naipe e a base do jogo.
   const non_twos = cards.filter((c) => c.value !== "2");
 
   // 2. Validação de Jogo Apenas com Coringas
   if (non_twos.length === 0) {
-    console.warn(
-      "[RULE] Inválido: A sequência não pode ser formada apenas por coringas '2'.",
-      cards
-    );
     return { is_valid: false, is_clean: false, canastra_type: "none" };
   }
 
@@ -41,197 +29,123 @@ export const validate_sequence = (cards: Card[]): MeldValidation => {
   // 3. Validação de Naipe Único (exceto coringas)
   const same_suit = non_twos.every((c) => c.symbol.name === suit_name);
   if (!same_suit) {
-    console.warn(
-      `[RULE] Inválido: Cartas de naipes misturados. Esperado ${suit_name}.`,
-      cards
-    );
     return { is_valid: false, is_clean: false, canastra_type: "none" };
   }
 
   // 4. Testes Matemáticos de Sequência
-  // O Buraco tem regras complexas para o Ás (A), que pode valer 1 ou 14.
-  // Tentamos todas as combinações possíveis.
 
-  // Tentativa 1: Ás vale 1 (A, 2, 3...)
-  const attempt_low = check_math(cards, suit_name, "low");
+  // Tentativa 1: Ás vale 1 (A, 2, 3...) -> envia false (não é high)
+  const attempt_low = check_math(cards, suit_name, false);
   if (attempt_low.is_valid) {
-    console.log("[RULE] Válido como sequência com Ás baixo (A=1).", cards);
     return attempt_low;
   }
 
-  // Tentativa 2: Ás vale 14 (Q, K, A)
-  const attempt_high = check_math(cards, suit_name, "high");
+  // Tentativa 2: Ás vale 14 (Q, K, A) -> envia true (é high)
+  // Nota: Isso também cobre a canastra de 1000 (A...A), pois teremos um A(1) e um A(14)
+  const attempt_high = check_math(cards, suit_name, true);
   if (attempt_high.is_valid) {
-    console.log("[RULE] Válido como sequência com Ás alto (A=14).", cards);
     return attempt_high;
   }
 
-  // Tentativa 3: Canastra de 1000 pontos (A a A, de ponta a ponta)
-  // Só é possível se houver pelo menos dois Ases do naipe.
-  const natural_aces = cards.filter(
-    (c) => c.value === "A" && c.symbol.name === suit_name
-  );
-  if (natural_aces.length >= 2) {
-    const attempt_both = check_math(cards, suit_name, "both");
-    if (attempt_both.is_valid) {
-      console.log(
-        "[RULE] Válido como sequência de Ás a Ás (ponta a ponta).",
-        cards
-      );
-      return attempt_both;
-    }
-  }
-
   // 5. Falha Final
-  // Se nenhuma das tentativas acima funcionou, a sequência é inválida.
-  console.warn(
-    "[RULE] Inválido: A sequência numérica não é contínua ou possui 'buracos' não preenchidos.",
-    cards
-  );
-
   return { is_valid: false, is_clean: false, canastra_type: "none" };
 };
 
 const check_math = (
   cards: Card[],
   suit_name: string,
-  ace_mode: "low" | "high" | "both"
+  ace_high: boolean
 ): MeldValidation => {
-  // Encontra se há um '2' do mesmo naipe do jogo (será tratado como carta '2' e não coringa).
-  const natural_two = cards.find(
-    (c) => c.value === "2" && c.symbol.name === suit_name
-  );
+  // 1. Separar "Números Fixos" de "Curingas Potenciais" (todos os 2s)
+  // Removemos TODOS os 2s da lista de números para evitar gaps falsos
+  const numbers_cards = cards.filter((c) => c.value !== "2");
+  const twos_cards = cards.filter((c) => c.value === "2");
 
-  // Remove o '2' natural para a lógica de ordenação numérica.
-  const others = cards.filter((c) => c.id !== natural_two?.id);
+  // Identifica curingas "reais" (de outro naipe)
+  const real_wildcards = twos_cards.filter((c) => c.symbol.name !== suit_name);
 
-  let numbers: number[] = [];
-
-  // Converte o valor das cartas para números (pesos) para a validação.
-  if (ace_mode === "both") {
-    // Lógica para canastra de 1000 (Ás a Ás).
-    let aces_found = 0;
-    const remaining_others: Card[] = [];
-    for (const c of others) {
-      if (c.value === "A" && aces_found < 2) {
-        numbers.push(aces_found === 0 ? 1 : 14); // Primeiro Ás vira 1, segundo vira 14.
-        aces_found++;
-      } else {
-        remaining_others.push(c);
-      }
-    }
-    numbers.push(...remaining_others.map((c) => CARD_VALUE_WEIGHTS[c.value]));
-  } else {
-    // Lógica para sequências normais.
-    numbers = others.map((c) =>
-      c.value === "A" && ace_mode === "high" ? 14 : CARD_VALUE_WEIGHTS[c.value]
-    );
+  // REGRA: Apenas 1 curinga de naipe diferente permitido por jogo
+  if (real_wildcards.length > 1) {
+    return { is_valid: false, is_clean: false, canastra_type: "none" };
   }
 
-  numbers.sort((a, b) => a - b);
+  if (numbers_cards.length === 0) {
+    return { is_valid: false, is_clean: false, canastra_type: "none" };
+  }
 
-  // Se houver números duplicados (ex: dois '5' de ouros), é inválido.
+  // 2. Mapear para números (Pesos)
+  // Se ace_high for true, o Ás vira 14. Se tiver outro Ás no jogo (caso de 1000),
+  // ele pegará o peso padrão (1), permitindo a sequência 1...14.
+  const numbers = numbers_cards
+    .map((c) =>
+      c.value === "A" && ace_high ? 14 : CARD_VALUE_WEIGHTS[c.value]
+    )
+    .sort((a, b) => a - b);
+
+  // Verifica duplicidade de números exatos (ex: dois 7 de copas)
   if (new Set(numbers).size !== numbers.length) {
     return { is_valid: false, is_clean: false, canastra_type: "none" };
   }
 
-  // Calcula os "buracos" na sequência. Ex: [3, 5] tem 1 buraco (o '4').
-  const gaps = numbers.reduce((total, current, index, array) => {
-    const next = array[index + 1];
-    if (next === undefined) return total;
-
-    return total + (next - current - 1);
-  }, 0);
-
-  // Verifica se o '2' natural do naipe está preenchendo um buraco.
-  // Ex: A, 2, 3 de ouros. O '2' é natural, não coringa.
-  const fills_natural_gap =
-    ace_mode !== "high" &&
-    numbers.includes(1) &&
-    numbers.includes(3) &&
-    natural_two;
-
-  // Se o 2 natural preenche um buraco, ele não conta como coringa.
-  const effective_gaps = fills_natural_gap ? gaps - 1 : gaps;
-
-  // Verifica se há alguma carta '2' (de qualquer naipe) para ser usada como coringa.
-  const has_any_two_wildcard = cards.some((c) => c.value === "2");
-
-  // Regras Finais de Validação:
-  // 1. Não pode haver mais de 1 buraco. (Não se pode usar dois coringas para preencher a mesma sequência)
-  if (effective_gaps > 1) {
-    console.warn(
-      `[MATH] Inválido: Sequência com ${effective_gaps} buracos.`,
-      numbers
-    );
-    return { is_valid: false, is_clean: false, canastra_type: "none" };
-  }
-  // 2. Se houver 1 buraco, é OBRIGATÓRIO ter um coringa '2' disponível.
-  if (effective_gaps === 1 && !has_any_two_wildcard) {
-    console.warn(
-      "[MATH] Inválido: Sequência com buraco, mas sem coringa '2' para preencher.",
-      numbers
-    );
-    return { is_valid: false, is_clean: false, canastra_type: "none" };
+  // 3. Calcular "Buracos" (Gaps) na sequência numérica
+  let gaps = 0;
+  for (let i = 0; i < numbers.length - 1; i++) {
+    gaps += numbers[i + 1] - numbers[i] - 1;
   }
 
-  // Determina se o jogo é "sujo" (contém coringa).
-  const has_wildcard_used =
-    effective_gaps > 0 || // Um buraco foi preenchido por um coringa.
-    cards.some((c) => c.value === "2" && c.symbol.name !== suit_name); // Um '2' de outro naipe foi usado.
+  // 4. Validar se temos 2s suficientes para cobrir os buracos
+  const total_twos = twos_cards.length;
+  const is_valid = gaps <= total_twos;
 
-  const is_valid = true; // Se passou por todas as validações, é válido.
-  const is_clean = !has_wildcard_used;
+  // 5. Verificar limpeza (Clean/Dirty)
+  // É suja se tiver curinga de outro naipe OU se usou 2 para cobrir buraco (exceto gap natural do 2)
+  const natural_gap_filled =
+    gaps === 1 && numbers.includes(1) && numbers.includes(3);
 
+  // Se gaps > 0 e NÃO for o buraco natural do 2 (entre A e 3), então é suja
+  const used_wildcard_improperly = gaps > 0 && !natural_gap_filled;
+
+  const is_clean = real_wildcards.length === 0 && !used_wildcard_improperly;
+
+  // Definição do Tipo de Canastra
   let canastra_type: MeldValidation["canastra_type"] = "none";
 
-  // Se o jogo tem 7 ou mais cartas, é uma canastra.
   if (cards.length >= 7) {
     if (is_clean) {
-      if (ace_mode === "both" && numbers.length === 14) {
-        canastra_type = "thousand"; // Canastra de 1000 (limpa, de A a A)
-      } else if (
-        ace_mode === "high" &&
-        numbers.includes(13) &&
-        numbers.includes(14)
-      ) {
-        canastra_type = "real_500"; // Canastra Real (limpa, termina em K, A)
+      // Se for limpa e for de A a A (1 e 14 presentes), é a de 1000
+      const has_low_ace = numbers.includes(1);
+      const has_high_ace = numbers.includes(14);
+
+      if (has_low_ace && has_high_ace) {
+        canastra_type = "thousand";
       } else {
-        canastra_type = "clean"; // Canastra Limpa
+        canastra_type = "clean"; // ou "real_500" dependendo da sua preferência
       }
     } else {
-      canastra_type = "dirty"; // Canastra Suja
+      canastra_type = "dirty";
     }
   }
 
-  return {
-    is_valid,
-    is_clean,
-    canastra_type,
-  };
+  return { is_valid, is_clean, canastra_type };
 };
 
 /**
  * Organiza visualmente uma sequência para ser exibida na mesa.
- * Lógica: Cartas do naipe ordenadas por valor + Curinga no final.
+ * Lógica: Cartas do naipe ordenadas por valor + Curinga (se for de outro naipe) no final.
  */
 export const organize_sequence = (cards: Card[]): Card[] => {
-  // 1. Descobrir o naipe predominante da sequência (ignorando curingas óbvios de outros naipes)
   const non_twos = cards.filter((c) => c.value !== "2");
 
-  // Se só tem 2s e curingas (muito raro, mas possível no código), pega o primeiro
+  // Se só tem 2s (improvável aqui pois já validou), pega o primeiro
   const sequence_suit =
     non_twos.length > 0 ? non_twos[0].symbol.name : cards[0].symbol.name;
-
-  // 2. Separar Curingas de Cartas Naturais
-  // Curinga é: Carta '2' de outro naipe OU se for do mesmo naipe, mas sobrar na sequência (ex: tem 2,3,4 e outro 2).
-  // Para simplificar a visualização: 2 de outro naipe vai pro final.
 
   const naturals: Card[] = [];
   const wildcards: Card[] = [];
 
   cards.forEach((card) => {
-    // Se for 2 e de outro naipe, é curinga garantido
+    // É curinga visual se for 2 de OUTRO naipe.
+    // O 2 do MESMO naipe fica junto com os naturais para ser ordenado (ex: A, 2, 3).
     if (card.value === "2" && card.symbol.name !== sequence_suit) {
       wildcards.push(card);
     } else {
@@ -239,18 +153,10 @@ export const organize_sequence = (cards: Card[]): Card[] => {
     }
   });
 
-  // 3. Ordenar as naturais pelo peso (Weight)
-  // Isso resolve o seu problema: 3, 4, 2 vira 2, 3, 4.
-  naturals.sort((a, b) => {
-    // Tratamento especial para Ás: Se tiver Q ou K na mão, o Ás (peso 1) deve ser considerado maior (14)?
-    // Por enquanto, ordenação simples por peso resolve 99% dos casos (A, 2, 3...).
-    // Se quiser suporte visual a Q, K, A, precisaria de uma lógica extra aqui.
-    return CARD_VALUE_WEIGHTS[a.value] - CARD_VALUE_WEIGHTS[b.value];
-  });
-
-  // 4. Se tivermos um 2 "natural" (do mesmo naipe) e um 2 "curinga" (do mesmo naipe - raro mas acontece com 2 baralhos),
-  // a lógica acima jogou ambos em 'naturals'. A validação já garantiu que o jogo é válido.
-  // Visualmente não faz mal ficarem juntos.
+  // Ordena as naturais pelo peso
+  naturals.sort(
+    (a, b) => CARD_VALUE_WEIGHTS[a.value] - CARD_VALUE_WEIGHTS[b.value]
+  );
 
   return [...naturals, ...wildcards];
 };

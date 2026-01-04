@@ -78,3 +78,17 @@ Calcula a pontuação final.
 1.  Refinar a interface visual (transformar o Debug em um Jogo bonito).
 2.  Implementar animações de cartas.
 3.  Preparar para Multiplayer Real (WebSockets) - Atualmente é simulação local.
+
+## 8. Log de Decisões Técnicas Recentes (Jan 2026)
+
+### Sistema de Pontuação (`scoring.ts`)
+
+- **Cálculo Híbrido:** A função `calculate_score` foi refatorada para aceitar parâmetros opcionais (`hands_to_penalize`, `did_beat`).
+  - **Uso em Tempo Real:** Chamada sem parâmetros opcionais para alimentar o HUD (apenas pontos positivos da mesa).
+  - **Uso em Game Over:** Chamada com penalidades para calcular o resultado final.
+- **Integração:** O scoring agora importa `validate_sequence` para determinar automaticamente se uma canastra é Limpa, Suja ou Real, garantindo consistência (Single Source of Truth).
+
+### Interface (`DebugGame.tsx`)
+
+- **Otimização de Espaço:** Substituição dos cabeçalhos grandes ("Jogos Time 1") por um componente compacto `GameInfoBar`.
+- **GameInfoBar:** Exibe pontuação em tempo real, contagem de cartas no monte e status visual dos Mortos (slots vermelhos), liberando a área central para renderização dos jogos.

@@ -1,12 +1,13 @@
 import { CARD_POINTS, type Card } from "../types/card";
+import { validate_sequence } from "./rules_logic"; // <--- Importamos a fonte da verdade
 
 // Configuração de Pontos
 const POINTS = {
   BATIDA: 100,
   CANASTRA_SUJA: 100,
   CANASTRA_LIMPA: 200,
-  CANASTRA_REAL_500: 500, // A a K (Limpa)
-  CANASTRA_REAL_1000: 1000, // A a A (Limpa, 14 cartas)
+  CANASTRA_REAL_500: 500, // A a K
+  CANASTRA_REAL_1000: 1000, // A a A
 };
 
 export interface ScoreResult {
@@ -22,28 +23,11 @@ export interface ScoreResult {
   };
 }
 
-// Helper para verificar se a canastra é limpa
-const check_is_clean = (meld: Card[]): boolean => {
-  const suit = meld[0].symbol.name;
-
-  // 1. Verifica se tem curinga de naipe diferente
-  const dirty_joker = meld.some(
-    (c) => c.value === "2" && c.symbol.name !== suit
-  );
-  if (dirty_joker) return false;
-
-  // 2. Verifica se tem mais de um 2 (mesmo sendo do mesmo naipe)
-  // No buraco, se tem dois 2s, um está cobrindo buraco e o outro é curinga -> Suja
-  const twos = meld.filter((c) => c.value === "2");
-  if (twos.length > 1) return false;
-
-  return true;
-};
-
 export const calculate_score = (
   melds: Card[][],
-  hands_to_penalize: Card[][],
-  did_beat: boolean
+  // Tornamos opcionais para usar no HUD durante o jogo
+  hands_to_penalize: Card[][] = [],
+  did_beat: boolean = false
 ): ScoreResult => {
   let base_points = 0;
   let bonus_points = 0;
@@ -60,33 +44,34 @@ export const calculate_score = (
   for (const meld of melds) {
     // Soma pontos das cartas individuais
     for (const card of meld) {
-      base_points += CARD_POINTS[card.value];
+      base_points += CARD_POINTS[card.value] || 0;
     }
 
     // Lógica de Bônus de Canastra
     if (meld.length >= 7) {
-      const is_clean = check_is_clean(meld);
+      // Reutiliza a validação robusta do rules_logic
+      const { canastra_type } = validate_sequence(meld);
 
-      if (!is_clean) {
-        // SUJA
-        bonus_points += POINTS.CANASTRA_SUJA;
-        details.canastras_sujas++;
-      } else {
-        // É LIMPA. Agora checamos se é Real (500 ou 1000)
-
-        if (meld.length === 14) {
-          // A a A (14 cartas)
-          bonus_points += POINTS.CANASTRA_REAL_1000;
-          details.canastras_1000++;
-        } else if (meld.length === 13) {
-          // A a K (13 cartas)
-          bonus_points += POINTS.CANASTRA_REAL_500;
-          details.canastras_500++;
-        } else {
-          // Limpa comum (7 a 12 cartas)
+      switch (canastra_type) {
+        case "dirty":
+          bonus_points += POINTS.CANASTRA_SUJA;
+          details.canastras_sujas++;
+          break;
+        case "clean":
           bonus_points += POINTS.CANASTRA_LIMPA;
           details.canastras_limpas++;
-        }
+          break;
+        case "real_500": // Assumindo que seu rules_logic retorna isso para A-K limpa
+          bonus_points += POINTS.CANASTRA_REAL_500;
+          details.canastras_500++;
+          break;
+        case "thousand": // Assumindo que retorna isso para A-A limpa
+          bonus_points += POINTS.CANASTRA_REAL_1000;
+          details.canastras_1000++;
+          break;
+        default:
+          // Caso caia aqui, não soma bônus
+          break;
       }
     }
   }
@@ -99,7 +84,7 @@ export const calculate_score = (
   // 3. Penalidade (Cartas na mão)
   for (const hand of hands_to_penalize) {
     for (const card of hand) {
-      penalty_points += CARD_POINTS[card.value];
+      penalty_points += CARD_POINTS[card.value] || 0;
     }
   }
 

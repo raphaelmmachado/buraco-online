@@ -1,4 +1,4 @@
-import { Server, Socket } from "socket.io";
+import { Server } from "socket.io";
 
 // --- IMPORTS (Certifique-se que os arquivos existem em ./utils e ./types) ---
 import { create_deck, distribute_cards } from "./utils/game_logic";

@@ -1,9 +1,9 @@
 import "./style.css";
-import Deck from "./components/Deck";
+import { DebugGame } from "./components/DebugGame";
 function App() {
   return (
     <main className="">
-      <Deck />
+      <DebugGame />
     </main>
   );
 }

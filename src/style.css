@@ -2,6 +2,6 @@
 
 @layer base {
   body {
-    @apply bg-green-900 h-screen overflow-hidden;
+    /* @apply bg-green-900 h-screen overflow-hidden; */
   }
 }

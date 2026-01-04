@@ -48,7 +48,7 @@ interface GameActions {
   meld_cards: (card_ids: string[]) => boolean;
   pick_up_discard_new_meld: (hand_card_ids: string[]) => boolean;
   pick_up_discard_add_to_meld: (meld_index: number) => boolean;
-  add_card_to_meld: (card_id: string, meld_index: number) => boolean;
+  add_card_to_meld: (card_ids: string[], meld_index: number) => boolean;
 
   sync_server_state: (server_state: Partial<GameState>) => void;
   internal_handle_empty_hand: (type: "DIRECT" | "INDIRECT") => void;
@@ -231,22 +231,34 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     return true;
   },
 
-  add_card_to_meld: (card_id, meld_index) => {
+  add_card_to_meld: (card_ids, meld_index) => {
     const { hands, current_player, team_melds, turn_phase } = get();
     if (turn_phase !== "ACTION") return false;
 
     const team_id = get_team(current_player);
     const my_hand = hands[current_player];
-    const card = my_hand.find((c) => c.id === card_id);
+
+    // 1. Encontra todas as cartas selecionadas na mão
+    const cards_to_add = my_hand.filter((c) => card_ids.includes(c.id));
     const target_meld = team_melds[team_id][meld_index];
 
-    if (!card || !target_meld) return false;
+    // Verifica se achou as cartas e o jogo
+    if (cards_to_add.length !== card_ids.length || !target_meld) return false;
 
-    const proposed = [...target_meld, card];
-    if (!validate_sequence(proposed).is_valid) return false;
+    // 2. Simula a nova sequência (Jogo Atual + Todas as Novas Cartas)
+    const proposed = [...target_meld, ...cards_to_add];
 
-    const new_hand = my_hand.filter((c) => c.id !== card_id);
+    // 3. Valida
+    if (!validate_sequence(proposed).is_valid) {
+      console.warn("Essas cartas não encaixam na sequência.");
+      return false;
+    }
+
+    // 4. Executa
+    const new_hand = my_hand.filter((c) => !card_ids.includes(c.id));
     const new_melds_list = [...team_melds[team_id]];
+
+    // Ordena o jogo no backend (para manter consistência de dados)
     new_melds_list[meld_index] = sort_cards(proposed);
 
     set({

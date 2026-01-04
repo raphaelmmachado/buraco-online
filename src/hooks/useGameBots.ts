@@ -49,5 +49,12 @@ export const useGameBots = () => {
     playBotTurn();
 
     return () => clearTimeout(timeoutId);
-  }, [current_player, status, turn_phase, hands]); // Dependências para rodar sempre que mudar
+  }, [
+    current_player,
+    status,
+    turn_phase,
+    hands,
+    discard_card,
+    draw_card_from_deck,
+  ]); // Dependências para rodar sempre que mudar
 };

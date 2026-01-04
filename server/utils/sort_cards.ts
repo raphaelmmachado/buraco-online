@@ -98,6 +98,7 @@ export const organize_meld_visual = (cards: Card[]): Card[] => {
       return CARD_VALUE_WEIGHTS[c.value];
     };
 
+    // Se termina em K(13) ou A(14), só pode por no início (se início não for A-1)
     const lastW = getW(last, true);
 
     if (lastW >= 13) {

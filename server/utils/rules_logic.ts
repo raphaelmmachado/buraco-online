@@ -1,5 +1,12 @@
 import { type Card, CARD_VALUE_WEIGHTS } from "../types/card";
 
+/**
+ * @interface MeldValidation
+ * @description Define a estrutura do retorno da validação de um jogo (meld).
+ * @property {boolean} is_valid - Indica se a sequência de cartas é um jogo válido.
+ * @property {boolean} is_clean - Se o jogo é limpo (sem coringas) ou não.
+ * @property {"none" | "dirty" | "clean" | "real_500" | "thousand"} canastra_type - O tipo de canastra formada (se aplicável).
+ */
 export interface MeldValidation {
   is_valid: boolean;
   is_clean: boolean;
@@ -92,6 +99,14 @@ export const validate_sequence = (cards: Card[]): MeldValidation => {
   return { is_valid: false, is_clean: false, canastra_type: "none" };
 };
 
+/**
+ * @function check_math
+ * @description Função auxiliar que realiza a verificação matemática de uma sequência de cartas.
+ * @param {Card[]} cards - O array de cartas a ser verificado.
+ * @param {string} suit_name - O naipe principal do jogo (ex: "clubs").
+ * @param {"low" | "high" | "both"} ace_mode - Como o Ás deve ser tratado na verificação ('low' para 1, 'high' para 14, 'both' para ambos).
+ * @returns {MeldValidation} O resultado da validação matemática.
+ */
 const check_math = (
   cards: Card[],
   suit_name: string,
@@ -209,48 +224,4 @@ const check_math = (
     is_clean,
     canastra_type,
   };
-};
-
-/**
- * Organiza visualmente uma sequência para ser exibida na mesa.
- * Lógica: Cartas do naipe ordenadas por valor + Curinga no final.
- */
-export const organize_sequence = (cards: Card[]): Card[] => {
-  // 1. Descobrir o naipe predominante da sequência (ignorando curingas óbvios de outros naipes)
-  const non_twos = cards.filter((c) => c.value !== "2");
-
-  // Se só tem 2s e curingas (muito raro, mas possível no código), pega o primeiro
-  const sequence_suit =
-    non_twos.length > 0 ? non_twos[0].symbol.name : cards[0].symbol.name;
-
-  // 2. Separar Curingas de Cartas Naturais
-  // Curinga é: Carta '2' de outro naipe OU se for do mesmo naipe, mas sobrar na sequência (ex: tem 2,3,4 e outro 2).
-  // Para simplificar a visualização: 2 de outro naipe vai pro final.
-
-  const naturals: Card[] = [];
-  const wildcards: Card[] = [];
-
-  cards.forEach((card) => {
-    // Se for 2 e de outro naipe, é curinga garantido
-    if (card.value === "2" && card.symbol.name !== sequence_suit) {
-      wildcards.push(card);
-    } else {
-      naturals.push(card);
-    }
-  });
-
-  // 3. Ordenar as naturais pelo peso (Weight)
-  // Isso resolve o seu problema: 3, 4, 2 vira 2, 3, 4.
-  naturals.sort((a, b) => {
-    // Tratamento especial para Ás: Se tiver Q ou K na mão, o Ás (peso 1) deve ser considerado maior (14)?
-    // Por enquanto, ordenação simples por peso resolve 99% dos casos (A, 2, 3...).
-    // Se quiser suporte visual a Q, K, A, precisaria de uma lógica extra aqui.
-    return CARD_VALUE_WEIGHTS[a.value] - CARD_VALUE_WEIGHTS[b.value];
-  });
-
-  // 4. Se tivermos um 2 "natural" (do mesmo naipe) e um 2 "curinga" (do mesmo naipe - raro mas acontece com 2 baralhos),
-  // a lógica acima jogou ambos em 'naturals'. A validação já garantiu que o jogo é válido.
-  // Visualmente não faz mal ficarem juntos.
-
-  return [...naturals, ...wildcards];
 };

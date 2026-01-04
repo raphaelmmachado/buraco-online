@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useGameStore } from "../store/useGameStore";
+import { useGameStore } from "../store/useGameStore-old";
 
 export const useGameBots = () => {
   const {

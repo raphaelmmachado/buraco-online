@@ -1,4 +1,4 @@
-import { CARD_POINTS, type Card } from "../types/card";
+import { CARD_POINTS, type Card } from "../types/card.ts";
 
 // Configuração de Pontos
 const POINTS = {

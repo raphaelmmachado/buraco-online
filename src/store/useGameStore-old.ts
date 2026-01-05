@@ -1,9 +1,9 @@
 import { create } from "zustand";
-import type { Card } from "../types/card";
-import { distribute_cards, create_deck } from "../utils/game_logic";
-import { sort_cards, organize_sequence } from "../utils/sort_cards";
-import { validate_sequence } from "../utils/rules_logic";
-import { calculate_score, type ScoreResult } from "../utils/scoring";
+import type { Card } from "../../common/types/card";
+import { distribute_cards, create_deck } from "../../common/utils/game_logic";
+import { sort_cards, organize_sequence } from "../../common/utils/sort_cards";
+import { validate_sequence } from "../../common/utils/rules_logic";
+import { calculate_score, type ScoreResult } from "../../common/utils/scoring";
 
 type PlayerID = 1 | 2 | 3 | 4;
 type TeamID = 1 | 2;

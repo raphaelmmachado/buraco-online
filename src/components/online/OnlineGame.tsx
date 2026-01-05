@@ -1,0 +1,24 @@
+import { useGameStore } from "../../store/useGameStore";
+import { GameScreen } from "./GameScreen";
+import { HomeScreen } from "./HomeScreen";
+import { LobbyScreen } from "./LobbyScreen";
+
+/**
+ * This component acts as a router, displaying the correct screen
+ * based on the current game status from the WebSocket store.
+ */
+export const OnlineGame = () => {
+  const status = useGameStore((state) => state.status);
+
+  // The 'FINISHED' status can be handled here later, maybe showing a summary screen.
+  if (status === "PLAYING" || status === "FINISHED") {
+    return <GameScreen />;
+  }
+
+  if (status === "LOBBY") {
+    return <LobbyScreen />;
+  }
+
+  // Default view is the home screen to join a game
+  return <HomeScreen />;
+};

@@ -51,6 +51,38 @@ export const validate_sequence = (cards: Card[]): MeldValidation => {
   return { is_valid: false, is_clean: false, canastra_type: "none" };
 };
 
+/**
+ * @function validate_discard_pickup
+ * @description Valida se um jogador pode pegar a carta do topo do lixo.
+ *              A regra exige que a carta do lixo + 2 cartas da mão formem um jogo limpo.
+ * @param {Card} discard_top_card - A carta no topo do lixo.
+ * @param {Card[]} selected_hand_cards - As 2 cartas selecionadas da mão do jogador.
+ * @returns {boolean} - True se a compra for válida, false caso contrário.
+ */
+export const validate_discard_pickup = (
+  discard_top_card: Card,
+  selected_hand_cards: Card[]
+): boolean => {
+  // 1. A regra exige exatamente 2 cartas da mão.
+  if (selected_hand_cards.length !== 2) {
+    console.error("[PICKUP] A seleção deve conter exatamente 2 cartas da mão.");
+    return false;
+  }
+
+  // 2. Monta o jogo potencial com as 3 cartas.
+  const potential_meld = [discard_top_card, ...selected_hand_cards];
+
+  // 3. Usa a função de validação de sequência existente.
+  const validation_result = validate_sequence(potential_meld);
+
+  // 4. A compra só é válida se o resultado for um jogo válido E LIMPO.
+  if (validation_result.is_valid && validation_result.is_clean) {
+    return true;
+  }
+
+  return false;
+};
+
 const check_math = (
   cards: Card[],
   suit_name: string,
@@ -64,6 +96,12 @@ const check_math = (
   // Identifica curingas "reais" (de outro naipe)
   const real_wildcards = twos_cards.filter((c) => c.symbol.name !== suit_name);
 
+  // REGRA DE OURO: Para formar um jogo (sequência), são necessárias pelo menos 2 cartas "naturais" (não curingas)
+  // para estabelecer a base da sequência.
+  if (numbers_cards.length < 2) {
+    return { is_valid: false, is_clean: false, canastra_type: "none" };
+  }
+
   // REGRA: Apenas 1 curinga de naipe diferente permitido por jogo
   if (real_wildcards.length > 1) {
     return { is_valid: false, is_clean: false, canastra_type: "none" };
@@ -76,11 +114,25 @@ const check_math = (
   // 2. Mapear para números (Pesos)
   // Se ace_high for true, o Ás vira 14. Se tiver outro Ás no jogo (caso de 1000),
   // ele pegará o peso padrão (1), permitindo a sequência 1...14.
-  const numbers = numbers_cards
-    .map((c) =>
-      c.value === "A" && ace_high ? 14 : CARD_VALUE_WEIGHTS[c.value]
-    )
-    .sort((a, b) => a - b);
+  let numbers: number[] = [];
+  const aces_in_natural_cards = numbers_cards.filter(c => c.value === "A");
+
+  // Lógica específica para Canastra de 1000 (Ás a Ás)
+  if (ace_high && aces_in_natural_cards.length === 2) {
+    const other_natural_cards = numbers_cards.filter(c => c.value !== "A");
+    numbers = [
+      1, // Um Ás como 1
+      14, // O outro Ás como 14
+      ...other_natural_cards.map(c => CARD_VALUE_WEIGHTS[c.value])
+    ];
+  } else {
+    // Lógica padrão para outros casos de Ás (baixo ou alto)
+    numbers = numbers_cards
+      .map((c) =>
+        c.value === "A" && ace_high ? 14 : CARD_VALUE_WEIGHTS[c.value]
+      );
+  }
+  numbers.sort((a, b) => a - b);
 
   // Verifica duplicidade de números exatos (ex: dois 7 de copas)
   if (new Set(numbers).size !== numbers.length) {
@@ -112,14 +164,26 @@ const check_math = (
 
   if (cards.length >= 7) {
     if (is_clean) {
-      // Se for limpa e for de A a A (1 e 14 presentes), é a de 1000
       const has_low_ace = numbers.includes(1);
       const has_high_ace = numbers.includes(14);
 
-      if (has_low_ace && has_high_ace) {
+      // Canastra de 1000: Limpa, de A a A (14 cartas)
+      if (cards.length === 14 && has_low_ace && has_high_ace) {
         canastra_type = "thousand";
-      } else {
-        canastra_type = "clean"; // ou "real_500" dependendo da sua preferência
+      }
+      // Canastra de 500: Limpa, de A a K ou de 2 a A (13 cartas)
+      else if (cards.length === 13) {
+        const is_A_to_K = numbers[0] === 1 && numbers[numbers.length - 1] === 13;
+        const is_2_to_A = numbers[0] === 2 && numbers[numbers.length - 1] === 14;
+        if (is_A_to_K || is_2_to_A) {
+          canastra_type = "real_500";
+        } else {
+          canastra_type = "clean"; // 13 cartas mas não é canastra real
+        }
+      }
+      // Canastra Limpa Comum
+      else {
+        canastra_type = "clean";
       }
     } else {
       canastra_type = "dirty";
@@ -127,36 +191,4 @@ const check_math = (
   }
 
   return { is_valid, is_clean, canastra_type };
-};
-
-/**
- * Organiza visualmente uma sequência para ser exibida na mesa.
- * Lógica: Cartas do naipe ordenadas por valor + Curinga (se for de outro naipe) no final.
- */
-export const organize_sequence = (cards: Card[]): Card[] => {
-  const non_twos = cards.filter((c) => c.value !== "2");
-
-  // Se só tem 2s (improvável aqui pois já validou), pega o primeiro
-  const sequence_suit =
-    non_twos.length > 0 ? non_twos[0].symbol.name : cards[0].symbol.name;
-
-  const naturals: Card[] = [];
-  const wildcards: Card[] = [];
-
-  cards.forEach((card) => {
-    // É curinga visual se for 2 de OUTRO naipe.
-    // O 2 do MESMO naipe fica junto com os naturais para ser ordenado (ex: A, 2, 3).
-    if (card.value === "2" && card.symbol.name !== sequence_suit) {
-      wildcards.push(card);
-    } else {
-      naturals.push(card);
-    }
-  });
-
-  // Ordena as naturais pelo peso
-  naturals.sort(
-    (a, b) => CARD_VALUE_WEIGHTS[a.value] - CARD_VALUE_WEIGHTS[b.value]
-  );
-
-  return [...naturals, ...wildcards];
 };

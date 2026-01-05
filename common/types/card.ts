@@ -68,3 +68,19 @@ export const CARD_POINTS: Record<CardValue, number> = CARD_DEFINITIONS.reduce(
   (acc, curr) => ({ ...acc, [curr.val]: curr.points }),
   {} as Record<CardValue, number>
 );
+
+// Pontos de Bônus por evento/canastra
+export const BONUS_POINTS = {
+  BATIDA: 100,
+  CANASTRA_SUJA: 100,
+  CANASTRA_LIMPA: 200,
+  CANASTRA_REAL_500: 500, // A a K
+  CANASTRA_REAL_1000: 1000, // A a A
+} as const;
+
+// Regras Fundamentais do Jogo
+export const GAME_RULES = {
+  DECKS_TO_USE: 2,
+  CARDS_PER_HAND: 11,
+  CARDS_IN_DEAD_PILE: 11,
+} as const;

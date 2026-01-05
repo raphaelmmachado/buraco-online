@@ -115,22 +115,21 @@ const check_math = (
   // Se ace_high for true, o Ás vira 14. Se tiver outro Ás no jogo (caso de 1000),
   // ele pegará o peso padrão (1), permitindo a sequência 1...14.
   let numbers: number[] = [];
-  const aces_in_natural_cards = numbers_cards.filter(c => c.value === "A");
+  const aces_in_natural_cards = numbers_cards.filter((c) => c.value === "A");
 
   // Lógica específica para Canastra de 1000 (Ás a Ás)
   if (ace_high && aces_in_natural_cards.length === 2) {
-    const other_natural_cards = numbers_cards.filter(c => c.value !== "A");
+    const other_natural_cards = numbers_cards.filter((c) => c.value !== "A");
     numbers = [
       1, // Um Ás como 1
       14, // O outro Ás como 14
-      ...other_natural_cards.map(c => CARD_VALUE_WEIGHTS[c.value])
+      ...other_natural_cards.map((c) => CARD_VALUE_WEIGHTS[c.value]),
     ];
   } else {
     // Lógica padrão para outros casos de Ás (baixo ou alto)
-    numbers = numbers_cards
-      .map((c) =>
-        c.value === "A" && ace_high ? 14 : CARD_VALUE_WEIGHTS[c.value]
-      );
+    numbers = numbers_cards.map((c) =>
+      c.value === "A" && ace_high ? 14 : CARD_VALUE_WEIGHTS[c.value]
+    );
   }
   numbers.sort((a, b) => a - b);
 
@@ -173,8 +172,10 @@ const check_math = (
       }
       // Canastra de 500: Limpa, de A a K ou de 2 a A (13 cartas)
       else if (cards.length === 13) {
-        const is_A_to_K = numbers[0] === 1 && numbers[numbers.length - 1] === 13;
-        const is_2_to_A = numbers[0] === 2 && numbers[numbers.length - 1] === 14;
+        const is_A_to_K =
+          numbers[0] === 1 && numbers[numbers.length - 1] === 13;
+        const is_2_to_A =
+          numbers[0] === 2 && numbers[numbers.length - 1] === 14;
         if (is_A_to_K || is_2_to_A) {
           canastra_type = "real_500";
         } else {

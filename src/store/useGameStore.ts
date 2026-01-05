@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { io, Socket } from "socket.io-client";
-import type { Card } from "../types/card";
+import type { Card } from "../../common/types/card";
+import { SERVER_ADRESS } from "../../common/const/server-adress";
 
 // 1. O QUE CHEGA DO SERVIDOR (Cópia da interface do server)
 interface IncomingServerState {
@@ -8,25 +9,34 @@ interface IncomingServerState {
   status: "LOBBY" | "PLAYING" | "FINISHED";
   deck: Card[];
   discard_pile: Card[];
-  hands: Record<number, Card[]>; // <--- O servidor manda assim
+  hands: Record<number, Card[]>;
   team_melds: Record<number, Card[][]>;
   dead_piles: Card[][];
   turn_phase: "DRAW" | "ACTION" | "DISCARD";
   current_player: number;
 }
 
-// 2. O ESTADO DO FRONTEND (O que a UI usa para desenhar)
+// Novo: tipo para a informação de cada sala
+export interface RoomInfo {
+  roomId: string;
+  mode: "1v1" | "2v2";
+  playerCount: number;
+  maxPlayers: number;
+}
+
+// 2. O ESTADO DO FRONTEND
 interface GameState {
   // Dados de controle local
   roomId: string;
-  my_player_number: number | null; // 1, 2, 3 ou 4
-  status: "LOBBY" | "PLAYING" | "FINISHED";
+  my_player_number: number | null;
+  my_player_name: string | null;
+  status: "IDLE" | "LOBBY" | "PLAYING" | "FINISHED";
+  rooms: RoomInfo[]; // <-- NOVO
 
-  // Dados do jogo "traduzidos" para facilitar a UI
+  // Dados do jogo
   deck: Card[];
   discard_pile: Card[];
-  player_hand: Card[]; // <--- A UI prefere assim
-  opponent_hand: Card[]; // <--- A UI prefere assim
+  hands: Record<number, Card[]>;
   team_melds: { 1: Card[][]; 2: Card[][] };
   dead_piles: Card[][];
   turn_phase: "DRAW" | "ACTION" | "DISCARD";
@@ -34,20 +44,20 @@ interface GameState {
 }
 
 interface GameActions {
-  connect: (roomId: string, mode: "1v1" | "2v2") => void;
+  initializeSocket: () => void;
+  connect: (roomId: string, mode: "1v1" | "2v2", userName: string) => void;
+  fetchRooms: () => void; // <-- NOVO
 
-  // Actions de envio (Client -> Server)
+  // Actions de jogo
   draw_card: () => void;
   discard_card: (card_id: string) => void;
   meld_cards: (card_ids: string[]) => void;
   add_to_meld: (card_ids: string[], meld_index: number) => void;
 
-  // Action de recebimento (Server -> Client)
   set_server_state: (server_data: IncomingServerState) => void;
 }
 
-// Conexão Socket (fora da store para ser singleton)
-const socket: Socket = io("http://localhost:3000", {
+const socket: Socket = io(SERVER_ADRESS, {
   autoConnect: false,
 });
 
@@ -55,12 +65,13 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   // ESTADO INICIAL
   roomId: "",
   my_player_number: null,
-  status: "LOBBY",
+  my_player_name: null,
+  status: "IDLE",
+  rooms: [], // <-- NOVO
 
   deck: [],
   discard_pile: [],
-  player_hand: [],
-  opponent_hand: [],
+  hands: {},
   team_melds: { 1: [], 2: [] },
   dead_piles: [],
   turn_phase: "DRAW",
@@ -68,38 +79,41 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
   // --- ACTIONS ---
 
-  connect: (roomId, mode) => {
+  initializeSocket: () => {
     socket.connect();
 
-    // 1. Ouvir identidade
-    socket.on("player_assignment", (num: number) => {
+    socket.on("player_assignment", (num: number, userName: string) => {
       console.log("Servidor disse que sou o Jogador:", num);
-      set({ my_player_number: num, roomId });
+      set({ my_player_number: num, my_player_name: userName });
     });
 
-    // 2. Ouvir atualizações do jogo
     socket.on("game_update", (serverState: IncomingServerState) => {
       get().set_server_state(serverState);
     });
 
-    socket.on("error_msg", (msg: string) => alert(msg));
+    socket.on("rooms_list", (rooms: RoomInfo[]) => {
+      set({ rooms });
+    });
 
-    // Entrar na sala
-    socket.emit("join_game", { roomId, mode });
+    socket.on("error_msg", (msg: string) => {
+      alert(msg);
+      set({ status: "IDLE" });
+    });
+
+    // Pede a lista de salas assim que conecta
+    get().fetchRooms();
   },
 
-  // AQUI ESTAVA O ERRO: Agora fazemos a tradução explícita
+  fetchRooms: () => {
+    socket.emit("request_rooms");
+  },
+
+  connect: (roomId, mode, userName) => {
+    set({ status: "LOBBY", roomId });
+    socket.emit("join_game", { roomId, mode, userName });
+  },
+
   set_server_state: (server_data) => {
-    const { my_player_number } = get();
-
-    // Se ainda não sei quem sou, não posso separar as mãos.
-    // Mas atualizo o resto para garantir que a tela de lobby funcione.
-    if (!my_player_number) return;
-
-    // Lógica para descobrir a mão do oponente (no 1v1)
-    const opponent_number = my_player_number === 1 ? 2 : 1;
-
-    // TRADUÇÃO: Server (Record) -> Front (Arrays simples)
     set({
       status: server_data.status,
       deck: server_data.deck,
@@ -107,17 +121,11 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       dead_piles: server_data.dead_piles,
       current_player: server_data.current_player,
       turn_phase: server_data.turn_phase,
-
-      // Mapeia team_melds corretamente (garantindo tipagem)
       team_melds: {
         1: server_data.team_melds[1] || [],
         2: server_data.team_melds[2] || [],
       },
-
-      // AQUI É A MÁGICA:
-      // Pega do objeto 'hands' usando meu ID
-      player_hand: server_data.hands[my_player_number] || [],
-      opponent_hand: server_data.hands[opponent_number] || [],
+      hands: server_data.hands,
     });
   },
 

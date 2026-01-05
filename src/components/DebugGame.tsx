@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useGameStore } from "../store/useGameStore-old";
 import { useGameBots } from "../hooks/useGameBots";
-import { type Card } from "../types/card";
-import { organize_meld_visual } from "../utils/sort_cards";
+import { type Card } from "../../common/types/card";
+import { organize_meld_visual } from "../../common/utils/sort_cards";
 // ADICIONE ESTE IMPORT
-import { calculate_score } from "../utils/scoring";
+import { calculate_score } from "../../common/utils/scoring";
 
 export const DebugGame = () => {
   useGameBots();

@@ -1,4 +1,4 @@
-import { type Card } from "../config/deck.ts";
+import { type Card } from "@common/types/card";
 interface CardProps extends Card {
   hidden?: boolean;
 }

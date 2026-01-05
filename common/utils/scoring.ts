@@ -1,14 +1,5 @@
-import { CARD_POINTS, type Card } from "../types/card";
-import { validate_sequence } from "./rules_logic"; // <--- Importamos a fonte da verdade
-
-// Configuração de Pontos
-const POINTS = {
-  BATIDA: 100,
-  CANASTRA_SUJA: 100,
-  CANASTRA_LIMPA: 200,
-  CANASTRA_REAL_500: 500, // A a K
-  CANASTRA_REAL_1000: 1000, // A a A
-};
+import { BONUS_POINTS, CARD_POINTS, type Card } from "../types/card";
+import { validate_sequence } from "./rules_logic";
 
 export interface ScoreResult {
   total_score: number;
@@ -28,7 +19,8 @@ export const calculate_score = (
   // Tornamos opcionais para usar no HUD durante o jogo
   hands_to_penalize: Card[][] = [],
   did_beat: boolean = false
-): ScoreResult => {
+):
+ScoreResult => {
   let base_points = 0;
   let bonus_points = 0;
   let penalty_points = 0;
@@ -54,23 +46,22 @@ export const calculate_score = (
 
       switch (canastra_type) {
         case "dirty":
-          bonus_points += POINTS.CANASTRA_SUJA;
+          bonus_points += BONUS_POINTS.CANASTRA_SUJA;
           details.canastras_sujas++;
           break;
         case "clean":
-          bonus_points += POINTS.CANASTRA_LIMPA;
+          bonus_points += BONUS_POINTS.CANASTRA_LIMPA;
           details.canastras_limpas++;
           break;
-        case "real_500": // Assumindo que seu rules_logic retorna isso para A-K limpa
-          bonus_points += POINTS.CANASTRA_REAL_500;
+        case "real_500":
+          bonus_points += BONUS_POINTS.CANASTRA_REAL_500;
           details.canastras_500++;
           break;
-        case "thousand": // Assumindo que retorna isso para A-A limpa
-          bonus_points += POINTS.CANASTRA_REAL_1000;
+        case "thousand":
+          bonus_points += BONUS_POINTS.CANASTRA_REAL_1000;
           details.canastras_1000++;
           break;
         default:
-          // Caso caia aqui, não soma bônus
           break;
       }
     }
@@ -78,7 +69,7 @@ export const calculate_score = (
 
   // 2. Bônus de Batida
   if (did_beat) {
-    bonus_points += POINTS.BATIDA;
+    bonus_points += BONUS_POINTS.BATIDA;
   }
 
   // 3. Penalidade (Cartas na mão)

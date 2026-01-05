@@ -109,3 +109,35 @@ export const organize_meld_visual = (cards: Card[]): Card[] => {
 
   return finalSequence;
 };
+
+/**
+ * Organiza visualmente uma sequência para ser exibida na mesa.
+ * Lógica: Cartas do naipe ordenadas por valor + Curinga (se for de outro naipe) no final.
+ */
+export const organize_sequence = (cards: Card[]): Card[] => {
+  const non_twos = cards.filter((c) => c.value !== "2");
+
+  // Se só tem 2s (improvável aqui pois já validou), pega o primeiro
+  const sequence_suit =
+    non_twos.length > 0 ? non_twos[0].symbol.name : cards[0].symbol.name;
+
+  const naturals: Card[] = [];
+  const wildcards: Card[] = [];
+
+  cards.forEach((card) => {
+    // É curinga visual se for 2 de OUTRO naipe.
+    // O 2 do MESMO naipe fica junto com os naturais para ser ordenado (ex: A, 2, 3).
+    if (card.value === "2" && card.symbol.name !== sequence_suit) {
+      wildcards.push(card);
+    } else {
+      naturals.push(card);
+    }
+  });
+
+  // Ordena as naturais pelo peso
+  naturals.sort(
+    (a, b) => CARD_VALUE_WEIGHTS[a.value] - CARD_VALUE_WEIGHTS[b.value]
+  );
+
+  return [...naturals, ...wildcards];
+};

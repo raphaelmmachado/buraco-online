@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import type { Card } from "../types/card";
 import { distribute_cards, create_deck } from "../utils/game_logic";
-import { sort_cards } from "../utils/sort_cards";
-import { validate_sequence, organize_sequence } from "../utils/rules_logic";
+import { sort_cards, organize_sequence } from "../utils/sort_cards";
+import { validate_sequence } from "../utils/rules_logic";
 import { calculate_score, type ScoreResult } from "../utils/scoring";
 
 type PlayerID = 1 | 2 | 3 | 4;

@@ -71,6 +71,12 @@ export const DebugGame = () => {
         >
           👤 1v1 (vs Bot)
         </button>
+        <button
+          className="bg-green-600 hover:bg-green-500 text-white px-8 py-6 rounded-xl text-xl font-bold shadow-xl border-b-4 border-green-800 active:border-0 active:translate-y-1 transition-all"
+          onClick={() => store.start_game("2v2")}
+        >
+          👤 2v2 (vs Bot)
+        </button>
         {/* ... */}
       </div>
     );
@@ -139,6 +145,11 @@ export const DebugGame = () => {
                 }`}
               >
                 {store.current_player === 1 ? "SUA VEZ" : "BOT"}
+              </span>
+              <span>{store.turn_phase === "DRAW" && "FASE DE COMPRA"}</span>
+              <span>{store.turn_phase === "DISCARD" && "DISCARTE"}</span>
+              <span>
+                {store.turn_phase === "ACTION" && "ABAIXE OU JOGUE FORA"}
               </span>
             </div>
           </div>

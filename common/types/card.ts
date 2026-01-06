@@ -101,13 +101,17 @@ export const CARD_POINTS: Record<CardValue, number> = CARD_DEFINITIONS.reduce(
 // -----------------------------------------------------------------------------
 
 export const BONUS_POINTS = {
-  BATIDA: 100,
-  CANASTRA_SUJA: 100,
-  CANASTRA_LIMPA: 200,
-  CANASTRA_DE_500: 500,
-  CANASTRA_REAL: 1000,
-  PEGOU_MORTO: 0, // Bônus por pegar o morto é apenas não ser penalizado
-  NAO_PEGOU_MORTO: -100,
+  BEAT: 100,
+  TAKE_DEAD_PILE: 0, // Bônus por pegar o morto é apenas não ser penalizado
+  DID_NOT_TAKE_DEAD_PILE: -100,
+} as const;
+
+export const MELD_POINTS = {
+  INSUFFICIENT: 0,
+  DIRTY: 100,
+  CLEAN: 200,
+  KING: 500,
+  ACE: 1000,
 } as const;
 
 // -----------------------------------------------------------------------------

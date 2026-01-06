@@ -4,24 +4,21 @@
 // de uma rodada, baseado nas regras do `RULES.md`.
 // =============================================================================
 
-import { BONUS_POINTS, CARD_POINTS, type Card } from "../types/card";
+import {
+  BONUS_POINTS,
+  CARD_POINTS,
+  MELD_POINTS,
+  type Card,
+} from "../types/card";
 import { validate_sequence } from "./rules_logic";
-
-export interface ScoreDetails {
-  canastras_sujas: number;
-  canastras_limpas: number;
-  canastras_500: number;
-  canastras_real: number;
-}
 
 export interface ScoreResult {
   total_score: number;
-  base_points: number;  // Pontos das cartas na mesa
+  base_points: number; // Pontos das cartas na mesa
   bonus_points: number; // Bônus de batida e canastras
   penalty_points: number; // Pontos das cartas na mão + morto não pego
-  details: ScoreDetails;
+  details: Record<keyof typeof MELD_POINTS, number>;
 }
-
 /**
  * Calcula a pontuação final de uma equipe.
  * @param {Card[][]} melds - Todos os jogos que a equipe baixou na mesa.
@@ -40,13 +37,13 @@ export const calculate_score = (
   let bonus_points = 0;
   let penalty_points = 0;
 
-  const details: ScoreDetails = {
-    canastras_sujas: 0,
-    canastras_limpas: 0,
-    canastras_500: 0,
-    canastras_real: 0,
+  const details = {
+    DIRTY: 0,
+    CLEAN: 0,
+    KING: 0,
+    ACE: 0,
+    INSUFFICIENT: 0,
   };
-
   // 1. Soma os pontos de todas as cartas na mesa (base_points)
   for (const meld of melds) {
     for (const card of meld) {
@@ -57,34 +54,18 @@ export const calculate_score = (
     if (meld.length >= 7) {
       const validation_result = validate_sequence(meld); // Pega o objeto completo
 
-      if (validation_result.is_valid) { // Verifica o discriminador
+      if (validation_result.is_valid) {
+        // Verifica o discriminador
         const { canastra_type } = validation_result; // Agora é seguro desestruturar
-
-        switch (canastra_type) {
-          case "dirty":
-            bonus_points += BONUS_POINTS.CANASTRA_SUJA;
-            details.canastras_sujas++;
-            break;
-          case "clean":
-            bonus_points += BONUS_POINTS.CANASTRA_LIMPA;
-            details.canastras_limpas++;
-            break;
-          case "500":
-            bonus_points += BONUS_POINTS.CANASTRA_DE_500;
-            details.canastras_500++;
-            break;
-          case "real":
-            bonus_points += BONUS_POINTS.CANASTRA_REAL;
-            details.canastras_real++;
-            break;
-        }
+        bonus_points += MELD_POINTS[canastra_type];
+        details[canastra_type]++;
       }
     }
   }
 
   // 3. Adiciona bônus pela batida
   if (did_beat) {
-    bonus_points += BONUS_POINTS.BATIDA;
+    bonus_points += BONUS_POINTS.BEAT;
   }
 
   // 4. Calcula as penalidades
@@ -98,7 +79,7 @@ export const calculate_score = (
   // b. Morto não pego
   if (did_not_take_dead_pile) {
     // A constante é -100, então somamos para subtrair do total.
-    penalty_points -= BONUS_POINTS.NAO_PEGOU_MORTO;
+    penalty_points -= BONUS_POINTS.DID_NOT_TAKE_DEAD_PILE;
   }
 
   // 5. Calcula o placar final
@@ -111,4 +92,31 @@ export const calculate_score = (
     penalty_points,
     details,
   };
+};
+
+/**
+ * Calcula a pontuação e o tipo de um único jogo (meld).
+ * Útil para a UI exibir informações detalhadas sobre cada sequência na mesa.
+ */
+export const calculate_meld_score = (
+  meld: Card[]
+): { score: number; type: string } => {
+  let score = 0;
+  for (const card of meld) {
+    score += CARD_POINTS[card.value] || 0;
+  }
+
+  let type: keyof typeof MELD_POINTS = "INSUFFICIENT";
+
+  if (meld.length >= 7) {
+    const validation = validate_sequence(meld);
+    if (validation.is_valid) {
+      type = validation.canastra_type;
+      score += MELD_POINTS[type];
+    }
+  } else if (meld.length >= 3) {
+    type = "INSUFFICIENT";
+  }
+
+  return { score, type };
 };

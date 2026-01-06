@@ -6,7 +6,10 @@ import { useGameStore } from "../store/useGameStoreBots";
 import { useGameBots } from "../hooks/useGameBots";
 import { type Card } from "../../common/types/card";
 import { organize_meld } from "../../common/utils/sort_cards";
-import { calculate_score } from "../../common/utils/scoring";
+import {
+  calculate_score,
+  calculate_meld_score,
+} from "../../common/utils/scoring";
 
 // --- Componente para exibir uma única carta (Helper) ---
 const CardComponent = ({
@@ -33,6 +36,57 @@ const CardComponent = ({
   </div>
 );
 
+// Helper para tag visual do meld
+
+const MeldInfo = ({ meld }: { meld: Card[] }) => {
+  const { score, type } = calculate_meld_score(meld);
+
+  let badgeColor = "bg-gray-500";
+
+  let badgeText = "Normal";
+
+  switch (type) {
+    case "CLEAN":
+      badgeColor = "bg-green-600";
+      badgeText = "LIMPA";
+      break;
+
+    case "DIRTY":
+      badgeColor = "bg-yellow-600";
+      badgeText = "SUJA";
+      break;
+
+    case "KING":
+      badgeColor = "bg-blue-600";
+      badgeText = "EXCELENTE";
+      break;
+
+    case "ACE":
+      badgeColor = "bg-purple-600";
+      badgeText = "PERFEITA";
+      break;
+
+    case "INSUFFICIENT":
+      badgeColor = "bg-gray-600";
+      badgeText = "Insuficiente";
+      break;
+  }
+
+  return (
+    <div className="flex flex-col items-center mb-1 w-full">
+      <div
+        className={`text-[10px] font-bold px-2 py-0.5 rounded text-white ${badgeColor} uppercase tracking-wider shadow-sm w-full text-center`}
+      >
+        {badgeText}
+      </div>
+
+      <span className="text-xs font-mono text-gray-300 mt-0.5">
+        {score} pts
+      </span>
+    </div>
+  );
+};
+
 export const DebugGame = () => {
   // --- Hooks e Estado Local ---
   const store = useGameStore();
@@ -46,9 +100,7 @@ export const DebugGame = () => {
     );
   };
 
-  console.log(store.team_melds);
-
-  // --- Renderização Condicional de Telas ---
+  // ... (RESTO DO CÓDIGO IGUAL ATÉ O MAP DOS MELDS)
 
   // TELA DE LOBBY
   if (store.status === "LOBBY") {
@@ -117,7 +169,6 @@ export const DebugGame = () => {
           </button>
         </div>
       )}
-
       {/* HUD Superior */}
       <div className="sticky top-0 bg-black/30 backdrop-blur-sm border-b border-white/10 px-4 py-2 mb-6 flex items-center justify-between text-xs shadow-md z-40">
         <div>
@@ -150,6 +201,7 @@ export const DebugGame = () => {
                 ? "SUA VEZ"
                 : `BOT ${store.current_player}`}
             </span>
+            <span>{store.turn_phase}</span>
           </div>
         </div>
         <div className="text-right">
@@ -161,7 +213,6 @@ export const DebugGame = () => {
           </span>
         </div>
       </div>
-
       {/* Área da Mesa */}
       <div className="px-4">
         {Object.entries(store.team_melds).map(([teamId, melds]) => (
@@ -174,6 +225,9 @@ export const DebugGame = () => {
               {melds.map((meld, index) => {
                 return (
                   <div key={index} className="flex flex-col items-center gap-1">
+                    {/* INFO DO MELD (NOVO) */}
+                    <MeldInfo meld={meld} />
+
                     {/* Botões de Ação no Jogo */}
                     <div className="flex gap-1 h-5">
                       {" "}

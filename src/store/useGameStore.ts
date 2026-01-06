@@ -31,7 +31,8 @@ interface GameState {
   my_player_number: number | null;
   my_player_name: string | null;
   status: "IDLE" | "LOBBY" | "PLAYING" | "FINISHED";
-  rooms: RoomInfo[]; // <-- NOVO
+  rooms: RoomInfo[];
+  last_error: string | null; // <-- NOVO
 
   // Dados do jogo
   deck: Card[];
@@ -46,13 +47,16 @@ interface GameState {
 interface GameActions {
   initializeSocket: () => void;
   connect: (roomId: string, mode: "1v1" | "2v2", userName: string) => void;
-  fetchRooms: () => void; // <-- NOVO
+  fetchRooms: () => void;
+  clear_error: () => void; // <-- NOVO
 
   // Actions de jogo
   draw_card: () => void;
   discard_card: (card_id: string) => void;
   meld_cards: (card_ids: string[]) => void;
   add_to_meld: (card_ids: string[], meld_index: number) => void;
+  pick_up_discard_new_meld: (card_ids: string[]) => void; // <-- NOVO
+  pick_up_discard_add_to_meld: (meld_index: number, card_ids: string[]) => void; // <-- NOVO
 
   set_server_state: (server_data: IncomingServerState) => void;
 }
@@ -67,7 +71,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   my_player_number: null,
   my_player_name: null,
   status: "IDLE",
-  rooms: [], // <-- NOVO
+  rooms: [],
+  last_error: null,
 
   deck: [],
   discard_pile: [],
@@ -78,6 +83,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   current_player: 1,
 
   // --- ACTIONS ---
+
+  clear_error: () => set({ last_error: null }),
 
   initializeSocket: () => {
     socket.connect();
@@ -96,8 +103,10 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     });
 
     socket.on("error_msg", (msg: string) => {
-      alert(msg);
-      set({ status: "IDLE" });
+      set({ last_error: msg }); // Usa last_error em vez de alert
+      if (get().status === "IDLE") {
+        // Se erro ao conectar, volta pro idle (opcional)
+      }
     });
 
     // Pede a lista de salas assim que conecta
@@ -109,7 +118,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   },
 
   connect: (roomId, mode, userName) => {
-    set({ status: "LOBBY", roomId });
+    set({ status: "LOBBY", roomId, last_error: null });
     socket.emit("join_game", { roomId, mode, userName });
   },
 
@@ -126,6 +135,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         2: server_data.team_melds[2] || [],
       },
       hands: server_data.hands,
+      last_error: null,
     });
   },
 
@@ -147,5 +157,15 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   add_to_meld: (card_ids, meld_index) => {
     const { roomId } = get();
     socket.emit("action_add_to_meld", { roomId, card_ids, meld_index });
+  },
+
+  pick_up_discard_new_meld: (card_ids) => {
+    const { roomId } = get();
+    socket.emit("action_pick_up_discard_new_meld", { roomId, card_ids });
+  },
+
+  pick_up_discard_add_to_meld: (meld_index, card_ids) => {
+    const { roomId } = get();
+    socket.emit("action_pick_up_discard_add_to_meld", { roomId, meld_index, card_ids });
   },
 }));

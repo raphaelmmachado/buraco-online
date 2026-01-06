@@ -4,7 +4,12 @@
 // regras do Buraco Fechado descritas no `RULES.md`.
 // =============================================================================
 
-import { type Card, CARD_VALUE_WEIGHTS, GAME_RULES } from "../types/card";
+import {
+  type Card,
+  CARD_VALUE_WEIGHTS,
+  GAME_RULES,
+  MELD_POINTS,
+} from "../types/card";
 
 // -----------------------------------------------------------------------------
 // TIPOS DE RETORNO DA VALIDAÇÃO
@@ -14,7 +19,7 @@ import { type Card, CARD_VALUE_WEIGHTS, GAME_RULES } from "../types/card";
 export interface ValidSequence {
   is_valid: true;
   is_clean: boolean;
-  canastra_type: "none" | "dirty" | "clean" | "500" | "real";
+  canastra_type: keyof typeof MELD_POINTS;
   start_weight: number;
   end_weight: number;
   assigned_weights: Record<string, number>; // ID da carta -> Peso assumido
@@ -92,18 +97,21 @@ export const get_sequence_details = (cards: Card[]): SequenceDetails => {
         error: `A carta '${key}' não pode aparecer mais de 2 vezes.`,
       };
     }
-    // Regra: Duplicatas só são permitidas para Ases (A-A na real) ou se uma for curinga?
-    // Na verdade, duplicatas físicas (2 baralhos) são permitidas,
-    // MAS numa sequência estrita, você não pode ter dois '7' ocupando o lugar do 7.
-    // O solver vai pegar isso (dois 7s tentando ocupar o peso 7 -> colisão).
-    // A única exceção é se um deles for curinga... mas só '2' é curinga.
-    // Então, se tiver dois '7' de ouros, é impossível formar sequência válida
-    // (pois ambos só têm peso 7, e pesos devem ser únicos).
-    // A única carta com múltiplos pesos naturais é o Ás (1 e 14).
-    if (count === 2 && !key.startsWith("A_") && !key.startsWith("2_")) {
-       // Se não for A nem 2, ter duas cartas iguais torna impossível sequência de pesos únicos.
-       // (Ex: dois 7 de ouros -> ambos querem peso 7 -> conflito).
-       return { is_valid: false, error: `Cartas duplicadas inválidas ('${key}') no jogo.` };
+
+    // Regra conforme MEMORIAS.md: Proibir dois '2' do mesmo naipe em uma sequência.
+    if (count === 2 && key.startsWith("2_")) {
+      return {
+        is_valid: false,
+        error: `Não são permitidos dois '2' do mesmo naipe ('${key}') no mesmo jogo.`,
+      };
+    }
+
+    // Regra: Outras duplicatas (não A) são impossíveis de formar sequência de pesos únicos.
+    if (count === 2 && !key.startsWith("A_")) {
+      return {
+        is_valid: false,
+        error: `Cartas duplicadas inválidas ('${key}') no jogo.`,
+      };
     }
   }
 
@@ -129,7 +137,7 @@ export const get_sequence_details = (cards: Card[]): SequenceDetails => {
   // Prepara as opções de peso para cada carta
   const card_options = cards.map((card) => {
     let weights: number[] = [];
-    
+
     // Se for '2' de outro naipe, ele SÓ pode ser curinga (qualquer peso exceto, talvez, restrições?)
     // Na prática, curinga pode assumir qualquer peso de 2 a 14?
     // A definição diz: 2 tem weights [2..14].
@@ -138,13 +146,13 @@ export const get_sequence_details = (cards: Card[]): SequenceDetails => {
     // A lista `CARD_VALUE_WEIGHTS['2']` já tem [2..14].
     // Então só precisamos filtrar pesos inválidos para cartas que NÃO são curingas?
     // Não, a definição `CARD_VALUE_WEIGHTS` é o que a carta PODE ser.
-    
-    if (card.value !== '2' && card.suit.name !== target_suit) {
-        // Carta de outro naipe que não é 2 -> Inválido imediatamente.
-        // (Isso já foi pego na verificação `naturals.every` acima).
-        weights = []; 
+
+    if (card.value !== "2" && card.suit.name !== target_suit) {
+      // Carta de outro naipe que não é 2 -> Inválido imediatamente.
+      // (Isso já foi pego na verificação `naturals.every` acima).
+      weights = [];
     } else {
-        weights = [...CARD_VALUE_WEIGHTS[card.value]];
+      weights = [...CARD_VALUE_WEIGHTS[card.value]];
     }
 
     return { card, weights };
@@ -174,17 +182,23 @@ const solve_recursive = (
 ): Record<string, number> | null => {
   if (index === options.length) {
     // Todas as cartas atribuídas. Verificar se formam sequência válida.
-    if (validate_assignment(assigned, options.map(o => o.card), target_suit)) {
+    if (
+      validate_assignment(
+        assigned,
+        options.map((o) => o.card),
+        target_suit
+      )
+    ) {
       return assigned;
     }
     return null;
   }
 
   const { card, weights } = options[index];
-  
+
   // Otimização: Tentar pesos que estendam a sequência atual (se houver).
   // Mas como a ordem de `options` é arbitrária, apenas iteramos.
-  // Poderíamos ordenar `weights` para priorizar sequências? 
+  // Poderíamos ordenar `weights` para priorizar sequências?
   // O array `weights` já vem ordenado do `card.ts`.
 
   for (const w of weights) {
@@ -192,13 +206,18 @@ const solve_recursive = (
     if (Object.values(assigned).includes(w)) continue;
 
     const new_assigned = { ...assigned, [card.id]: w };
-    
+
     // Verificação rápida de continuidade (opcional, para performance)
     // Se tivermos gaps muito grandes já, pode podar.
     // Mas para N=14 é rápido o suficiente sem heuristicas complexas.
-    
+
     // Recursão
-    const result = solve_recursive(options, new_assigned, index + 1, target_suit);
+    const result = solve_recursive(
+      options,
+      new_assigned,
+      index + 1,
+      target_suit
+    );
     if (result) return result;
   }
 
@@ -238,7 +257,7 @@ const validate_assignment = (
   //    Se eu tenho (3, 4, 5) e uso um (2) como 5?
   //    O solver não permite pesos duplicados. Então se o 5 natural está lá, o 2 não pode ser 5.
   //    O 2 teria que ser 2 ou 6.
-  
+
   return true;
 };
 
@@ -264,23 +283,16 @@ const build_valid_sequence = (
   }
 
   const is_clean = wildcard_count === 0;
-  let canastra_type: ValidSequence["canastra_type"] = "none";
+
+  let canastra_type: ValidSequence["canastra_type"] = "INSUFFICIENT";
 
   if (cards.length >= GAME_RULES.MIN_CARDS_FOR_CANASTRA) {
     if (is_clean) {
-      if (cards.length === 14 && start_weight === 1 && end_weight === 14) {
-        canastra_type = "real";
-      } else if (
-        cards.length === 7 &&
-        ((start_weight === 1 && end_weight === 7) ||
-          (start_weight === 8 && end_weight === 14))
-      ) {
-        canastra_type = "500";
-      } else {
-        canastra_type = "clean";
-      }
+      if (cards.length === 14) canastra_type = "ACE";
+      if (cards.length === 13) canastra_type = "KING";
+      if (cards.length <= 12) canastra_type = "CLEAN";
     } else {
-      canastra_type = "dirty";
+      canastra_type = "DIRTY";
     }
   }
 

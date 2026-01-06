@@ -1,156 +1,62 @@
-import { type Card, CARD_VALUE_WEIGHTS } from "../types/card";
+// =============================================================================
+// LÓGICA DE ORDENAÇÃO DE CARTAS
+// Este arquivo contém funções para ordenar a mão do jogador e, mais importante,
+// para organizar visualmente os jogos na mesa.
+// =============================================================================
+
+import { type Card, PRIMARY_CARD_WEIGHTS } from "../types/card";
+import { get_sequence_details } from "./rules_logic";
 
 /**
- * Ordenação padrão (Agrupa por naipe, depois por valor)
- * Usado para ordenar a MÃO do jogador.
+ * @function sort_cards
+ * @description Ordenação padrão para a mão do jogador: agrupa por naipe e depois por valor.
  */
 export const sort_cards = (cards: Card[]): Card[] => {
   return [...cards].sort((a, b) => {
     if (a.suit.name !== b.suit.name) {
       return a.suit.name.localeCompare(b.suit.name);
     }
-    return CARD_VALUE_WEIGHTS[a.value] - CARD_VALUE_WEIGHTS[b.value];
+    // Usa o peso primário (índice 0) para ordenação simples
+    return PRIMARY_CARD_WEIGHTS[a.value] - PRIMARY_CARD_WEIGHTS[b.value];
   });
 };
 
 /**
- * Ordenação Visual Inteligente para MESA (Melds).
- * - Encaixa o 2 nos buracos.
- * - Trata Ases nas pontas (A...A).
- * - Coloca coringas excedentes nas extremidades.
+ * @function organize_meld
+ * @description Função principal e definitiva para organizar um jogo (meld) para exibição na mesa.
+ *              Ela determina a sequência correta e posiciona os coringas nos "buracos".
  */
-export const organize_meld_visual = (cards: Card[]): Card[] => {
-  if (cards.length === 0) return [];
+export const organize_meld = (cards: Card[]): Card[] => {
   if (cards.length < 3) return sort_cards(cards);
 
-  const getWeight = (card: Card, aceHigh: boolean): number => {
-    if (card.value === "A" && aceHigh) return 14;
-    return CARD_VALUE_WEIGHTS[card.value];
-  };
+  const details = get_sequence_details(cards);
 
-  const naturals = cards.filter((c) => c.value !== "2");
-  const wildcards = cards.filter((c) => c.value === "2");
-
-  if (naturals.length === 0) return cards;
-
-  let bestArrangement: Card[] = [];
-  let bestArrangementScore = -1;
-
-  for (let i = 0; i <= wildcards.length; i++) {
-    for (const aceHigh of [false, true]) {
-      // Lógica especial para canastra A-A
-      const aces = naturals.filter((c) => c.value === "A");
-      let tempNaturals = [...naturals];
-      let weights: number[];
-
-      if (aceHigh && aces.length === 2) {
-        weights = [1, 14];
-        const otherNaturals = naturals.filter((c) => c.value !== "A");
-        weights.push(...otherNaturals.map((c) => getWeight(c, aceHigh)));
-      } else {
-        weights = naturals.map((c) => getWeight(c, aceHigh));
-      }
-
-      if (new Set(weights).size !== weights.length) continue;
-      weights.sort((a, b) => a - b);
-
-      const minNatural = weights[0];
-      const maxNatural = weights[weights.length - 1];
-      const start = minNatural - i;
-      const end = start + cards.length - 1;
-
-      if (start > minNatural || end < maxNatural) continue;
-
-      const currentArrangement: Card[] = [];
-      const availableNaturals = [...naturals];
-      const availableWildcards = [...wildcards];
-      let arrangementScore = 0;
-
-      for (let w = start; w <= end; w++) {
-        let added = false;
-        for (let j = 0; j < availableNaturals.length; j++) {
-          let cardWeight: number;
-          // Lógica especial para A-A
-          if (
-            aceHigh &&
-            aces.length === 2 &&
-            availableNaturals[j].value === "A"
-          ) {
-            // Se o peso 'w' for 1 ou 14, e temos um Ás, consideramos um match
-            if (w === 1 || w === 14) {
-              const weightInSequence = w;
-              const alreadyHas = currentArrangement.some(
-                (c) => getWeight(c, true) === weightInSequence
-              );
-              if (!alreadyHas) {
-                cardWeight = w;
-              } else {
-                cardWeight = w === 1 ? 14 : 1; // Pega o outro valor
-              }
-            } else {
-              cardWeight = getWeight(availableNaturals[j], aceHigh);
-            }
-          } else {
-            cardWeight = getWeight(availableNaturals[j], aceHigh);
-          }
-
-          if (cardWeight === w) {
-            currentArrangement.push(availableNaturals[j]);
-            availableNaturals.splice(j, 1);
-            added = true;
-            break;
-          }
-        }
-        if (!added && availableWildcards.length > 0) {
-          const cardToUse = availableWildcards.shift()!;
-          currentArrangement.push(cardToUse);
-          if (getWeight(cardToUse, aceHigh) === w) {
-            arrangementScore++;
-          }
-        }
-      }
-
-      if (currentArrangement.length === cards.length) {
-        if (arrangementScore > bestArrangementScore) {
-          bestArrangement = currentArrangement;
-          bestArrangementScore = arrangementScore;
-        } else if (bestArrangement.length === 0) {
-          bestArrangement = currentArrangement;
-        }
-      }
-    }
+  if (!details.is_valid) {
+    console.error("[organize_meld] Tentativa de organizar um meld inválido:", details.error);
+    return sort_cards(cards);
   }
-  return bestArrangement.length > 0 ? bestArrangement : sort_cards(cards);
-};
 
-/**
- * Organiza visualmente uma sequência para ser exibida na mesa.
- * Lógica: Cartas do naipe ordenadas por valor + Curinga (se for de outro naipe) no final.
- */
-export const organize_sequence = (cards: Card[]): Card[] => {
-  const non_twos = cards.filter((c) => c.value !== "2");
+  const { start_weight, end_weight, assigned_weights } = details;
+  const sequence_length = end_weight - start_weight + 1;
+  
+  if (sequence_length <= 0 || sequence_length > 14) {
+    console.error("[organize_meld] Comprimento de sequência inválido:", sequence_length);
+    return sort_cards(cards);
+  }
 
-  // Se só tem 2s (improvável aqui pois já validou), pega o primeiro
-  const sequence_suit =
-    non_twos.length > 0 ? non_twos[0].suit.name : cards[0].suit.name;
+  const final_meld: (Card | null)[] = new Array(sequence_length).fill(null);
+  
+  // Posiciona as cartas diretamente baseadas no peso atribuído pelo solver
+  cards.forEach(card => {
+    const weight = assigned_weights[card.id];
+    // Se por acaso o peso não estiver no map (impossível se validado), ignora
+    if (weight === undefined) return;
 
-  const naturals: Card[] = [];
-  const wildcards: Card[] = [];
-
-  cards.forEach((card) => {
-    // É curinga visual se for 2 de OUTRO naipe.
-    // O 2 do MESMO naipe fica junto com os naturais para ser ordenado (ex: A, 2, 3).
-    if (card.value === "2" && card.suit.name !== sequence_suit) {
-      wildcards.push(card);
-    } else {
-      naturals.push(card);
+    const position = weight - start_weight;
+    if (position >= 0 && position < sequence_length) {
+      final_meld[position] = card;
     }
   });
 
-  // Ordena as naturais pelo peso
-  naturals.sort(
-    (a, b) => CARD_VALUE_WEIGHTS[a.value] - CARD_VALUE_WEIGHTS[b.value]
-  );
-
-  return [...naturals, ...wildcards];
+  return final_meld.filter(Boolean) as Card[];
 };

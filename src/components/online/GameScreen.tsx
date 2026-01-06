@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useGameStore } from "../../store/useGameStore";
 import { type Card } from "../../../common/types/card";
-import { organize_meld_visual } from "../../../common/utils/sort_cards";
+// import { organize_meld, sort_cards } from "../../../common/utils/sort_cards";
 import { calculate_score } from "../../../common/utils/scoring";
 
 export const GameScreen = () => {
@@ -99,7 +99,7 @@ export const GameScreen = () => {
           {/* Melds do Time 1 */}
           <div className="bg-green-700/30 p-3 rounded-lg border border-green-600/30 min-h-[150px]">
             <div className="flex flex-wrap gap-4">
-              {store.team_melds[1].map((meld, index) => (
+              {store.team_melds[1].map((_meld, index) => (
                 <div key={index} className="flex flex-col items-center gap-1">
                   {/* Botão de Adicionar à Canastra */}
                   {store.current_player === store.my_player_number &&
@@ -117,7 +117,7 @@ export const GameScreen = () => {
                     )}
                   {/* Cartas */}
                   <div className="flex -space-x-6 hover:space-x-1 transition-all duration-300 pt-1 px-2">
-                    {organize_meld_visual(meld).map((c) => (
+                    {/* {organize_meld_visual(meld).map((c) => (
                       <div
                         key={c.id}
                         className={`w-9 h-12 flex items-center justify-center bg-white text-xs font-bold rounded shadow-md border ${
@@ -131,7 +131,7 @@ export const GameScreen = () => {
                           <span className="text-[8px]">{c.suit.icon}</span>
                         </div>
                       </div>
-                    ))}
+                    ))} */}
                   </div>
                 </div>
               ))}
@@ -140,12 +140,12 @@ export const GameScreen = () => {
           {/* Melds do Time 2 */}
           <div className="bg-red-900/10 p-3 rounded-lg border border-red-900/20 min-h-[150px]">
             <div className="flex flex-wrap gap-4">
-              {store.team_melds[2].map((meld, index) => (
+              {store.team_melds[2].map((_meld, index) => (
                 <div
                   key={index}
                   className="flex -space-x-6 pt-6 px-2 opacity-90"
                 >
-                  {organize_meld_visual(meld).map((c) => (
+                  {/* {organize_meld_visual(meld).map((c) => (
                     <div
                       key={c.id}
                       className={`w-9 h-12 flex items-center justify-center bg-gray-100 text-xs font-bold rounded shadow-sm border ${
@@ -157,7 +157,7 @@ export const GameScreen = () => {
                         <span className="text-[8px]">{c.suit.icon}</span>
                       </div>
                     </div>
-                  ))}
+                  ))} */}
                 </div>
               ))}
             </div>

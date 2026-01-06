@@ -1,84 +1,107 @@
+// =============================================================================
+// LÓGICA DE PONTUAÇÃO - O PLACAR
+// Este arquivo é responsável por calcular a pontuação de uma equipe ao final
+// de uma rodada, baseado nas regras do `RULES.md`.
+// =============================================================================
+
 import { BONUS_POINTS, CARD_POINTS, type Card } from "../types/card";
 import { validate_sequence } from "./rules_logic";
 
-export interface ScoreResult {
-  total_score: number;
-  base_points: number;
-  bonus_points: number;
-  penalty_points: number;
-  details: {
-    canastras_sujas: number;
-    canastras_limpas: number;
-    canastras_500: number;
-    canastras_1000: number;
-  };
+export interface ScoreDetails {
+  canastras_sujas: number;
+  canastras_limpas: number;
+  canastras_500: number;
+  canastras_real: number;
 }
 
+export interface ScoreResult {
+  total_score: number;
+  base_points: number;  // Pontos das cartas na mesa
+  bonus_points: number; // Bônus de batida e canastras
+  penalty_points: number; // Pontos das cartas na mão + morto não pego
+  details: ScoreDetails;
+}
+
+/**
+ * Calcula a pontuação final de uma equipe.
+ * @param {Card[][]} melds - Todos os jogos que a equipe baixou na mesa.
+ * @param {Card[][]} hands_to_penalize - Array de mãos dos jogadores da equipe (para subtrair pontos).
+ * @param {boolean} did_beat - Se a equipe foi a que bateu.
+ * @param {boolean} did_not_take_dead_pile - Se a equipe não pegou o morto.
+ * @returns {ScoreResult} - O objeto com o resultado detalhado da pontuação.
+ */
 export const calculate_score = (
   melds: Card[][],
-  // Tornamos opcionais para usar no HUD durante o jogo
   hands_to_penalize: Card[][] = [],
-  did_beat: boolean = false
-):
-ScoreResult => {
+  did_beat: boolean = false,
+  did_not_take_dead_pile: boolean = false
+): ScoreResult => {
   let base_points = 0;
   let bonus_points = 0;
   let penalty_points = 0;
 
-  const details = {
+  const details: ScoreDetails = {
     canastras_sujas: 0,
     canastras_limpas: 0,
     canastras_500: 0,
-    canastras_1000: 0,
+    canastras_real: 0,
   };
 
-  // 1. Pontos na Mesa (Melds)
+  // 1. Soma os pontos de todas as cartas na mesa (base_points)
   for (const meld of melds) {
-    // Soma pontos das cartas individuais
     for (const card of meld) {
       base_points += CARD_POINTS[card.value] || 0;
     }
 
-    // Lógica de Bônus de Canastra
+    // 2. Se o jogo for uma canastra, soma o bônus correspondente
     if (meld.length >= 7) {
-      // Reutiliza a validação robusta do rules_logic
-      const { canastra_type } = validate_sequence(meld);
+      const validation_result = validate_sequence(meld); // Pega o objeto completo
 
-      switch (canastra_type) {
-        case "dirty":
-          bonus_points += BONUS_POINTS.CANASTRA_SUJA;
-          details.canastras_sujas++;
-          break;
-        case "clean":
-          bonus_points += BONUS_POINTS.CANASTRA_LIMPA;
-          details.canastras_limpas++;
-          break;
-        case "real_500":
-          bonus_points += BONUS_POINTS.CANASTRA_REAL_500;
-          details.canastras_500++;
-          break;
-        case "thousand":
-          bonus_points += BONUS_POINTS.CANASTRA_REAL_1000;
-          details.canastras_1000++;
-          break;
-        default:
-          break;
+      if (validation_result.is_valid) { // Verifica o discriminador
+        const { canastra_type } = validation_result; // Agora é seguro desestruturar
+
+        switch (canastra_type) {
+          case "dirty":
+            bonus_points += BONUS_POINTS.CANASTRA_SUJA;
+            details.canastras_sujas++;
+            break;
+          case "clean":
+            bonus_points += BONUS_POINTS.CANASTRA_LIMPA;
+            details.canastras_limpas++;
+            break;
+          case "500":
+            bonus_points += BONUS_POINTS.CANASTRA_DE_500;
+            details.canastras_500++;
+            break;
+          case "real":
+            bonus_points += BONUS_POINTS.CANASTRA_REAL;
+            details.canastras_real++;
+            break;
+        }
       }
     }
   }
 
-  // 2. Bônus de Batida
+  // 3. Adiciona bônus pela batida
   if (did_beat) {
     bonus_points += BONUS_POINTS.BATIDA;
   }
 
-  // 3. Penalidade (Cartas na mão)
+  // 4. Calcula as penalidades
+  // a. Cartas restantes na mão
   for (const hand of hands_to_penalize) {
     for (const card of hand) {
       penalty_points += CARD_POINTS[card.value] || 0;
     }
   }
 
+  // b. Morto não pego
+  if (did_not_take_dead_pile) {
+    // A constante é -100, então somamos para subtrair do total.
+    penalty_points -= BONUS_POINTS.NAO_PEGOU_MORTO;
+  }
+
+  // 5. Calcula o placar final
   const total_score = base_points + bonus_points - penalty_points;
 
   return {

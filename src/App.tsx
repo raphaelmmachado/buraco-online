@@ -1,5 +1,5 @@
 import "./style.css";
-import { OnlineGame } from "./components/online/OnlineGame";
+// import { OnlineGame } from "./components/online/OnlineGame";
 import { DebugGame } from "./components/DebugGame";
 function App() {
   return (

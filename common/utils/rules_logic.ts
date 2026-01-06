@@ -1,178 +1,281 @@
-import { type Card, CARD_VALUE_WEIGHTS } from "../types/card";
+// =============================================================================
+// LÓGICA DE REGRAS - O JUIZ
+// Este arquivo é responsável por validar as jogadas de acordo com as
+// regras do Buraco Fechado descritas no `RULES.md`.
+// =============================================================================
 
-export interface MeldValidation {
-  is_valid: boolean;
+import { type Card, CARD_VALUE_WEIGHTS, GAME_RULES } from "../types/card";
+
+// -----------------------------------------------------------------------------
+// TIPOS DE RETORNO DA VALIDAÇÃO
+// -----------------------------------------------------------------------------
+
+/** Detalhes de uma sequência válida. */
+export interface ValidSequence {
+  is_valid: true;
   is_clean: boolean;
-  canastra_type: "none" | "dirty" | "clean" | "real_500" | "thousand";
+  canastra_type: "none" | "dirty" | "clean" | "500" | "real";
+  start_weight: number;
+  end_weight: number;
+  assigned_weights: Record<string, number>; // ID da carta -> Peso assumido
 }
 
+/** Detalhes de uma falha na validação. */
+export interface InvalidSequence {
+  is_valid: false;
+  error: string;
+}
+
+/** O resultado da análise de uma sequência, pode ser válido ou inválido. */
+export type SequenceDetails = ValidSequence | InvalidSequence;
+
+/** O resultado público da validação, simplificado para a UI. */
+export type MeldValidation =
+  | Pick<ValidSequence, "is_valid" | "is_clean" | "canastra_type">
+  | Pick<InvalidSequence, "is_valid" | "error">;
+
+// -----------------------------------------------------------------------------
+// HELPER: DETECÇÃO DE CURINGA
+// -----------------------------------------------------------------------------
+
 /**
- * @function validate_sequence
- * @description Valida uma sequência de cartas para determinar se é um "jogo" válido no Buraco,
- *              consolidando todas as regras de validação, limpeza e tipo de canastra.
+ * Verifica se o uso de uma carta com um determinado peso constitui um uso de curinga.
+ * - '2' usado como 2 do mesmo naipe = Natural.
+ * - '2' usado como qualquer outra coisa ou outro naipe = Curinga.
+ * - Qualquer outra carta = Natural (pois só '2' tem essa dualidade na regra atual).
  */
-
-export const validate_sequence = (cards: Card[]): MeldValidation => {
-  // 0. Validações prévias de regras fundamentais
-  if (cards.length > 14)
-    return { is_valid: false, is_clean: false, canastra_type: "none" };
-
-  const cardCounts = new Map<string, number>();
-  for (const card of cards) {
-    const key = `${card.value}_${card.suit.name}`;
-    cardCounts.set(key, (cardCounts.get(key) || 0) + 1);
+const is_wildcard_usage = (
+  card: Card,
+  weight: number,
+  target_suit: string
+): boolean => {
+  if (card.value === "2") {
+    // Se for '2', só é natural se o peso for 2 E o naipe bater.
+    return !(weight === 2 && card.suit.name === target_suit);
   }
+  return false;
+};
+
+// -----------------------------------------------------------------------------
+// LÓGICA DE VALIDAÇÃO PRINCIPAL (SOLVER)
+// -----------------------------------------------------------------------------
+
+/**
+ * @function get_sequence_details
+ * @description Analisa um conjunto de cartas e retorna os detalhes da melhor sequência possível.
+ * Utiliza um solver recursivo para testar combinações de pesos.
+ */
+export const get_sequence_details = (cards: Card[]): SequenceDetails => {
+  // 1. Validações fundamentais e imediatas
+  if (cards.length < GAME_RULES.MIN_CARDS_FOR_MELD) {
+    return { is_valid: false, error: "Um jogo deve ter no mínimo 3 cartas." };
+  }
+  if (cards.length > 14) {
+    return {
+      is_valid: false,
+      error: "Um jogo não pode ter mais de 14 cartas.",
+    };
+  }
+
+  // Verifica duplicatas de ID (sanidade) e contagem por valor/naipe
+  const cardCounts = new Map<string, number>();
+  cards.forEach((c) => {
+    const key = `${c.value}_${c.suit.name}`;
+    cardCounts.set(key, (cardCounts.get(key) || 0) + 1);
+  });
 
   for (const [key, count] of cardCounts.entries()) {
-    if (count > 2)
-      return { is_valid: false, is_clean: false, canastra_type: "none" };
-    if (count === 2 && !key.startsWith("A_")) {
-      return { is_valid: false, is_clean: false, canastra_type: "none" };
+    // Regra: Máximo 2 cartas iguais (ex: dois 7 de ouros).
+    if (count > 2) {
+      return {
+        is_valid: false,
+        error: `A carta '${key}' não pode aparecer mais de 2 vezes.`,
+      };
+    }
+    // Regra: Duplicatas só são permitidas para Ases (A-A na real) ou se uma for curinga?
+    // Na verdade, duplicatas físicas (2 baralhos) são permitidas,
+    // MAS numa sequência estrita, você não pode ter dois '7' ocupando o lugar do 7.
+    // O solver vai pegar isso (dois 7s tentando ocupar o peso 7 -> colisão).
+    // A única exceção é se um deles for curinga... mas só '2' é curinga.
+    // Então, se tiver dois '7' de ouros, é impossível formar sequência válida
+    // (pois ambos só têm peso 7, e pesos devem ser únicos).
+    // A única carta com múltiplos pesos naturais é o Ás (1 e 14).
+    if (count === 2 && !key.startsWith("A_") && !key.startsWith("2_")) {
+       // Se não for A nem 2, ter duas cartas iguais torna impossível sequência de pesos únicos.
+       // (Ex: dois 7 de ouros -> ambos querem peso 7 -> conflito).
+       return { is_valid: false, error: `Cartas duplicadas inválidas ('${key}') no jogo.` };
     }
   }
 
-  // 1. Validação de Tamanho Mínimo
-  if (cards.length < 3) {
-    return { is_valid: false, is_clean: false, canastra_type: "none" };
+  // 2. Determinar o naipe alvo
+  // Se houver cartas que não sejam '2', elas definem o naipe.
+  const naturals = cards.filter((c) => c.value !== "2");
+  if (naturals.length === 0) {
+    return {
+      is_valid: false,
+      error: "O jogo não pode ser formado apenas por coringas (2).",
+    };
   }
 
-  // 2. Separar cartas "naturais" (não-coringa) de coringas (todos os 2s)
-  const non_twos = cards.filter((c) => c.value !== "2");
-  const twos_cards = cards.filter((c) => c.value === "2");
-
-  // REGRA: É preciso ao menos uma carta que não seja '2' para definir o naipe do jogo.
-  if (non_twos.length === 0) {
-    return { is_valid: false, is_clean: false, canastra_type: "none" };
+  const target_suit = naturals[0].suit.name;
+  if (!naturals.every((c) => c.suit.name === target_suit)) {
+    return {
+      is_valid: false,
+      error: "As cartas naturais do jogo devem ser do mesmo naipe.",
+    };
   }
 
-  // 3. Validação de Naipe e Coringas
-  const suit_name = non_twos[0].suit.name;
-
-  // REGRA: Todas as cartas que não são '2' devem ser do mesmo naipe.
-  if (!non_twos.every((c) => c.suit.name === suit_name)) {
-    return { is_valid: false, is_clean: false, canastra_type: "none" };
-  }
-
-  // REGRA: Jogo precisa de pelo menos 2 cartas do mesmo naipe para formar uma base.
-  // (Isso inclui o '2' do mesmo naipe).
-  const natural_suit_cards = cards.filter(
-    (card) => card.suit.name === suit_name
-  );
-  if (natural_suit_cards.length < 2) {
-    return { is_valid: false, is_clean: false, canastra_type: "none" };
-  }
-
-  // REGRA: Apenas 1 coringa "real" (2 de outro naipe) é permitido por jogo.
-  const real_wildcards = twos_cards.filter((c) => c.suit.name !== suit_name);
-  if (real_wildcards.length > 1) {
-    return { is_valid: false, is_clean: false, canastra_type: "none" };
-  }
-
-  // 4. Testes Matemáticos de Sequência (com tratamento para o Ás)
-  const has_ace = non_twos.some((c) => c.value === "A");
-  const scenarios = has_ace ? [false, true] : [false];
-
-  for (const ace_high of scenarios) {
-    const result = check_sequence_math(
-      cards,
-      non_twos,
-      twos_cards,
-      real_wildcards,
-      ace_high
-    );
-    if (result) {
-      return result; // Encontrou uma sequência válida
+  // 3. Executar o Solver
+  // Prepara as opções de peso para cada carta
+  const card_options = cards.map((card) => {
+    let weights: number[] = [];
+    
+    // Se for '2' de outro naipe, ele SÓ pode ser curinga (qualquer peso exceto, talvez, restrições?)
+    // Na prática, curinga pode assumir qualquer peso de 2 a 14?
+    // A definição diz: 2 tem weights [2..14].
+    // Mas se for naipe diferente, ele DEVE ser curinga.
+    // Se for naipe igual, pode ser 2 ou curinga.
+    // A lista `CARD_VALUE_WEIGHTS['2']` já tem [2..14].
+    // Então só precisamos filtrar pesos inválidos para cartas que NÃO são curingas?
+    // Não, a definição `CARD_VALUE_WEIGHTS` é o que a carta PODE ser.
+    
+    if (card.value !== '2' && card.suit.name !== target_suit) {
+        // Carta de outro naipe que não é 2 -> Inválido imediatamente.
+        // (Isso já foi pego na verificação `naturals.every` acima).
+        weights = []; 
+    } else {
+        weights = [...CARD_VALUE_WEIGHTS[card.value]];
     }
+
+    return { card, weights };
+  });
+
+  const best_solution = solve_recursive(card_options, {}, 0, target_suit);
+
+  if (best_solution) {
+    return build_valid_sequence(cards, best_solution, target_suit);
   }
 
-  // 5. Falha Final se nenhum cenário produziu uma sequência válida
-  return { is_valid: false, is_clean: false, canastra_type: "none" };
+  return {
+    is_valid: false,
+    error: "As cartas não formam uma sequência válida.",
+  };
 };
 
 /**
- * @function check_sequence_math
- * @description Realiza a validação matemática para um cenário de sequência (Ás alto ou baixo).
- * @returns {MeldValidation | null} - Retorna a validação se for uma sequência válida, ou null caso contrário.
+ * @function solve_recursive
+ * @description Tenta atribuir um peso para cada carta recursivamente.
  */
-const check_sequence_math = (
+const solve_recursive = (
+  options: { card: Card; weights: number[] }[],
+  assigned: Record<string, number>,
+  index: number,
+  target_suit: string
+): Record<string, number> | null => {
+  if (index === options.length) {
+    // Todas as cartas atribuídas. Verificar se formam sequência válida.
+    if (validate_assignment(assigned, options.map(o => o.card), target_suit)) {
+      return assigned;
+    }
+    return null;
+  }
+
+  const { card, weights } = options[index];
+  
+  // Otimização: Tentar pesos que estendam a sequência atual (se houver).
+  // Mas como a ordem de `options` é arbitrária, apenas iteramos.
+  // Poderíamos ordenar `weights` para priorizar sequências? 
+  // O array `weights` já vem ordenado do `card.ts`.
+
+  for (const w of weights) {
+    // Poda: Peso já usado?
+    if (Object.values(assigned).includes(w)) continue;
+
+    const new_assigned = { ...assigned, [card.id]: w };
+    
+    // Verificação rápida de continuidade (opcional, para performance)
+    // Se tivermos gaps muito grandes já, pode podar.
+    // Mas para N=14 é rápido o suficiente sem heuristicas complexas.
+    
+    // Recursão
+    const result = solve_recursive(options, new_assigned, index + 1, target_suit);
+    if (result) return result;
+  }
+
+  return null;
+};
+
+/**
+ * @function validate_assignment
+ * @description Valida se um conjunto de pesos atribuídos forma uma sequência legal (consecutiva e max 1 curinga).
+ */
+const validate_assignment = (
+  assigned: Record<string, number>,
   cards: Card[],
-  non_twos: Card[],
-  twos_cards: Card[],
-  real_wildcards: Card[],
-  ace_high: boolean
-): MeldValidation | null => {
-  // Mapeia cartas para pesos numéricos
-  let numbers: number[] = [];
-  const aces_in_natural_cards = non_twos.filter((c) => c.value === "A");
+  target_suit: string
+): boolean => {
+  const weights = Object.values(assigned).sort((a, b) => a - b);
+  const min = weights[0];
+  const max = weights[weights.length - 1];
 
-  if (ace_high && aces_in_natural_cards.length === 2) {
-    // Lógica específica para Canastra de 1000 (Ás a Ás)
-    const other_natural_cards = non_twos.filter((c) => c.value !== "A");
-    numbers = [
-      1, // Um Ás como 1
-      14, // O outro Ás como 14
-      ...other_natural_cards.map((c) => CARD_VALUE_WEIGHTS[c.value]),
-    ];
-  } else {
-    numbers = non_twos.map((c) =>
-      c.value === "A" && ace_high ? 14 : CARD_VALUE_WEIGHTS[c.value]
-    );
-  }
-  numbers.sort((a, b) => a - b);
+  // 1. Deve ser consecutivo
+  if (max - min + 1 !== weights.length) return false;
 
-  // Verifica duplicidade de cartas (ex: dois 7 de copas)
-  if (new Set(numbers).size !== numbers.length) {
-    return null; // Cenário inválido
+  // 2. Máximo 1 curinga
+  let wildcard_count = 0;
+  for (const card of cards) {
+    const w = assigned[card.id];
+    if (is_wildcard_usage(card, w, target_suit)) {
+      wildcard_count++;
+    }
   }
 
-  // Calcula "buracos" na sequência
-  let gaps = 0;
-  for (let i = 0; i < numbers.length - 1; i++) {
-    gaps += numbers[i + 1] - numbers[i] - 1;
+  if (wildcard_count > 1) return false;
+
+  // 3. Regra especial: Curinga não pode ser usado se o peso que ele ocupa
+  //    poderia ser ocupado por uma carta natural disponível?
+  //    Não, a regra é apenas "máximo 1 curinga". Se eu tenho (3, 4) e uso um (2) como 5, ok.
+  //    Se eu tenho (3, 4, 5) e uso um (2) como 5?
+  //    O solver não permite pesos duplicados. Então se o 5 natural está lá, o 2 não pode ser 5.
+  //    O 2 teria que ser 2 ou 6.
+  
+  return true;
+};
+
+/**
+ * @function build_valid_sequence
+ * @description Constrói o objeto de retorno final baseado na solução encontrada.
+ */
+const build_valid_sequence = (
+  cards: Card[],
+  assigned: Record<string, number>,
+  target_suit: string
+): ValidSequence => {
+  const weights = Object.values(assigned).sort((a, b) => a - b);
+  const start_weight = weights[0];
+  const end_weight = weights[weights.length - 1];
+
+  let wildcard_count = 0;
+  for (const card of cards) {
+    const w = assigned[card.id];
+    if (is_wildcard_usage(card, w, target_suit)) {
+      wildcard_count++;
+    }
   }
 
-  // Valida se os coringas cobrem os buracos
-  if (gaps > twos_cards.length) {
-    return null; // Cenário inválido
-  }
+  const is_clean = wildcard_count === 0;
+  let canastra_type: ValidSequence["canastra_type"] = "none";
 
-  // SEQUÊNCIA VÁLIDA ENCONTRADA! Agora, determinar limpeza e tipo de canastra.
-  const is_natural_two_gap =
-    gaps === 1 && numbers.includes(1) && numbers.includes(3);
-  const used_two_as_wildcard = gaps > 0 && !is_natural_two_gap;
-
-  // IMPLEMENTAÇÃO DA REGRA: "Máximo 1 '2' por canastra como curinga"
-  let effective_wildcards_used = real_wildcards.length; // Coringas de naipe diferente
-  if (used_two_as_wildcard) {
-    // Se um 2 do mesmo naipe foi usado para preencher um buraco não-natural, ele conta como curinga
-    effective_wildcards_used++;
-  }
-
-  if (effective_wildcards_used > 1) {
-    console.warn(`[check_math] Regra violada: Mais de um '2' atuando como curinga.`);
-    return null; // Cenário inválido, pois excedeu 1 coringa efetivo
-  }
-
-  const is_clean = effective_wildcards_used === 0;
-
-  let canastra_type: MeldValidation["canastra_type"] = "none";
-  if (cards.length >= 7) {
+  if (cards.length >= GAME_RULES.MIN_CARDS_FOR_CANASTRA) {
     if (is_clean) {
-      const has_low_ace = numbers.includes(1);
-      const has_high_ace = numbers.includes(14);
-
-      if (cards.length === 14 && has_low_ace && has_high_ace) {
-        canastra_type = "thousand";
-      } else if (cards.length === 13) {
-        const is_A_to_K =
-          numbers[0] === 1 && numbers[numbers.length - 1] === 13;
-        const is_2_to_A =
-          numbers[0] === 2 && numbers[numbers.length - 1] === 14;
-        if (is_A_to_K || is_2_to_A) {
-          canastra_type = "real_500";
-        } else {
-          canastra_type = "clean";
-        }
+      if (cards.length === 14 && start_weight === 1 && end_weight === 14) {
+        canastra_type = "real";
+      } else if (
+        cards.length === 7 &&
+        ((start_weight === 1 && end_weight === 7) ||
+          (start_weight === 8 && end_weight === 14))
+      ) {
+        canastra_type = "500";
       } else {
         canastra_type = "clean";
       }
@@ -181,37 +284,50 @@ const check_sequence_math = (
     }
   }
 
-  return { is_valid: true, is_clean, canastra_type };
+  return {
+    is_valid: true,
+    is_clean,
+    canastra_type,
+    start_weight,
+    end_weight,
+    assigned_weights: assigned,
+  };
+};
+
+// -----------------------------------------------------------------------------
+// FUNÇÕES PÚBLICAS EXPORTADAS
+// -----------------------------------------------------------------------------
+
+/**
+ * @function validate_sequence
+ * @description Valida uma sequência de cartas. Wrapper público para `get_sequence_details`.
+ */
+export const validate_sequence = (cards: Card[]): MeldValidation => {
+  const details = get_sequence_details(cards);
+  if (!details.is_valid) {
+    return { is_valid: false, error: details.error };
+  }
+  return {
+    is_valid: true,
+    is_clean: details.is_clean,
+    canastra_type: details.canastra_type,
+  };
 };
 
 /**
  * @function validate_discard_pickup
- * @description Valida se um jogador pode pegar a carta do topo do lixo.
- *              A regra exige que a carta do lixo + 2 cartas da mão formem um jogo limpo.
- * @param {Card} discard_top_card - A carta no topo do lixo.
- * @param {Card[]} selected_hand_cards - As 2 cartas selecionadas da mão do jogador.
- * @returns {boolean} - True se a compra for válida, false caso contrário.
+ * @description Valida se um jogador pode pegar a carta do topo do lixo para formar um novo jogo.
  */
 export const validate_discard_pickup = (
   discard_top_card: Card,
   selected_hand_cards: Card[]
 ): boolean => {
-  // 1. A regra exige pelo menos 2 cartas da mão.
   if (selected_hand_cards.length < 2) {
-    console.warn("[PICKUP] A seleção deve conter pelo menos 2 cartas da mão.");
     return false;
   }
 
-  // 2. Monta o jogo potencial com as 3 cartas.
   const potential_meld = [discard_top_card, ...selected_hand_cards];
-
-  // 3. Usa a função de validação de sequência existente.
   const validation_result = validate_sequence(potential_meld);
 
-  // 4. A compra só é válida se o resultado for um jogo válido E LIMPO.
-  if (validation_result.is_valid && validation_result.is_clean) {
-    return true;
-  }
-
-  return false;
+  return validation_result.is_valid && validation_result.is_clean;
 };

@@ -403,6 +403,9 @@ export const DebugGame = () => {
             </button>
           </div>
         </div>
+        <button onClick={store.sort_my_hand} className="mt-4 text-xs underline">
+          Ordenar Minha Mão
+        </button>
       </div>
     </div>
   );

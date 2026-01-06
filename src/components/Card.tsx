@@ -1,9 +1,9 @@
-import { type Card } from "@common/types/card";
+import { type Card } from "../../common/types/card";
 interface CardProps extends Card {
   hidden?: boolean;
 }
 export default function Card({
-  symbol,
+  suit,
   value,
   color,
   deckIndex,
@@ -37,11 +37,11 @@ export default function Card({
          flex flex-col items-center justify-center"
         >
           <span className={`${colorMap[color]}`}>{value}</span>
-          <span className={`${colorMap[color]}`}>{symbol.icon}</span>
+          <span className={`${colorMap[color]}`}>{suit.icon}</span>
         </div>
 
         <div className={`absolute text-8xl top-8 left-3.5 ${colorMap[color]}`}>
-          {symbol.icon}
+          {suit.icon}
         </div>
 
         <div
@@ -49,7 +49,7 @@ export default function Card({
          flex flex-col items-center justify-center"
         >
           <span className={`${colorMap[color]}`}>{value}</span>
-          <span className={`${colorMap[color]}`}>{symbol.icon}</span>
+          <span className={`${colorMap[color]}`}>{suit.icon}</span>
         </div>
       </div>
     </>

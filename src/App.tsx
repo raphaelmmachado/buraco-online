@@ -4,8 +4,8 @@ import { DebugGame } from "./components/DebugGame";
 function App() {
   return (
     <main className="">
-      <OnlineGame />
-      {/* <DebugGame /> */}
+      {/* <OnlineGame /> */}
+      <DebugGame />
     </main>
   );
 }

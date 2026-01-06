@@ -285,8 +285,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const new_hand = my_hand.filter((c) => !card_ids.includes(c.id));
     const new_melds_list = [...team_melds[team_id]];
 
-    // Ordena o jogo no backend (para manter consistência de dados)
-    new_melds_list[meld_index] = sort_cards(proposed);
+    // Ordena o jogo usando a lógica correta que posiciona os coringas
+    new_melds_list[meld_index] = organize_sequence(proposed);
 
     set({
       hands: { ...hands, [current_player]: new_hand },

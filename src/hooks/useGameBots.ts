@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useGameStore } from "../store/useGameStore-old";
+import { useGameStore } from "../store/useGameStoreBots";
 
 export const useGameBots = () => {
   const {
@@ -38,7 +38,7 @@ export const useGameBots = () => {
             // (Para testar melhor, descarta a última que comprou para não quebrar jogos prontos se tivesse IA)
             const cardToDiscard = botHand[botHand.length - 1];
             console.log(
-              `🤖 Bot descartou: ${cardToDiscard.value} de ${cardToDiscard.symbol.name}`
+              `🤖 Bot descartou: ${cardToDiscard.value} de ${cardToDiscard.suit.name}`
             );
             discard_card(cardToDiscard.id);
           }

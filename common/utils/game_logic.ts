@@ -1,4 +1,4 @@
-import { type Card, GAME_RULES, SYMBOLS, VALUES } from "../types/card";
+import { type Card, GAME_RULES, SUITS, VALUES } from "../types/card";
 
 export interface InitialDistribution {
   hands: Record<number, Card[]>;
@@ -10,7 +10,7 @@ const shuffle = (array: Card[]): Card[] => {
   const new_array = [...array];
   for (let i = new_array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    
+
     // Explicitly check for undefined before swapping
     const card_i = new_array[i];
     const card_j = new_array[j];
@@ -28,14 +28,13 @@ export const create_deck = (): Card[] => {
   const deck: Card[] = [];
 
   for (let i = 0; i < GAME_RULES.DECKS_TO_USE; i++) {
-    for (const symbol of SYMBOLS) {
+    for (const symbol of SUITS) {
       for (const value of VALUES) {
         const newCard: Card = {
           id: `${value}_${symbol.name}_${i}`,
           color: ["copas", "ouro"].includes(symbol.name) ? "red" : "black",
-          symbol: symbol,
+          suit: symbol,
           value: value,
-          isJoker: value === "2",
           deckIndex: i,
         };
         deck.push(newCard);

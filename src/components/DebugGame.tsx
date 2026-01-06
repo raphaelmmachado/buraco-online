@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { useGameStore } from "../store/useGameStore-old";
+import { useGameStore } from "../store/useGameStoreBots";
 import { useGameBots } from "../hooks/useGameBots";
 import { type Card } from "../../common/types/card";
 import { organize_meld_visual } from "../../common/utils/sort_cards";
-// ADICIONE ESTE IMPORT
 import { calculate_score } from "../../common/utils/scoring";
 
 export const DebugGame = () => {
@@ -72,7 +71,7 @@ export const DebugGame = () => {
           👤 1v1 (vs Bot)
         </button>
         <button
-          className="bg-green-600 hover:bg-green-500 text-white px-8 py-6 rounded-xl text-xl font-bold shadow-xl border-b-4 border-green-800 active:border-0 active:translate-y-1 transition-all"
+          className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-6 rounded-xl text-xl font-bold shadow-xl border-b-4 border-blue-800 active:border-0 active:translate-y-1 transition-all"
           onClick={() => store.start_game("2v2")}
         >
           👤 2v2 (vs Bot)
@@ -145,11 +144,6 @@ export const DebugGame = () => {
                 }`}
               >
                 {store.current_player === 1 ? "SUA VEZ" : "BOT"}
-              </span>
-              <span>{store.turn_phase === "DRAW" && "FASE DE COMPRA"}</span>
-              <span>{store.turn_phase === "DISCARD" && "DISCARTE"}</span>
-              <span>
-                {store.turn_phase === "ACTION" && "ABAIXE OU JOGUE FORA"}
               </span>
             </div>
           </div>
@@ -230,7 +224,7 @@ export const DebugGame = () => {
                                 }
                                 ${
                                   c.value === "2" &&
-                                  c.symbol.name !== meld[0].symbol.name
+                                  c.suit.name !== meld[0].suit.name
                                     ? "ring-2 ring-yellow-400 z-10"
                                     : ""
                                 }
@@ -238,12 +232,12 @@ export const DebugGame = () => {
                         >
                           <div className="flex flex-col items-center leading-none scale-90">
                             <span>{c.value}</span>
-                            <span className="text-[8px]">{c.symbol.icon}</span>
+                            <span className="text-[15px]">{c.suit.icon}</span>
                           </div>
                         </div>
                       ))}
                     </div>
-                    {visualMeld[0].symbol.name}
+                    {visualMeld[0].suit.name}
                   </div>
                 );
               })}
@@ -274,7 +268,7 @@ export const DebugGame = () => {
                       >
                         <div className="flex flex-col items-center leading-none scale-90">
                           <span>{c.value}</span>
-                          <span className="text-[8px]">{c.symbol.icon}</span>
+                          <span className="text-[8px]">{c.suit.icon}</span>
                         </div>
                       </div>
                     ))}
@@ -328,7 +322,7 @@ export const DebugGame = () => {
                         : "text-black"
                     }`}
                   >
-                    {store.discard_pile[0].symbol.icon}
+                    {store.discard_pile[0].suit.icon}
                   </span>
                 </div>
               ) : (
@@ -348,7 +342,7 @@ export const DebugGame = () => {
                   className={getCardStyle(card)}
                 >
                   <span className="text-xl font-bold">{card.value}</span>
-                  <span className="text-2xl">{card.symbol.icon}</span>
+                  <span className="text-2xl">{card.suit.icon}</span>
                 </div>
               ))}
             </div>

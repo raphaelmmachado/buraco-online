@@ -1,4 +1,4 @@
-export type Naipe = {
+export type Suit = {
   icon: "♠" | "♣" | "♥" | "♦";
   name: "espadas" | "paus" | "copas" | "ouro";
 };
@@ -20,13 +20,12 @@ export type CardValue =
 export interface Card {
   id: string;
   value: CardValue;
-  symbol: Naipe;
+  suit: Suit;
   color: "red" | "black";
-  isJoker: boolean;
-  deckIndex: number;
+  deckIndex?: number;
 }
 
-export const SYMBOLS: Naipe[] = [
+export const SUITS: Suit[] = [
   { icon: "♠", name: "espadas" },
   { icon: "♣", name: "paus" },
   { icon: "♥", name: "copas" },
@@ -35,8 +34,8 @@ export const SYMBOLS: Naipe[] = [
 
 // --- FONTE DA VERDADE (Valor, Peso de Ordenação e Pontos) ---
 const CARD_DEFINITIONS = [
-  { val: "A", weight: 1, points: 15 }, // Ás vale 15
-  { val: "2", weight: 2, points: 10 }, // 2 vale 10 (curinga ou não)
+  { val: "A", weight: 1, points: 15 },
+  { val: "2", weight: 2, points: 20 },
   { val: "3", weight: 3, points: 5 },
   { val: "4", weight: 4, points: 5 },
   { val: "5", weight: 5, points: 5 },
@@ -73,9 +72,9 @@ export const CARD_POINTS: Record<CardValue, number> = CARD_DEFINITIONS.reduce(
 export const BONUS_POINTS = {
   BATIDA: 100,
   CANASTRA_SUJA: 100,
-  CANASTRA_LIMPA: 200,
-  CANASTRA_REAL_500: 500, // A a K
-  CANASTRA_REAL_1000: 1000, // A a A
+  CANASTRA_LIMPA: 400, // Ajustado de 200 para 400
+  CANASTRA_REAL_500: 500,
+  CANASTRA_REAL_1000: 1000,
 } as const;
 
 // Regras Fundamentais do Jogo

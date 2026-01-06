@@ -1,94 +1,61 @@
-# Projeto: Buraco Online (Engine Logic Focus)
+# Projeto: Buraco Online (Buraco Fechado)
 
 ## 1. Visão Geral
 
-Este projeto é uma implementação web do jogo de cartas **Buraco** (variação popular no Brasil), com suporte para partidas **1v1** e **2v2** (duplas).
-O foco atual está no desenvolvimento da **"Engrenagem do Jogo"** (Game Engine), priorizando a robustez das regras, validações lógicas e gerenciamento de estado, deixando a UI polida para uma etapa posterior.
+Este projeto é uma implementação web do jogo de cartas **Buraco Fechado** (variante STBL simplificada), com uma arquitetura robusta que suporta tanto partidas locais contra bots quanto um modo multiplayer online completo.
+
+O design do projeto separa de forma clara a **lógica do jogo** (motor de regras), o **gerenciamento de estado** e a **interface do usuário**, permitindo testes e desenvolvimento modulares.
 
 ## 2. Stack Tecnológica
 
 - **Framework:** React (Vite)
 - **Linguagem:** TypeScript
 - **Gerenciamento de Estado:** Zustand
-- **Estilização:** Tailwind CSS (Atualmente usado apenas para Debug UI)
-- **Implementação Multiplayer** Socket.io (futuramente após eu terminar de encontrar bugs ou falhas)
+- **Estilização:** Tailwind CSS
+- **Multiplayer:** Node.js + Socket.IO
 
 ## 3. Convenções de Código
 
-- **Lógica Interna/Regras:** `snake_case` (ex: `player_hand`, `meld_cards`, `validate_sequence`).
-- **Componentes React/Nativas:** `CamelCase` ou `PascalCase`.
-- **Filosofia:** A Store (Zustand) deve conter toda a lógica de manipulação. A UI deve ser apenas uma representação visual do estado.
+- **Lógica Interna/Regras (`common/`):** `snake_case` (ex: `validate_sequence`, `calculate_score`).
+- **Componentes React/Nomes de Arquivo (`src/`):** `PascalCase` (ex: `DebugGame.tsx`, `CardComponent.tsx`).
+- **Filosofia:** A lógica pura do jogo reside em `common/`, enquanto as stores do Zustand orquestram o estado e as ações. A UI é uma representação reativa do estado atual.
 
 ## 4. Estrutura de Arquivos Principal
 
-### `src/store/useGameStore.ts` (O Cérebro)
+### `common/` (O Cérebro / Motor do Jogo)
+Contém toda a lógica pura e sem estado do Buraco. É o núcleo do projeto, reutilizado tanto pelo modo local quanto pelo servidor multiplayer.
+- **`utils/rules_logic.ts`**: Valida sequências, checa regras de coringas e duplicatas.
+- **`utils/scoring.ts`**: Calcula a pontuação final da partida.
+- **`utils/game_logic.ts`**: Cria e distribui o baralho.
+- **`utils/sort_cards.ts`**: Contém a lógica para organizar visualmente os jogos na mesa.
+- **`types/card.ts`**: Define os tipos, constantes de regras (pontos, cartas por mão) e bônus.
 
-Gerencia o estado global da partida.
+### `src/store/` (O Gerenciamento de Estado)
+Uma das partes mais importantes da arquitetura, implementando duas stores Zustand para dois modos de jogo distintos.
+- **`useGameStoreBots.ts` (Store "Gorda"):** Usada para o jogo local contra bots. Contém toda a lógica do jogo (o "loop" do jogo), importando e utilizando as funções de `common/utils/` para manipular o estado diretamente. É o que o `DebugGame.tsx` utiliza.
+- **`useGameStore.ts` (Store "Magra"):** Usada para o modo multiplayer online. As ações nesta store não contêm lógica de jogo; elas apenas emitem eventos para o servidor via Socket.IO (`socket.emit(...)`) e recebem o estado atualizado do backend.
 
-- **State:** `hands` (mãos dinâmicas), `team_melds` (jogos na mesa por time), `deck`, `discard_pile`, `dead_piles` (mortos), `turn_phase`.
-- **Actions:** `draw_card`, `discard_card`, `meld_cards`, `add_card_to_meld`, `pick_up_discard...`.
-- **Lógica de Times:** Suporta 1v1 (2 players) e 2v2 (4 players). No 2v2, parceiros compartilham os jogos baixados (`team_melds`).
+### `src/components/` (A Interface do Usuário)
+- **`DebugGame.tsx`**: O componente principal para o modo de teste local. Renderiza o estado do jogo a partir da `useGameStoreBots` e permite que o jogador humano interaja.
+- **`online/`**: Contém os componentes para a interface do modo multiplayer (atualmente inativo).
 
-### `src/utils/rules_logic.ts` (O Juiz)
+### `server/` (O Backend Multiplayer)
+- **`index.ts`**: Um servidor Node.js completo que gerencia as salas de jogo e atua como a autoridade central para as partidas online. Ele utiliza as mesmas funções de `common/utils/` para garantir que as regras sejam consistentes com o modo local.
 
-Contém a lógica pura de validação de regras do Buraco.
-
-- Função principal: `validate_sequence(cards)`.
-- **Regras Implementadas:**
-  - Mínimo de 3 cartas.
-  - Mesmo naipe.
-  - Uso do "2" como coringa (pode limpar ou sujar a canastra).
-  - Ás pode ser 1 ou 14 (ou ambos em canastras de 1000).
-  - Impede sequências com buracos se não houver coringa físico na mão.
-
-### `src/utils/scoring.ts` (O Placar)
-
-Calcula a pontuação final.
-
-- Soma pontos da mesa + Bônus (Batida, Canastra Limpa, Suja, Real).
-- Subtrai penalidade das cartas que sobraram na mão (soma das mãos da dupla no 2v2).
-
-### `src/utils/game_logic.ts` & `src/utils/sort_cards.ts`
-
-- Criação de baralho (2 decks).
-- Distribuição de cartas (Mãos + 2 Mortos).
-- Ordenação de cartas (Lógica de peso para backend vs Lógica visual para frontend).
-
-## 5. Regras de Negócio Específicas (Buraco Fechado/Padrão)
-
-1.  **Compra do Lixo:** Só é permitida se a carta do topo justificar a compra (encaixar num jogo existente ou formar um novo jogo da mão).
-2.  **Morto:** Existe um morto para cada lado. Se a mão acaba, o jogador pega o morto.
-    - **Batida Direta:** Mão acaba baixando cartas -> Pega o morto e continua jogando.
-    - **Batida Indireta:** Mão acaba descartando -> Pega o morto e passa a vez.
-3.  **Coringas:** A carta "2" atua como coringa.
-    - Canastra Limpa: Sem coringa (ou com 2 natural, sem substituir outra carta).
-    - Canastra Suja: Com coringa.
-4.  **Fim de Jogo:**
-    - Se alguém bater final (tendo pego o morto e com canastra limpa - regra configurável).
-    - Se o monte acabar e não houver morto para repor.
+## 5. Regras de Negócio Implementadas (Buraco Fechado STBL)
+As regras foram atualizadas para seguir o `RULES.md` mais recente.
+- **Cartas:** 11 por mão, 2 mortos de 11 cartas.
+- **Curingas:** Apenas os "2"s. **Máximo 1 "2" pode ser usado como curinga** em um mesmo jogo.
+- **Jogos:** Apenas sequências do mesmo naipe. Não são permitidas trincas/lavadeiras.
+- **Pontuação:** Canastra Limpa vale 400, Ás vale 20.
+- **Validação:** O sistema impede jogos com mais de 14 cartas ou com cartas duplicadas (exceto o Ás em canastras de 1000 pontos).
 
 ## 6. Estado Atual do Desenvolvimento
+- **Lógica do Jogo (`common/`):** Robusta e alinhada com o `RULES.md`. As funções de validação e organização visual foram recentemente corrigidas.
+- **Modo de Teste Local:** Totalmente funcional. O `DebugGame.tsx` permite jogar uma partida completa (1v1 ou 2v2) contra bots com IA simples (compram e descartam).
+- **Modo Multiplayer:** A arquitetura está completa e pronta. Tanto o cliente (`useGameStore.ts` e componentes de `online/`) quanto o servidor (`server/index.ts`) estão codificados. Para ativá-lo, basta alterar o componente renderizado em `src/App.tsx`.
 
-- **Backend/Lógica:** 98% Completo. Validações de sequência, turnos, lixo e pontuação estão funcionais e testadas.
-- **Frontend:** Existe apenas um componente `DebugGame.tsx` usado para testar as mecânicas. Não há design final.
-- **Bots:** Implementação básica ("Dummy Bots") que apenas compram e descartam para fazer o turno girar em testes locais.
-
-## 7. Próximos Passos / Objetivo Final
-
-1.  Refinar a interface visual (transformar o Debug em um Jogo bonito).
-2.  Implementar animações de cartas.
-3.  Preparar para Multiplayer Real (WebSockets) - Atualmente é simulação local.
-
-## 8. Log de Decisões Técnicas Recentes (Jan 2026)
-
-### Sistema de Pontuação (`scoring.ts`)
-
-- **Cálculo Híbrido:** A função `calculate_score` foi refatorada para aceitar parâmetros opcionais (`hands_to_penalize`, `did_beat`).
-  - **Uso em Tempo Real:** Chamada sem parâmetros opcionais para alimentar o HUD (apenas pontos positivos da mesa).
-  - **Uso em Game Over:** Chamada com penalidades para calcular o resultado final.
-- **Integração:** O scoring agora importa `validate_sequence` para determinar automaticamente se uma canastra é Limpa, Suja ou Real, garantindo consistência (Single Source of Truth).
-
-### Interface (`DebugGame.tsx`)
-
-- **Otimização de Espaço:** Substituição dos cabeçalhos grandes ("Jogos Time 1") por um componente compacto `GameInfoBar`.
-- **GameInfoBar:** Exibe pontuação em tempo real, contagem de cartas no monte e status visual dos Mortos (slots vermelhos), liberando a área central para renderização dos jogos.
+## 7. Próximos Passos
+1.  **Refinar a Interface:** Transformar o `DebugGame` ou usar os componentes de `online/` para criar uma interface de usuário final polida e com animações.
+2.  **Melhorar a IA dos Bots:** Evoluir a estratégia dos bots para além de "comprar e descartar".
+3.  **Ativar e Testar o Multiplayer:** Mudar a renderização em `App.tsx` para o componente `<OnlineGame />` e iniciar os testes em ambiente cliente-servidor.

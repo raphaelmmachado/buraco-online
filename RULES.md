@@ -1,119 +1,134 @@
-# ♠️ Regras do Jogo de Buraco
+# Regras do Buraco Fechado (Variante STBL Simplificada)
 
-O **Buraco** (também conhecido como _Canastra_ ou _Biriba_) é um jogo de cartas de origem uruguaia (década de 1940) que se popularizou por toda a América do Sul. Abaixo, você encontra o guia completo de como jogar.
+## Visão Geral
 
----
+O **Buraco Fechado** é um jogo de cartas para 2 ou 4 jogadores (duplas opostas), jogado com **2 baralhos franceses padrão** (104 cartas no total, sem Jokers). O objetivo é formar **canastras** (sequências de 7 ou mais cartas consecutivas do mesmo naipe), zerar a mão na batida (pegando o morto) e somar pontos.  
+**Importante**:
 
-## 👥 1. Jogadores e Baralhos
+- Apenas sequências (mesmo naipe). **Não vale trinca ou lavadeira**.
+- Os **8 "2s"** são os únicos curingas (wilds).
+- Lixo fechado: só a carta de cima é visível.
+- Partida geralmente até 5.000 pontos.
 
-- **Baralhos:** 2 baralhos completos de 52 cartas (incluindo os coringas).
-- **Jogadores:** De 2 a 4 pessoas.
-  - **2:** Disputa individual 1 contra 1.
-  - **4:** Formam-se duas duplas (sentam-se em posições alternadas).
+## Configuração Inicial
 
----
+- Cada jogador recebe **11 cartas** na mão.
+- São formados **2 mortos** (pilhas de 11 cartas cada, viradas para baixo).
+- O restante forma o **monte** (face para baixo).
+- Inicia o jogador à esquerda do distribuidor.
 
-## 🏆 2. Contagem de Pontos
+## Pontuação
 
-O objetivo é atingir uma pontuação pré-estabelecida (geralmente **1500, 3000 ou 5000 pontos**).
+### Pontos das Cartas
 
-### Tabela de Pontuação
+| Carta             | Pontos |
+| ----------------- | ------ |
+| Ás                | 15     |
+| 8, 9, 10, J, Q, K | 10     |
+| 3, 4, 5, 6, 7     | 5      |
+| 2 (curinga)       | 20     |
 
-| Carta / Ação                       | Pontos    |
-| :--------------------------------- | :-------- |
-| **Batida**                         | +100      |
-| **Canastra Real (Limpa)**          | +200      |
-| **Canastra (limpa com 13 cartas)** | +500      |
-| **Canastra (limpa com 14 cartas)** | +1000     |
-| **Canastra Simples (Suja)**        | +100      |
-| **Curinga**                        | 20        |
-| **Ás (A)**                         | 15        |
-| **2, 8, 9, 10, J, Q, K**           | 10 (cada) |
-| **3, 4, 5, 6, 7**                  | 5 (cada)  |
+### Bônus de Canastras
 
-### Penalidades
+| Tipo            | Pontos | Condição                                        |
+| --------------- | ------ | ----------------------------------------------- |
+| Canastra Suja   | +100   | 7+ cartas com exatamente **1 "2"** como curinga |
+| Canastra Limpa  | +400   | 7+ cartas **sem nenhum "2"**                    |
+| Canastra de 500 | +500   | A(baixo) até 7 **ou** 2 até A(alto), sem "2"    |
+| Canastra Real   | +1.000 | A(baixo) até A(alto) — 14 cartas reais, sem "2" |
+| Batida          | +100   | Zerar a mão e pegar o morto                     |
+| Não pegar morto | -100   | Por morto restante ao fim da rodada             |
 
-- **Cartas na mão:** Todas as cartas que sobrarem nas mãos da dupla (ou jogador) que não bateu são somadas e o valor é **subtraído** dos pontos.
-- **Não pegar o Morto:** Se uma dupla não conseguir pegar o morto, perde **100 pontos**.
+## Ordem e Organização das Canastras
 
----
+Todas as sequências são organizadas **horizontalmente na mesa**, da **esquerda para a direita**, em **ordem crescente**.
 
-## 🃏 3. Preparação e Distribuição
+### Ordem Numérica Fixa
 
-1. **Embaralhamento e Corte:** O jogador à direita do carteador corta o baralho.
-2. **Distribuição:** São distribuídas **11 cartas** para cada participante (uma a uma ou duas a duas), em sentido horário.
-3. **O Morto:** O jogador à esquerda do carteador separa 22 cartas em dois montes de 11 cartas (chamados de "Morto"). Eles ficam à parte, virados para baixo.
-4. **Monte de Compras:** As cartas restantes ficam no centro da mesa, viradas para baixo.
+1. Ás (baixo)
+2. 2
+3. 3
+4. 4
+5. 5
+6. 6
+7. 7
+8. 8
+9. 9
+10. 10
+11. J (Valete)
+12. Q (Dama)
+13. K (Rei)
+14. Ás (alto)
 
----
+### Regras de Naipe e Curinga
 
-## 📖 4. Termos Importantes
+- Todas as cartas reais devem ser do **mesmo naipe**.
+- "2" de naipe diferente **assume o naipe da canastra**.
+- **Máximo 1 "2" por canastra** como curinga.
+- O "2" deve ser posicionado **exatamente no valor que representa**.
 
-- **Monte:** Cartas que sobraram no centro da mesa para compra.
-- **Lixo (ou Bagaço):** Pilha de descarte ao lado do monte. Apenas a última carta pode ser visível.
-- **Compra:** Ação de pegar uma carta do monte (obrigatório no início da vez, se não comprar do lixo).
-- **Batida:** Quando acabam as cartas da mão de um jogador e ele já pegou (ou vai pegar) o morto.
-- **Morto:** O monte extra de 11 cartas. Quando o jogador zera a mão pela primeira vez, ele compra o morto.
-- **Baixar Cartas** Ato de criar uma sequencia de 3 cartas e coloca-las na mesa ou adicionar cartas a uma sequencia existente na mesa.
+### Posicionamento do Ás
 
----
+- **Ás baixo**: sempre imediatamente **antes do 2**.
+- **Ás alto**: sempre imediatamente **depois do K**.
+- Na **Canastra Real** (1.000 pontos): usa-se **dois Ás do mesmo naipe** — um baixo (esquerda) e um alto (direita).  
+  Exemplo:  
+  `A♦ 2♦ 3♦ 4♦ 5♦ 6♦ 7♦ 8♦ 9♦ 10♦ J♦ Q♦ K♦ A♦`
 
-## 🎮 5. Como Jogar (O Fluxo da Partida)
+### Exemplos de Canastras Válidas
 
-### Início
+| Tipo            | Organização (esquerda → direita)   | Observação                     |
+| --------------- | ---------------------------------- | ------------------------------ |
+| Limpa 7         | 4♥ 5♥ 6♥ 7♥ 8♥ 9♥ 10♥              | +400 pontos                    |
+| Suja 7          | 5♦ 2♠(=6♦) 7♦ 8♦ 9♦ 10♦ J♦         | +100 pontos                    |
+| De 500 (baixa)  | A♣ 2♣ 3♣ 4♣ 5♣ 6♣ 7♣               | +500 pontos                    |
+| De 500 (alta)   | 2♠ 3♠ 4♠ 5♠ 6♠ 7♠ A♠               | +500 pontos                    |
+| Real 14         | A♦ 2♦ 3♦ ... K♦ A♦                 | +1.000 pontos                  |
+| Com "2" natural | A♠ 2♠(natural) 3♠ 2♥(=4♠) 5♠ 6♠ 7♠ | Válido (1 curinga + 1 natural) |
 
-- O primeiro jogador compra uma carta. Se não gostar, pode descartá-la imediatamente e comprar uma segunda carta (regra específica de início).
+## Fluxo do Turno
 
-### Na sua vez
+1. **Compra** (obrigatória uma das duas opções):
+   - Do **monte**: 1 carta (sempre permitido).
+   - Do **lixo**: só se a carta de cima formar **imediatamente** um jogo de 3+ cartas (novo ou adicionando a existente na mesa). Deve baixar na hora.
+2. **Baixar** jogos ou canastras na mesa (mínimo 3 cartas por jogo).
+3. **Descarte**: exatamente 1 carta no lixo (cobre a anterior).
+4. Passa o turno à esquerda.
 
-O jogador deve realizar as seguintes ações, nesta ordem:
+### Compra do Lixo – Casos Permitidos
 
-1. **Comprar:**
-   - Pode comprar uma carta do **Monte** (cega).
-   - OU comprar do **Lixo**
-     > Para pegar do lixo, o jogador deve selecionar duas cartas da mão, que combinando com a carta do lixo, forma uma sequencia limpa, com no minima de 3 cartas do mesmo naipe. Assim podendo pegar **todas** as cartas que estão no lixo e é obrigado a descartar uma carta ao final da jogada.
-2. **Baixar Jogos (Opcional):** Colocar sequências.
-3. **Descartar:** Jogar uma carta fora no Lixo (encerra a vez).
+- Formar novo jogo de 3+ com cartas da mão.
+- **Adicionar a jogo/canastra já na mesa** (esquerda, direita ou preenchendo gap com "2").  
+  Exemplos válidos:
+- Topo lixo = A♥ → adiciona à esquerda de 2♥ 3♥ 4♥.
+- Topo lixo = 6♣ → substitui "2" em 4♣ 2(=5♣) 7♣ (vira limpa).
 
-### Tipos de Jogos (Melds)
+## Batida (Fim da Rodada)
 
-- **Sequências:** Mínimo de 3 cartas do mesmo naipe (ex: 4, 5, 6 de Copas).
-- ```**Lavadeiras (ou Tripas):** 3 ou mais cartas do mesmo valor (ex: Valete de Paus, Valete de Ouros, Valete de Copas). ~~
+- Zerar completamente a mão jogando todas as cartas na mesa.
+- **Obrigatório ter pelo menos 1 canastra limpa** (sem "2").
+- Pegar 1 morto (duplas alternam qual morto pega primeiro).
+- A segunda batida da mesma dupla encerra a rodada e soma pontos.
 
-  ```
+## Jogadas Proibidas (O Que NÃO Fazer)
 
-- **Curingas:** O número **2** serve como curinga (pode substituir qualquer carta).
-  > Se o 2 está na sua posição original, antes do 3 ou depois do primeiro Ás. Ele não deve ser contado como coringa e será permitido outro coringa na sequencia, desde que esse coringa (2) seja de outro naipe. Assim sujando a canastra para sempre.
+- Organizar em ordem decrescente ou bagunçada.
+- Misturar naipes em cartas reais.
+- Usar mais de 1 "2" como curinga na mesma canastra.
+- Posicionar Ás errado (ex: Ás baixo após o 3 ou Ás alto antes do K).
+- Fazer "wrap around" (K-A-2 na mesma sequência).
+- Baixar menos de 3 cartas como jogo.
+- Comprar do lixo sem formar jogo imediatamente (não pode guardar na mão).
+- Bater sem ter pelo menos 1 canastra limpa.
+- Esquecer de pegar o morto na batida (-100 pontos por morto).
+- Usar trincas ou lavadeiras (3 cartas iguais de naipes diferentes).
+- Adicionar carta no meio da canastra sem ser para substituir "2".
+- Revelar cartas abaixo do topo do lixo.
 
-### ATENÇÃO: NÃO QUEREMOS IMPLEMENTAR A CARTA JOKER NO NOSSO JOGO. TAMBÉM NÃO IMPLEMENTAREMOS LAVADEIRAS OU TRIPAS.
+## Dicas Finais
 
----
+- Priorize formar **canastras limpas** — elas são obrigatórias para bater e valem mais pontos.
+- Controle o lixo: descarte cartas que o oponente provavelmente não consiga usar.
+- Sempre valide mentalmente removendo o "2": se a sequência não ficar perfeita, reorganize ou não baixe.
 
-## 🌟 6. Canastras
-
-Quando uma sequência atinge **7 ou mais cartas**, ela vira uma Canastra.
-
-- **Canastra Real (Limpa):** 7 cartas em sequência sem uso de curingas. (Vale 200 pts).
-- **Canastra Simples (Suja):** 7 cartas ou mais contendo um curinga (Joker ou 2 usado como curinga). (Vale 100 pts).
-- **Canastra de 500 (limpa):** 13 cartas em sequencia limpa sem coringa, exemplos: do Ás ao K ou do 2 (natural) ao último Ás
-- **Canastra de 1000 (limpa):** 14 cartas em sequencia limpa sem coringa, exemplo: do Ás ao Ás
-
----
-
-## 🏁 7. O Morto e Final da Partida
-
-### Pegando o Morto
-
-O jogador que baixar todas as suas cartas da mão pega o morto.
-
-- **Com descarte:** Se ele descartou a última carta para bater, pega o morto e só joga na próxima rodada.
-- **Sem descarte:** Se baixou todas as cartas e não sobrou nenhuma para descarte, pega o morto e continua jogando na mesma vez (pode baixar mais jogos) até descartar.
-
-### Fim de Jogo
-
-A partida termina quando:
-
-1. Uma dupla já pegou o morto;
-2. Um dos jogadores dessa dupla consegue baixar todas as cartas da "nova" mão (do morto).
-
-Após isso, procede-se à contagem dos pontos.
+Divirta-se e boa sorte nas mesas! 🃏

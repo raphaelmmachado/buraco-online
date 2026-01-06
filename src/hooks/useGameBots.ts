@@ -25,7 +25,7 @@ export const useGameBots = () => {
         // Simula um "tempo de pensamento"
         timeoutId = setTimeout(() => {
           draw_card_from_deck();
-        }, 1000); // 1 segundo para comprar
+        }, 400); // 1 segundo para comprar
       }
 
       // 2. FASE DE AÇÃO (ACTION) - O Bot apenas descarta para passar a vez

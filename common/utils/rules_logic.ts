@@ -94,7 +94,7 @@ export const get_sequence_details = (cards: Card[]): SequenceDetails => {
     if (count > 2) {
       return {
         is_valid: false,
-        error: `A carta '${key}' não pode aparecer mais de 2 vezes.`,
+        error: `Erro grave! Tem 3 cartas '${key}' iguais no jogo.`,
       };
     }
 
@@ -125,11 +125,11 @@ export const get_sequence_details = (cards: Card[]): SequenceDetails => {
     };
   }
 
-  const target_suit = naturals[0].suit.name;
-  if (!naturals.every((c) => c.suit.name === target_suit)) {
+  const target_suit = naturals[0]?.suit.name;
+  if (!target_suit || !naturals.every((c) => c.suit.name === target_suit)) {
     return {
       is_valid: false,
-      error: "As cartas naturais do jogo devem ser do mesmo naipe.",
+      error: "As cartas normais do jogo devem ser do mesmo naipe.",
     };
   }
 
@@ -138,18 +138,7 @@ export const get_sequence_details = (cards: Card[]): SequenceDetails => {
   const card_options = cards.map((card) => {
     let weights: number[] = [];
 
-    // Se for '2' de outro naipe, ele SÓ pode ser curinga (qualquer peso exceto, talvez, restrições?)
-    // Na prática, curinga pode assumir qualquer peso de 2 a 14?
-    // A definição diz: 2 tem weights [2..14].
-    // Mas se for naipe diferente, ele DEVE ser curinga.
-    // Se for naipe igual, pode ser 2 ou curinga.
-    // A lista `CARD_VALUE_WEIGHTS['2']` já tem [2..14].
-    // Então só precisamos filtrar pesos inválidos para cartas que NÃO são curingas?
-    // Não, a definição `CARD_VALUE_WEIGHTS` é o que a carta PODE ser.
-
     if (card.value !== "2" && card.suit.name !== target_suit) {
-      // Carta de outro naipe que não é 2 -> Inválido imediatamente.
-      // (Isso já foi pego na verificação `naturals.every` acima).
       weights = [];
     } else {
       weights = [...CARD_VALUE_WEIGHTS[card.value]];
@@ -194,22 +183,15 @@ const solve_recursive = (
     return null;
   }
 
-  const { card, weights } = options[index];
-
-  // Otimização: Tentar pesos que estendam a sequência atual (se houver).
-  // Mas como a ordem de `options` é arbitrária, apenas iteramos.
-  // Poderíamos ordenar `weights` para priorizar sequências?
-  // O array `weights` já vem ordenado do `card.ts`.
+  const opt = options[index];
+  if (!opt) return null;
+  const { card, weights } = opt;
 
   for (const w of weights) {
     // Poda: Peso já usado?
     if (Object.values(assigned).includes(w)) continue;
 
     const new_assigned = { ...assigned, [card.id]: w };
-
-    // Verificação rápida de continuidade (opcional, para performance)
-    // Se tivermos gaps muito grandes já, pode podar.
-    // Mas para N=14 é rápido o suficiente sem heuristicas complexas.
 
     // Recursão
     const result = solve_recursive(
@@ -237,6 +219,8 @@ const validate_assignment = (
   const min = weights[0];
   const max = weights[weights.length - 1];
 
+  if (min === undefined || max === undefined) return false;
+
   // 1. Deve ser consecutivo
   if (max - min + 1 !== weights.length) return false;
 
@@ -244,19 +228,12 @@ const validate_assignment = (
   let wildcard_count = 0;
   for (const card of cards) {
     const w = assigned[card.id];
-    if (is_wildcard_usage(card, w, target_suit)) {
+    if (w !== undefined && is_wildcard_usage(card, w, target_suit)) {
       wildcard_count++;
     }
   }
 
   if (wildcard_count > 1) return false;
-
-  // 3. Regra especial: Curinga não pode ser usado se o peso que ele ocupa
-  //    poderia ser ocupado por uma carta natural disponível?
-  //    Não, a regra é apenas "máximo 1 curinga". Se eu tenho (3, 4) e uso um (2) como 5, ok.
-  //    Se eu tenho (3, 4, 5) e uso um (2) como 5?
-  //    O solver não permite pesos duplicados. Então se o 5 natural está lá, o 2 não pode ser 5.
-  //    O 2 teria que ser 2 ou 6.
 
   return true;
 };
@@ -274,10 +251,14 @@ const build_valid_sequence = (
   const start_weight = weights[0];
   const end_weight = weights[weights.length - 1];
 
+  if (start_weight === undefined || end_weight === undefined) {
+      throw new Error("Invalid sequence assignment");
+  }
+
   let wildcard_count = 0;
   for (const card of cards) {
     const w = assigned[card.id];
-    if (is_wildcard_usage(card, w, target_suit)) {
+    if (w !== undefined && is_wildcard_usage(card, w, target_suit)) {
       wildcard_count++;
     }
   }
@@ -289,8 +270,8 @@ const build_valid_sequence = (
   if (cards.length >= GAME_RULES.MIN_CARDS_FOR_CANASTRA) {
     if (is_clean) {
       if (cards.length === 14) canastra_type = "ACE";
-      if (cards.length === 13) canastra_type = "KING";
-      if (cards.length <= 12) canastra_type = "CLEAN";
+      else if (cards.length === 13) canastra_type = "KING";
+      else canastra_type = "CLEAN";
     } else {
       canastra_type = "DIRTY";
     }
@@ -333,13 +314,27 @@ export const validate_sequence = (cards: Card[]): MeldValidation => {
 export const validate_discard_pickup = (
   discard_top_card: Card,
   selected_hand_cards: Card[]
-): boolean => {
+): MeldValidation => {
   if (selected_hand_cards.length < 2) {
-    return false;
+    return { 
+      is_valid: false, 
+      error: "Precisa de pelo menos duas cartas na mão para comprar lixo." 
+    };
   }
 
   const potential_meld = [discard_top_card, ...selected_hand_cards];
   const validation_result = validate_sequence(potential_meld);
 
-  return validation_result.is_valid && validation_result.is_clean;
+  if (!validation_result.is_valid) {
+      return validation_result;
+  }
+
+  if (!validation_result.is_clean) {
+      return { 
+          is_valid: false, 
+          error: "O jogo formado com o lixo deve ser LIMPO (sem curingas)." 
+      };
+  }
+
+  return validation_result;
 };

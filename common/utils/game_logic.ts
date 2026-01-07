@@ -20,7 +20,9 @@ const shuffle = (array: Card[]): Card[] => {
   const new_array = [...array];
   for (let i = new_array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [new_array[i], new_array[j]] = [new_array[j], new_array[i]];
+    const temp = new_array[i]!;
+    new_array[i] = new_array[j]!;
+    new_array[j] = temp;
   }
   return new_array;
 };

@@ -12,13 +12,51 @@ import { get_sequence_details } from "./rules_logic";
  * @description Ordenação padrão para a mão do jogador: agrupa por naipe e depois por valor.
  */
 export const sort_cards = (cards: Card[]): Card[] => {
-  return [...cards].sort((a, b) => {
-    if (a.suit.name !== b.suit.name) {
-      return a.suit.name.localeCompare(b.suit.name);
-    }
-    // Usa o peso primário (índice 0) para ordenação simples
-    return PRIMARY_CARD_WEIGHTS[a.value] - PRIMARY_CARD_WEIGHTS[b.value];
+  // 1. Agrupa as cartas por naipe
+  const suits_map: Record<string, Card[]> = {};
+  
+  cards.forEach(card => {
+    const sName = card.suit.name;
+    if (!suits_map[sName]) suits_map[sName] = [];
+    suits_map[sName]!.push(card);
   });
+
+  // 2. Ordena as cartas dentro de cada grupo de naipe por valor
+  Object.values(suits_map).forEach(group => {
+    group.sort((a, b) => PRIMARY_CARD_WEIGHTS[a.value] - PRIMARY_CARD_WEIGHTS[b.value]);
+  });
+
+  // 3. Separa os grupos de naipes por cor
+  const red_suit_groups: Card[][] = [];
+  const black_suit_groups: Card[][] = [];
+
+  const sorted_suit_names = Object.keys(suits_map).sort();
+
+  sorted_suit_names.forEach(name => {
+    const group = suits_map[name];
+    if (group && group.length > 0) {
+      if (group[0]!.suit.color === "red") {
+        red_suit_groups.push(group);
+      } else {
+        black_suit_groups.push(group);
+      }
+    }
+  });
+
+  // 4. Intercala os grupos de naipes
+  const result: Card[] = [];
+  const max_groups = Math.max(red_suit_groups.length, black_suit_groups.length);
+
+  for (let i = 0; i < max_groups; i++) {
+    if (i < red_suit_groups.length) {
+        result.push(...red_suit_groups[i]!);
+    }
+    if (i < black_suit_groups.length) {
+        result.push(...black_suit_groups[i]!);
+    }
+  }
+
+  return result;
 };
 
 /**

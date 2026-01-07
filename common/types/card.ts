@@ -11,6 +11,7 @@
 export type Suit = {
   icon: "♠" | "♣" | "♥" | "♦";
   name: "espadas" | "paus" | "copas" | "ouro";
+  color: "red" | "black";
 };
 
 export type CardValue =
@@ -41,10 +42,10 @@ export interface Card {
 // -----------------------------------------------------------------------------
 
 export const SUITS: Suit[] = [
-  { icon: "♠", name: "espadas" },
-  { icon: "♣", name: "paus" },
-  { icon: "♥", name: "copas" },
-  { icon: "♦", name: "ouro" },
+  { icon: "♠", name: "espadas", color: "black" },
+  { icon: "♣", name: "paus", color: "black" },
+  { icon: "♥", name: "copas", color: "red" },
+  { icon: "♦", name: "ouro", color: "red" },
 ];
 
 const CARD_DEFINITIONS = [

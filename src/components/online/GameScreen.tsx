@@ -29,7 +29,7 @@ const GameCard = ({
       <div
         onClick={onClick}
         className={`
-          relative rounded-lg shadow-xl border-2 border-white/10 bg-gradient-to-br from-indigo-900 via-blue-950 to-slate-900
+          relative rounded-lg shadow-xl border-2 border-white/10 bg-linear-to-br from-indigo-900 via-blue-950 to-slate-900
           flex items-center justify-center overflow-hidden transition-all duration-200
           ${small ? "w-10 h-14" : "w-16 h-24 md:w-20 md:h-32"}
           ${
@@ -86,29 +86,32 @@ const GameCard = ({
 };
 
 const MeldBadge = ({ meld }: { meld: CardType[] }) => {
-  const { score, type } = calculate_meld_score(meld);
-  if (type === "INSUFFICIENT" && meld.length < 3) return null;
+  const { score, type, length } = calculate_meld_score(meld);
+  if (length < 3) return null;
 
-  let color = "bg-slate-700";
-  let label = "Normal";
+  let color: string;
+  let label: string;
 
   switch (type) {
     case "CLEAN":
-      color = "bg-emerald-600";
-      label = "LIMPA";
+      color = "bg-blue-600";
+      label = "Limpa";
       break;
     case "DIRTY":
       color = "bg-amber-600";
-      label = "SUJA";
+      label = "Suja";
       break;
     case "KING":
-      color = "bg-blue-600";
-      label = "500";
+      color = "bg-green-600";
+      label = "EXCELENTE";
       break;
     case "ACE":
       color = "bg-purple-600";
-      label = "REAL";
+      label = "PERFEITA";
       break;
+    default:
+      label = `Faltam ${length - 7} cartas`;
+      color = "bg-slate-700";
   }
 
   return (
@@ -162,8 +165,13 @@ export const GameScreen = () => {
   };
 
   const handleMeldClick = (teamId: number, meldIndex: number) => {
-    if (teamId === my_team && canAction && selectedCards.length > 0) {
+    if (teamId !== my_team) return;
+
+    if (canAction && selectedCards.length > 0) {
       store.add_to_meld(selectedCards, meldIndex);
+      setSelectedCards([]);
+    } else if (canDraw) {
+      store.pick_up_discard_add_to_meld(meldIndex, selectedCards);
       setSelectedCards([]);
     }
   };
@@ -180,7 +188,7 @@ export const GameScreen = () => {
       ></div>
 
       {/* 37.5% ÁREA DO ADVERSÁRIO */}
-      <div className="h-[37.5%] bg-gradient-to-b from-black/40 to-transparent border-b border-white/5 p-6 flex flex-col relative z-10">
+      <div className="h-[37.5%] bg-linear-to-b from-black/40 to-transparent border-b border-white/5 p-6 flex flex-col relative z-10">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-3">
             <span className="w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_red]"></span>
@@ -233,8 +241,9 @@ export const GameScreen = () => {
               ? "Sua Vez"
               : `Vez de: ${
                   store.players_data[store.current_player]?.userName || "..."
-                }`}
+                } (${store.hands[store.current_player]?.length || 0} cartas)`}
           </div>
+
           <span className="text-[9px] font-bold text-white/40 uppercase tracking-[0.2em]">
             {store.turn_phase === "DRAW"
               ? "Fase de Compra"
@@ -245,21 +254,28 @@ export const GameScreen = () => {
         </div>
 
         {/* Quantidade de Cartas na Mão de cada jogador */}
-        <div className="flex gap-4 items-center overflow-x-auto scrollbar-hide">
+        <div className="flex gap-3 items-center overflow-x-auto scrollbar-hide max-w-[40%]">
           {Object.entries(store.players_data).map(([id, p]) => (
             <div
               key={id}
-              className={`flex items-center gap-1.5 px-2 py-0.5 rounded border ${
+              className={`flex items-center gap-2 px-3 py-1 rounded-full border transition-all ${
                 Number(id) === store.current_player
-                  ? "border-yellow-500/50 bg-yellow-500/10"
-                  : "border-white/5 bg-black/20"
+                  ? "border-yellow-500 bg-yellow-500/20 shadow-[0_0_10px_rgba(234,179,8,0.2)]"
+                  : "border-white/10 bg-white/5"
               }`}
             >
-              <span className="text-[8px] font-black text-slate-500">
-                P{id}
+              <span
+                className={`text-[9px] font-black truncate max-w-[60px] uppercase ${
+                  Number(id) === store.current_player
+                    ? "text-yellow-400"
+                    : "text-slate-400"
+                }`}
+              >
+                {p.userName}
               </span>
-              <span className="text-[10px] font-mono font-bold text-white">
-                {store.hands[Number(id)]?.length || 0}🎴
+              <span className="text-[10px] font-mono font-bold text-white flex items-center gap-1">
+                <span className="opacity-50 text-[8px]">x</span>
+                {store.hands[Number(id)]?.length || 0}
               </span>
             </div>
           ))}
@@ -414,8 +430,8 @@ export const GameScreen = () => {
                   key={card.id}
                   className={`transform transition-all duration-300 origin-bottom ${
                     isSel
-                      ? "-translate-y-24 z-[100] scale-110"
-                      : "hover:-translate-y-12 hover:z-[90]"
+                      ? "-translate-y-24 z-100 scale-110"
+                      : "hover:-translate-y-12 hover:z-90"
                   }`}
                   style={{
                     zIndex: i,

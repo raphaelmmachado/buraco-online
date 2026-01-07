@@ -100,7 +100,7 @@ export const calculate_score = (
  */
 export const calculate_meld_score = (
   meld: Card[]
-): { score: number; type: string } => {
+): { score: number; type: keyof typeof MELD_POINTS; length: number } => {
   let score = 0;
   for (const card of meld) {
     score += CARD_POINTS[card.value] || 0;
@@ -118,5 +118,5 @@ export const calculate_meld_score = (
     type = "INSUFFICIENT";
   }
 
-  return { score, type };
+  return { score, type, length: meld.length };
 };

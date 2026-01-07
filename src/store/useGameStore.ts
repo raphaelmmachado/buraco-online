@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { io, Socket } from "socket.io-client";
 import type { Card } from "../../common/types/card";
-import { SERVER_ADRESS } from "../../common/const/server-adress";
+import { SERVER_ADDRESS } from "../../common/const/server-adress";
 
 // 1. O QUE CHEGA DO SERVIDOR
 interface IncomingServerState {
@@ -61,7 +61,7 @@ interface GameActions {
   set_server_state: (server_data: IncomingServerState) => void;
 }
 
-const socket: Socket = io(SERVER_ADRESS, {
+const socket: Socket = io(SERVER_ADDRESS, {
   autoConnect: false,
 });
 
@@ -87,7 +87,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
   initializeSocket: () => {
     if (socket.connected) return;
-    
+
     socket.connect();
 
     socket.on("player_assignment", (num: number, userName: string) => {
@@ -164,7 +164,11 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
   pick_up_discard_add_to_meld: (meld_index, card_ids) => {
     const { roomId } = get();
-    socket.emit("action_pick_up_discard_add_to_meld", { roomId, meld_index, card_ids });
+    socket.emit("action_pick_up_discard_add_to_meld", {
+      roomId,
+      meld_index,
+      card_ids,
+    });
   },
 
   startGame: () => {

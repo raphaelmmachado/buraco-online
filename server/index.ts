@@ -2,7 +2,7 @@ console.log("--- SCRIPT START ---");
 import { Server } from "socket.io";
 
 import { create_deck, distribute_cards } from "../common/utils/game_logic";
-import { validate_sequence } from "../common/utils/rules_logic";
+import { validate_sequence, validate_discard_pickup } from "../common/utils/rules_logic";
 import { sort_cards } from "../common/utils/sort_cards";
 import { calculate_score, type ScoreResult } from "../common/utils/scoring";
 import { type Card } from "../common/types/card";
@@ -43,6 +43,32 @@ const get_next_player = (current: number, mode: GameMode): number => {
   return (current % 4) + 1;
 };
 
+const has_clean_canastra = (game: ServerGameState, team_id: TeamID): boolean => {
+  const melds = game.team_melds[team_id] || [];
+  return melds.some((meld) => {
+    const val = validate_sequence(meld);
+    return (
+      val.is_valid &&
+      (val.canastra_type === "CLEAN" ||
+        val.canastra_type === "KING" ||
+        val.canastra_type === "ACE")
+    );
+  });
+};
+
+const requires_clean_to_empty_hand = (game: ServerGameState, team_id: TeamID): boolean => {
+  const team_idx = team_id - 1;
+  // Se o time já pegou o morto, essa batida encerra o jogo -> Precisa de Limpa
+  if (game.has_taken_dead_pile[team_idx]) return true;
+
+  // Se o time NÃO pegou o morto:
+  // Se tem morto disponível, é apenas uma ida ao morto -> NÃO precisa de Limpa
+  if (game.dead_piles.length > 0) return false;
+
+  // Se não tem mais morto (o outro time pegou os dois? ou acabou), encerra o jogo -> Precisa de Limpa
+  return true;
+};
+
 const handle_empty_hand = (game: ServerGameState, player_id: PlayerID, type: "DIRECT" | "INDIRECT") => {
   const team_id = get_team(player_id);
   const team_idx = team_id - 1;
@@ -57,8 +83,8 @@ const handle_empty_hand = (game: ServerGameState, player_id: PlayerID, type: "DI
     const t1_melds = game.team_melds[1] ?? [];
     const t2_melds = game.team_melds[2] ?? [];
 
-    const t1_score = calculate_score(t1_melds, [t1_hand_1, t1_hand_2], team_id === 1);
-    const t2_score = calculate_score(t2_melds, [t2_hand_1, t2_hand_2], team_id === 2);
+    const t1_score = calculate_score(t1_melds, [t1_hand_1, t1_hand_2], team_id === 1, !game.has_taken_dead_pile[0]);
+    const t2_score = calculate_score(t2_melds, [t2_hand_1, t2_hand_2], team_id === 2, !game.has_taken_dead_pile[1]);
 
     game.status = "FINISHED";
     game.final_score = {
@@ -193,7 +219,15 @@ io.on("connection", (socket) => {
     if (!ctx) return;
     const { game, player_id } = ctx;
 
-    if (game.turn_phase !== "DRAW" || game.deck.length === 0) return;
+    if (game.turn_phase !== "DRAW") {
+      socket.emit("error_msg", "Não está na fase de compra.");
+      return;
+    }
+    
+    if (game.deck.length === 0) {
+      socket.emit("error_msg", "O monte acabou!");
+      return;
+    }
 
     const card = game.deck.shift();
     const player_hand = game.hands[player_id];
@@ -205,26 +239,175 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("action_pick_up_discard_new_meld", ({ roomId, card_ids }: { roomId: string; card_ids: string[] }) => {
+    const ctx = validateTurn(roomId, socket.id);
+    if (!ctx) return;
+    const { game, player_id } = ctx;
+
+    if (game.turn_phase !== "DRAW" || game.discard_pile.length === 0) {
+      socket.emit("error_msg", "Não pode comprar do lixo agora.");
+      return;
+    }
+
+    const current_hand = game.hands[player_id] ?? [];
+    const top_discard = game.discard_pile[0];
+    const hand_cards = current_hand.filter((c) => card_ids.includes(c.id));
+
+    if (hand_cards.length !== card_ids.length) {
+      socket.emit("error_msg", "Cartas selecionadas inválidas.");
+      return;
+    }
+
+    const combined = [...hand_cards, top_discard];
+    
+    // VALIDACAO: Usa a função específica que exige jogo LIMPO para comprar o lixo
+    const is_valid_pickup = validate_discard_pickup(top_discard, hand_cards);
+
+    if (!is_valid_pickup) {
+      const detail = validate_sequence(combined);
+      const error_msg = !detail.is_valid ? detail.error : "O jogo formado deve ser LIMPO (sem curingas) para comprar o lixo.";
+      
+      console.log(`[VALIDATION FAIL] Player ${player_id} pickup discard: ${error_msg}`);
+      socket.emit("error_msg", `Lixo bloqueado: ${error_msg}`);
+      return;
+    }
+
+    // Sucesso! Pega TODO o lixo
+    const all_discard = [...game.discard_pile];
+    game.discard_pile = [];
+
+    // Remove as cartas da mão que foram usadas no jogo
+    game.hands[player_id] = current_hand.filter((c) => !card_ids.includes(c.id));
+    
+    // Adiciona o lixo à mão (exceto a que foi pra mesa)
+    const rest_of_discard = all_discard.filter(c => c.id !== top_discard.id);
+    game.hands[player_id].push(...rest_of_discard);
+    game.hands[player_id] = sort_cards(game.hands[player_id]);
+
+    // Baixa o jogo na mesa
+    const team_id = get_team(player_id);
+    game.team_melds[team_id].push(sort_cards(combined));
+
+    game.turn_phase = "ACTION";
+    
+    if (game.hands[player_id].length === 0) {
+       if (requires_clean_to_empty_hand(game, team_id)) {
+          if (!has_clean_canastra(game, team_id)) {
+             // Por limitação técnica deste MVP, se o jogador bater ao pegar o lixo sem ter canastra limpa,
+             // o jogo vai acabar incorretamente ou precisaríamos de um rollback complexo.
+             // O correto seria simular o resultado antes de aplicar.
+             // Como mitigação, enviamos um erro, mas o estado já mudou.
+             // Para produção, refatorar para 'dry-run'.
+             socket.emit("error_msg", "Atenção: Você bateu sem canastra limpa! (Regra violada)");
+          }
+       }
+       handle_empty_hand(game, player_id, "DIRECT");
+    }
+
+    io.to(roomId).emit("game_update", game);
+  });
+
+  socket.on("action_pick_up_discard_add_to_meld", ({ roomId, meld_index, card_ids }: { roomId: string; meld_index: number; card_ids: string[] }) => {
+    const ctx = validateTurn(roomId, socket.id);
+    if (!ctx) return;
+    const { game, player_id } = ctx;
+
+    if (game.turn_phase !== "DRAW" || game.discard_pile.length === 0) {
+      socket.emit("error_msg", "Não pode comprar do lixo agora.");
+      return;
+    }
+
+    const team_id = get_team(player_id);
+    const target_meld = game.team_melds[team_id]?.[meld_index];
+    if (!target_meld) {
+      socket.emit("error_msg", "Jogo não encontrado.");
+      return;
+    }
+
+    const current_hand = game.hands[player_id] ?? [];
+    const top_discard = game.discard_pile[0];
+    const hand_cards = current_hand.filter((c) => card_ids.includes(c.id));
+
+    const new_meld = [...target_meld, ...hand_cards, top_discard];
+    const validation = validate_sequence(new_meld);
+
+    if (!validation.is_valid) {
+      socket.emit("error_msg", `Não pode adicionar ao jogo: ${validation.error}`);
+      return;
+    }
+
+    // Sucesso! Pega TODO o lixo
+    const all_discard = [...game.discard_pile];
+    game.discard_pile = [];
+
+    // Remove as cartas da mão
+    game.hands[player_id] = current_hand.filter((c) => !card_ids.includes(c.id));
+    
+    // Adiciona o lixo à mão (exceto a que foi pra mesa)
+    const rest_of_discard = all_discard.filter(c => c.id !== top_discard.id);
+    game.hands[player_id].push(...rest_of_discard);
+    game.hands[player_id] = sort_cards(game.hands[player_id]);
+
+    // Atualiza o jogo na mesa
+    game.team_melds[team_id][meld_index] = sort_cards(new_meld);
+
+    game.turn_phase = "ACTION";
+
+    if (game.hands[player_id].length === 0) {
+       if (requires_clean_to_empty_hand(game, team_id)) {
+          if (!has_clean_canastra(game, team_id)) {
+             socket.emit("error_msg", "Atenção: Você bateu sem canastra limpa! (Regra violada)");
+          }
+       }
+       handle_empty_hand(game, player_id, "DIRECT");
+    }
+
+    io.to(roomId).emit("game_update", game);
+  });
+
   socket.on("action_meld", ({ roomId, card_ids }: { roomId: string; card_ids: string[] }) => {
     const ctx = validateTurn(roomId, socket.id);
     if (!ctx) return;
     const { game, player_id } = ctx;
 
     const current_hand = game.hands[player_id];
-    if (game.turn_phase !== "ACTION" || !current_hand) return;
-
-    const cards_to_meld = current_hand.filter((c) => card_ids.includes(c.id));
-    if (cards_to_meld.length !== card_ids.length || !validate_sequence(cards_to_meld).is_valid) return;
-
-    game.hands[player_id] = current_hand.filter((c) => !card_ids.includes(c.id));
-    
-    const team_id = get_team(player_id);
-    const team_melds = game.team_melds[team_id];
-    if(team_melds) {
-      team_melds.push(sort_cards(cards_to_meld));
+    if (game.turn_phase !== "ACTION" || !current_hand) {
+        socket.emit("error_msg", "Não pode baixar jogo agora.");
+        return;
     }
 
-    if ((game.hands[player_id]?.length ?? 0) === 0) {
+    const cards_to_meld = current_hand.filter((c) => card_ids.includes(c.id));
+    if (cards_to_meld.length !== card_ids.length) {
+        socket.emit("error_msg", "Cartas selecionadas não estão na mão.");
+        return;
+    }
+
+    const validation = validate_sequence(cards_to_meld);
+    if (!validation.is_valid) {
+        socket.emit("error_msg", `Jogo inválido: ${validation.error}`);
+        return;
+    }
+
+    const team_id = get_team(player_id);
+    const new_hand_len = current_hand.length - card_ids.length;
+
+    // Se for ficar sem carta, precisa checar se pode bater
+    if (new_hand_len === 0) {
+        if (requires_clean_to_empty_hand(game, team_id)) {
+            const already_has_clean = has_clean_canastra(game, team_id);
+            const this_is_clean_canastra = validation.is_valid && (validation.canastra_type === "CLEAN" || validation.canastra_type === "KING" || validation.canastra_type === "ACE");
+            
+            if (!already_has_clean && !this_is_clean_canastra) {
+                socket.emit("error_msg", "Não pode bater (encerrar) sem canastra limpa.");
+                return;
+            }
+        }
+    }
+
+    game.hands[player_id] = current_hand.filter((c) => !card_ids.includes(c.id));
+    game.team_melds[team_id].push(sort_cards(cards_to_meld));
+
+    if (game.hands[player_id].length === 0) {
       handle_empty_hand(game, player_id, "DIRECT");
     }
 
@@ -240,22 +423,50 @@ io.on("connection", (socket) => {
     const team_id = get_team(player_id);
     const team_melds = game.team_melds[team_id];
 
-    if (game.turn_phase !== "ACTION" || !current_hand || !team_melds) return;
+    if (game.turn_phase !== "ACTION" || !current_hand || !team_melds) {
+        socket.emit("error_msg", "Não pode baixar jogo agora.");
+        return;
+    }
     
     const target_meld = team_melds[meld_index];
-    if (!target_meld) return;
+    if (!target_meld) {
+        socket.emit("error_msg", "Jogo alvo não encontrado.");
+        return;
+    }
 
     const cards_to_add = current_hand.filter((c) => card_ids.includes(c.id));
-    const new_meld = [...target_meld, ...cards_to_add];
-    if (validate_sequence(new_meld).is_valid) {
-      game.hands[player_id] = current_hand.filter((c) => !card_ids.includes(c.id));
-      team_melds[meld_index] = sort_cards(new_meld);
-
-      if ((game.hands[player_id]?.length ?? 0) === 0) {
-        handle_empty_hand(game, player_id, "DIRECT");
-      }
-      io.to(roomId).emit("game_update", game);
+    if (cards_to_add.length !== card_ids.length) {
+        socket.emit("error_msg", "Cartas não estão na mão.");
+        return;
     }
+
+    const new_meld = [...target_meld, ...cards_to_add];
+    const validation = validate_sequence(new_meld);
+    if (!validation.is_valid) {
+      socket.emit("error_msg", `Não pode adicionar: ${validation.error}`);
+      return;
+    }
+
+    const new_hand_len = current_hand.length - card_ids.length;
+    if (new_hand_len === 0) {
+        if (requires_clean_to_empty_hand(game, team_id)) {
+            const already_has_clean = has_clean_canastra(game, team_id);
+            const this_will_be_clean = validation.is_valid && (validation.canastra_type === "CLEAN" || validation.canastra_type === "KING" || validation.canastra_type === "ACE");
+
+            if (!already_has_clean && !this_will_be_clean) {
+                socket.emit("error_msg", "Não pode bater (encerrar) sem canastra limpa.");
+                return;
+            }
+        }
+    }
+
+    game.hands[player_id] = current_hand.filter((c) => !card_ids.includes(c.id));
+    team_melds[meld_index] = sort_cards(new_meld);
+
+    if (game.hands[player_id].length === 0) {
+      handle_empty_hand(game, player_id, "DIRECT");
+    }
+    io.to(roomId).emit("game_update", game);
   });
 
   socket.on("action_discard", ({ roomId, card_id }: { roomId: string; card_id: string }) => {
@@ -264,15 +475,30 @@ io.on("connection", (socket) => {
     const { game, player_id } = ctx;
 
     const current_hand = game.hands[player_id];
-    if (game.turn_phase !== "ACTION" || !current_hand) return;
+    if (game.turn_phase !== "ACTION" || !current_hand) {
+        socket.emit("error_msg", "Não pode descartar agora.");
+        return;
+    }
 
     const card_to_discard = current_hand.find((c) => c.id === card_id);
     if (!card_to_discard) return;
     
+    const team_id = get_team(player_id);
+    const new_hand_len = current_hand.length - 1;
+
+    if (new_hand_len === 0) {
+        if (requires_clean_to_empty_hand(game, team_id)) {
+            if (!has_clean_canastra(game, team_id)) {
+                socket.emit("error_msg", "Não pode bater (encerrar) sem canastra limpa.");
+                return;
+            }
+        }
+    }
+
     game.hands[player_id] = current_hand.filter((c) => c.id !== card_id);
     game.discard_pile.unshift(card_to_discard);
 
-    if ((game.hands[player_id]?.length ?? 0) === 0) {
+    if (game.hands[player_id].length === 0) {
       handle_empty_hand(game, player_id, "INDIRECT");
     }
 

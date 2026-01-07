@@ -109,7 +109,7 @@ export const BONUS_POINTS = {
 export const MELD_POINTS = {
   INSUFFICIENT: 0,
   DIRTY: 100,
-  CLEAN: 200,
+  CLEAN: 400,
   KING: 500,
   ACE: 1000,
 } as const;

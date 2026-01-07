@@ -1,138 +1,28 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useGameStore } from "../../store/useGameStore";
-import { type Card as CardType } from "../../../common/types/card";
 import { organize_meld } from "../../../common/utils/sort_cards";
-import {
-  calculate_score,
-  calculate_meld_score,
-} from "../../../common/utils/scoring";
+import { calculate_score } from "../../../common/utils/scoring";
 
-// --- NOVOS COMPONENTES VISUAIS (DESIGN PREMIUN COM PROPORÇÕES REVISADAS) ---
-
-const GameCard = ({
-  card,
-  isSelected,
-  onClick,
-  small = false,
-  hidden = false,
-}: {
-  card: CardType;
-  isSelected?: boolean;
-  onClick?: () => void;
-  small?: boolean;
-  hidden?: boolean;
-}) => {
-  const isRed = card.color === "red";
-
-  if (hidden) {
-    return (
-      <div
-        onClick={onClick}
-        className={`
-          relative rounded-lg shadow-xl border-2 border-white/10 bg-linear-to-br from-indigo-900 via-blue-950 to-slate-900
-          flex items-center justify-center overflow-hidden transition-all duration-200
-          ${small ? "w-10 h-14" : "w-16 h-24 md:w-20 md:h-32"}
-          ${
-            onClick ? "cursor-pointer hover:scale-105 hover:brightness-110" : ""
-          }
-        `}
-      >
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%)",
-            backgroundSize: "10px 10px",
-          }}
-        ></div>
-        <div className="text-white/20 text-4xl">♠</div>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      onClick={onClick}
-      className={`
-        relative rounded-lg shadow-lg border bg-white select-none transition-all duration-300
-        flex flex-col items-center justify-between p-1
-        ${small ? "w-10 h-14 text-[10px]" : "w-16 h-24 md:w-20 md:h-32"}
-        ${
-          isSelected
-            ? "border-yellow-400 -translate-y-6 shadow-yellow-500/50 shadow-2xl z-50 ring-4 ring-yellow-400/30"
-            : "border-slate-300 hover:-translate-y-2"
-        }
-        ${isRed ? "text-red-600" : "text-slate-900"}
-        ${onClick ? "cursor-pointer" : ""}
-      `}
-    >
-      <div className="self-start flex flex-col items-center leading-none">
-        <span className="font-black text-lg md:text-2xl">{card.value}</span>
-        <span className="text-xs md:text-sm">{card.suit.icon}</span>
-      </div>
-
-      {!small && (
-        <div className="text-5xl opacity-[0.07] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-          {card.suit.icon}
-        </div>
-      )}
-
-      <div className="self-end flex flex-col items-center leading-none rotate-180">
-        <span className="font-black text-lg md:text-2xl">{card.value}</span>
-        <span className="text-xs md:text-sm">{card.suit.icon}</span>
-      </div>
-    </div>
-  );
-};
-
-const MeldBadge = ({ meld }: { meld: CardType[] }) => {
-  const { score, type, length } = calculate_meld_score(meld);
-  if (length < 3) return null;
-
-  let color: string;
-  let label: string;
-
-  switch (type) {
-    case "CLEAN":
-      color = "bg-blue-600";
-      label = "Limpa";
-      break;
-    case "DIRTY":
-      color = "bg-amber-600";
-      label = "Suja";
-      break;
-    case "KING":
-      color = "bg-green-600";
-      label = "EXCELENTE";
-      break;
-    case "ACE":
-      color = "bg-purple-600";
-      label = "PERFEITA";
-      break;
-    default:
-      label = `Faltam ${length - 7} cartas`;
-      color = "bg-slate-700";
-  }
-
-  return (
-    <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center z-20 min-w-max">
-      <span
-        className={`${color} text-[8px] md:text-[10px] text-white font-black px-2.5 py-0.5 rounded-full shadow-lg uppercase tracking-widest border border-white/10`}
-      >
-        {label}
-      </span>
-      <span className="text-[10px] text-white font-black drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] mt-0.5">
-        {score} pts
-      </span>
-    </div>
-  );
-};
+// UI Components
+import { GameCard } from "../game-ui/GameCard";
+import { MeldBadge } from "../game-ui/MeldBadge";
+import { GameMenu } from "../game-ui/GameMenu";
 
 // --- TELA PRINCIPAL ---
 
 export const GameScreen = () => {
   const store = useGameStore();
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
+
+  // Auto-clear error after 3 seconds
+  useEffect(() => {
+    if (store.last_error) {
+      const timer = setTimeout(() => {
+        store.clear_error();
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [store.last_error]);
 
   const my_player_id = store.my_player_number ?? 1;
   const my_team = my_player_id % 2 !== 0 ? 1 : 2;
@@ -177,9 +67,13 @@ export const GameScreen = () => {
   };
 
   return (
-    <div className="h-screen w-screen bg-[#0f2e1a] text-white overflow-hidden flex flex-col select-none relative font-sans">
+    <main
+      id="game-screen"
+      className="h-screen w-screen bg-[#0f2e1a] text-white overflow-hidden flex flex-col select-none relative font-sans"
+    >
       {/* TEXTURA DA MESA */}
       <div
+        id="table-texture"
         className="absolute inset-0 opacity-20 pointer-events-none"
         style={{
           backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)",
@@ -188,8 +82,11 @@ export const GameScreen = () => {
       ></div>
 
       {/* 37.5% ÁREA DO ADVERSÁRIO */}
-      <div className="h-[37.5%] bg-linear-to-b from-black/40 to-transparent border-b border-white/5 p-6 flex flex-col relative z-10">
-        <div className="flex justify-between items-center mb-4">
+      <section
+        id="opponent-area"
+        className="h-[37.5%] bg-linear-to-b from-black/40 to-transparent border-b border-white/5 px-6 py-3 flex flex-col relative z-10"
+      >
+        <div className="flex justify-between items-center mb-2">
           <div className="flex items-center gap-3">
             <span className="w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_red]"></span>
             <span className="text-xs font-black text-red-300 uppercase tracking-[0.3em]">
@@ -225,10 +122,13 @@ export const GameScreen = () => {
             </div>
           )}
         </div>
-      </div>
+      </section>
 
       {/* 5% HUD SLIM / INFORMAÇÕES - VISUAL GLASSMORPHISM */}
-      <div className="h-[5%] bg-white/5 backdrop-blur-md flex items-center justify-between px-8 border-y border-white/5 shadow-2xl z-30">
+      <section
+        id="game-hud"
+        className="h-[5%] bg-white/5 backdrop-blur-md flex items-center justify-between px-8 border-y border-white/5 shadow-2xl z-30"
+      >
         <div className="flex items-center gap-4">
           <div
             className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-500 shadow-lg ${
@@ -241,7 +141,7 @@ export const GameScreen = () => {
               ? "Sua Vez"
               : `Vez de: ${
                   store.players_data[store.current_player]?.userName || "..."
-                } (${store.hands[store.current_player]?.length || 0} cartas)`}
+                }`}
           </div>
 
           <span className="text-[9px] font-bold text-white/40 uppercase tracking-[0.2em]">
@@ -275,7 +175,7 @@ export const GameScreen = () => {
               </span>
               <span className="text-[10px] font-mono font-bold text-white flex items-center gap-1">
                 <span className="opacity-50 text-[8px]">x</span>
-                {store.hands[Number(id)]?.length || 0}
+                {`${store.hands[Number(id)]?.length || 0} cartas`}
               </span>
             </div>
           ))}
@@ -299,11 +199,14 @@ export const GameScreen = () => {
             </span>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* 37.5% ÁREA DO SEU JOGO */}
-      <div className="h-[37.5%] bg-gradient-to-t from-black/20 to-transparent p-6 flex flex-col relative z-10">
-        <div className="flex justify-between items-center mb-4">
+      <section
+        id="player-area"
+        className="h-[37.5%] bg-gradient-to-t from-black/20 to-transparent px-6 py-3 flex flex-col relative z-10"
+      >
+        <div className="flex justify-between items-center mb-2">
           <div className="flex items-center gap-3">
             <span className="w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_8px_#3b82f6]"></span>
             <span className="text-xs font-black text-blue-300 uppercase tracking-[0.3em]">
@@ -319,7 +222,6 @@ export const GameScreen = () => {
             </span>
           </div>
         </div>
-
         <div className="flex-1 flex flex-wrap content-start gap-x-10 gap-y-14 overflow-y-auto scrollbar-hide pt-4">
           {/* Botão Baixar Novo Jogo - VISUAL DE SLOT */}
           {canAction && selectedCards.length >= 3 && (
@@ -354,106 +256,138 @@ export const GameScreen = () => {
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
       {/* 20% RODAPÉ: MONTE, LIXO E MÃO */}
-      <div className="h-[20%] bg-black/80 backdrop-blur-2xl border-t border-white/10 flex items-center px-8 gap-12 z-40">
+      <footer
+        id="game-footer"
+        className="h-[20%] bg-gradient-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md flex items-end justify-center px-4 pb-4 gap-8 z-40 relative overflow-visible"
+      >
         {/* MONTE E LIXO */}
-        <div className="flex gap-6 shrink-0 pt-2">
-          <div
-            onClick={handleDeckClick}
-            className={`relative transition-all ${
-              canDraw
-                ? "cursor-pointer hover:scale-110 active:scale-95"
-                : "opacity-40 grayscale"
-            }`}
+        <div id="deck-discard-area" className="flex gap-4 shrink-0 pb-2">
+          {" "}
+                    <div
+                      id="deck-pile"
+                      onClick={handleDeckClick}
+                      className={`relative transition-all ${
+                        canDraw
+                          ? "cursor-pointer hover:brightness-110 active:scale-95"
+                          : "opacity-70 grayscale-[0.5]"
+                      }`}
+                    >
+                      <div className="absolute inset-0 bg-blue-600 rounded-lg translate-y-2 translate-x-2 opacity-40"></div>
+                      <div className="absolute inset-0 bg-blue-800 rounded-lg translate-y-1 translate-x-1 opacity-60"></div>
+                      <GameCard
+                        card={{
+                          value: "A",
+                          suit: { icon: "♠", name: "espadas", color: "black" },
+                          color: "black",
+                          id: "pile-card",
+                        }}
+                        hidden
+                      />
+                      {canDraw && (
+                        <div className="absolute inset-0 border-4 border-yellow-400 rounded-lg animate-pulse shadow-[0_0_15px_rgba(234,179,8,0.5)]"></div>
+                      )}
+                      <span className="absolute top-4 left-1/2 -translate-x-1/2 text-[9px] font-black text-blue-400 tracking-widest">
+                        MONTE
+                      </span>
+                    </div>
+          
+                              <div
+                                id="discard-pile"
+                                onClick={handleDiscardClick}
+                                className={`relative transition-all ${
+                                  canDraw || (canAction && selectedCards.length === 1)
+                                    ? "cursor-pointer hover:brightness-110"
+                                    : "opacity-70 grayscale-[0.5]"
+                                }`}
+                              >
+                                {store.discard_pile.length > 0 ? (
+                                  <div
+                                    className={`${
+                                      (canAction && selectedCards.length === 1) || (canDraw && selectedCards.length >= 2)
+                                        ? "ring-4 ring-yellow-400 shadow-yellow-500/50 shadow-2xl z-50"
+                                        : ""
+                                    } rounded-lg transition-all`}
+                                  >
+                                    <GameCard card={store.discard_pile[0]} disableHover />
+                                  </div>
+                                ) : (                        <div
+                          className="w-14 h-20 md:w-20 md:h-32 border-2 border-dashed 
+                         border-white/10 rounded-lg flex items-center justify-center text-[10px] font-black text-white/10"
+                        >
+                          LIXO
+                        </div>
+                      )}
+                      <span className="absolute top-4 left-1/2 -translate-x-1/2 text-[9px] font-black text-red-400 tracking-widest">
+                        LIXO
+                      </span>
+                    </div>
+                  </div>
+          
+                  {/* SUA MÃO - LEQUE DINÂMICO AMPLIADO */}
+                  <div
+                    id="player-hand"
+                    className="flex-1 flex justify-center items-end h-full relative overflow-visible pb-2"
+                  >
+                    <div className="flex -space-x-10 md:-space-x-14 hover:-space-x-4 transition-all duration-500 items-end origin-bottom">
+                      {store.hands[my_player_id]?.map((card, i, arr) => {
+                        const isSel = selectedCards.includes(card.id);
+                        const center = (arr.length - 1) / 2;
+                        const rotate = (i - center) * 4;
+                        const translateY = Math.abs(i - center) * 4;
+          
+                        return (
+                          <div
+                            key={card.id}
+                            className={`transform transition-all duration-300 origin-bottom ${
+                              isSel
+                                ? "-translate-y-12 z-100 scale-105"
+                                : "hover:-translate-y-6 hover:z-90"
+                            }`}
+                            style={{
+                              zIndex: i,
+                              transform: isSel
+                                ? `translateY(-20px) rotate(0deg)`
+                                : `translateY(${translateY}px) rotate(${rotate}deg)`,
+                            }}
+                          >
+                            <GameCard
+                              card={card}
+                              isSelected={isSel}
+                              onClick={() => toggleSelect(card.id)}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+        {/* CONTROLES DO JOGADOR (Organizar + Menu) - COLUNA DISCRETA */}
+        <div
+          id="player-controls"
+          className="absolute bottom-[22%] right-6 z-50 flex flex-col items-center gap-3"
+        >
+          <button
+            onClick={store.sort_hand}
+            className="group relative w-10 h-10 bg-white/5 backdrop-blur-xl border border-white/10 hover:border-blue-500/50 rounded-full transition-all duration-300 shadow-2xl hover:shadow-blue-500/20 active:scale-95 flex items-center justify-center"
+            title="Organizar Mão"
           >
-            <div className="absolute inset-0 bg-blue-600 rounded-lg translate-y-2 translate-x-2 opacity-40"></div>
-            <div className="absolute inset-0 bg-blue-800 rounded-lg translate-y-1 translate-x-1 opacity-60"></div>
-            <GameCard
-              card={{
-                value: "A",
-                suit: { icon: "♠", name: "espadas" },
-                color: "black",
-                id: "idididi",
-              }}
-              hidden
-            />
-            {canDraw && (
-              <div className="absolute inset-0 border-4 border-yellow-400 rounded-lg animate-pulse shadow-[0_0_15px_rgba(234,179,8,0.5)]"></div>
-            )}
-            <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-black text-blue-400 tracking-widest">
-              MONTE
+            <span className="text-xl group-hover:rotate-12 transition-transform duration-500">
+              🪄
             </span>
-          </div>
+          </button>
 
-          <div
-            onClick={handleDiscardClick}
-            className={`relative transition-all ${
-              canDraw || (canAction && selectedCards.length === 1)
-                ? "cursor-pointer hover:scale-110"
-                : "opacity-40 grayscale"
-            }`}
-          >
-            {store.discard_pile.length > 0 ? (
-              <div
-                className={`${
-                  canAction && selectedCards.length === 1
-                    ? "ring-4 ring-orange-500 shadow-[0_0_20px_rgba(249,115,22,0.6)]"
-                    : ""
-                } rounded-lg transition-all`}
-              >
-                <GameCard card={store.discard_pile[0]} />
-              </div>
-            ) : (
-              <div className="w-14 h-20 md:w-16 md:h-24 border-2 border-dashed border-white/10 rounded-lg flex items-center justify-center text-[10px] font-black text-white/10">
-                LIXO
-              </div>
-            )}
-            <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-black text-red-400 tracking-widest">
-              LIXO
-            </span>
-          </div>
-        </div>
-
-        {/* SUA MÃO - LEQUE DINÂMICO AMPLIADO */}
-        <div className="flex-1 flex justify-center items-end h-full pb-6 relative overflow-visible">
-          <div className="flex -space-x-10 md:-space-x-14 hover:-space-x-4 transition-all duration-500 items-end">
-            {store.hands[my_player_id]?.map((card, i, arr) => {
-              const isSel = selectedCards.includes(card.id);
-              const center = (arr.length - 1) / 2;
-              const rotate = (i - center) * 4;
-              const translateY = Math.abs(i - center) * 4;
-
-              return (
-                <div
-                  key={card.id}
-                  className={`transform transition-all duration-300 origin-bottom ${
-                    isSel
-                      ? "-translate-y-24 z-100 scale-110"
-                      : "hover:-translate-y-12 hover:z-90"
-                  }`}
-                  style={{
-                    zIndex: i,
-                    transform: isSel
-                      ? `translateY(-40px) rotate(0deg)`
-                      : `translateY(${translateY}px) rotate(${rotate}deg)`,
-                  }}
-                >
-                  <GameCard
-                    card={card}
-                    isSelected={isSel}
-                    onClick={() => toggleSelect(card.id)}
-                  />
-                </div>
-              );
-            })}
-          </div>
+          <GameMenu />
         </div>
 
         {/* ERROR TOAST */}
         {store.last_error && (
-          <div className="absolute -top-16 left-1/2 -translate-x-1/2 bg-red-600/90 backdrop-blur text-white px-6 py-2 rounded-full text-xs font-black shadow-2xl animate-bounce flex items-center gap-3 border border-white/20">
+          <div
+            id="error-toast"
+            className="absolute -top-16 left-1/2 -translate-x-1/2 bg-red-600/90 backdrop-blur text-white px-6 py-2 rounded-full text-xs font-black shadow-2xl animate-bounce flex items-center gap-3 border border-white/20"
+          >
             <span>⚠️ {store.last_error}</span>
             <button
               onClick={store.clear_error}
@@ -463,7 +397,7 @@ export const GameScreen = () => {
             </button>
           </div>
         )}
-      </div>
-    </div>
+      </footer>
+    </main>
   );
 };

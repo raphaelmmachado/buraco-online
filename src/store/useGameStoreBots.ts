@@ -71,11 +71,18 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   start_game: (mode = "1v1") => {
     const full_deck = create_deck();
     const setup = distribute_cards(full_deck, mode);
+
+    // Organiza as mãos automaticamente
+    const sorted_hands: Record<number, Card[]> = {};
+    Object.entries(setup.hands).forEach(([id, hand]) => {
+      sorted_hands[Number(id)] = sort_cards(hand);
+    });
+
     set({
       status: "PLAYING",
       mode,
       deck: setup.remaining_deck,
-      hands: setup.hands,
+      hands: sorted_hands,
       dead_piles: setup.dead_piles,
       has_taken_dead_pile: { 1: false, 2: false },
       discard_pile: [],

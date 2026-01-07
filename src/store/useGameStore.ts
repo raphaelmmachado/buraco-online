@@ -57,6 +57,8 @@ interface GameActions {
   pick_up_discard_new_meld: (card_ids: string[]) => void;
   pick_up_discard_add_to_meld: (meld_index: number, card_ids: string[]) => void;
   startGame: () => void;
+  leaveGame: () => void;
+  sort_hand: () => void;
 
   set_server_state: (server_data: IncomingServerState) => void;
 }
@@ -85,6 +87,27 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
   clear_error: () => set({ last_error: null }),
 
+  sort_hand: () => {
+    const { roomId } = get();
+    socket.emit("action_sort_hand", { roomId });
+  },
+
+  leaveGame: () => {
+    const { roomId } = get();
+    socket.emit("leave_game", { roomId });
+    localStorage.removeItem("baralho_active_room");
+    set({
+      status: "IDLE",
+      roomId: "",
+      my_player_number: null,
+      my_player_name: null,
+      hands: {},
+      team_melds: { 1: [], 2: [] },
+      discard_pile: [],
+      deck: [],
+    });
+  },
+
   initializeSocket: () => {
     if (socket.connected) return;
 
@@ -104,6 +127,24 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
     socket.on("error_msg", (msg: string) => {
       set({ last_error: msg });
+      // Se o erro for crítico de sessão, limpa tudo e volta pro inicio
+      if (msg.includes("não encontrada") || msg.includes("não encontrado")) {
+          localStorage.removeItem("baralho_active_room");
+          localStorage.removeItem("baralho_player_id");
+          set({ status: "IDLE", roomId: "", my_player_number: null, my_player_name: null });
+      }
+    });
+
+    socket.on("connect", () => {
+        console.log("Socket conectado!");
+        // RECONNECTION LOGIC
+        const savedRoom = localStorage.getItem("baralho_active_room");
+        const savedPlayerId = localStorage.getItem("baralho_player_id");
+        
+        if (savedRoom && savedPlayerId) {
+            console.log("Tentando reconectar...", savedRoom);
+            socket.emit("rejoin_game", { roomId: savedRoom, playerId: savedPlayerId });
+        }
     });
 
     get().fetchRooms();
@@ -115,7 +156,16 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
   connect: (roomId, mode, userName) => {
     set({ status: "LOBBY", roomId, last_error: null });
-    socket.emit("join_game", { roomId, mode, userName });
+    
+    // Persistent Identity
+    let pid = localStorage.getItem("baralho_player_id");
+    if (!pid) {
+        pid = crypto.randomUUID();
+        localStorage.setItem("baralho_player_id", pid);
+    }
+    localStorage.setItem("baralho_active_room", roomId);
+
+    socket.emit("join_game", { roomId, mode, userName, playerId: pid });
   },
 
   set_server_state: (server_data: IncomingServerState) => {

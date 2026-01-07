@@ -10,31 +10,32 @@ import {
   calculate_score,
   calculate_meld_score,
 } from "../../common/utils/scoring";
+import CardComponent from "./Card";
 
 // --- Componente para exibir uma única carta (Helper) ---
-const CardComponent = ({
-  card,
-  isSelected,
-  onClick,
-}: {
-  card: Card;
-  isSelected: boolean;
-  onClick: () => void;
-}) => (
-  <div
-    onClick={onClick}
-    className={`relative w-16 h-24 rounded-md border-2 flex flex-col items-center justify-center cursor-pointer transition-all select-none ${
-      isSelected
-        ? "border-yellow-400 -translate-y-4 shadow-xl z-10"
-        : "border-gray-300 hover:-translate-y-1"
-    } ${
-      card.color === "red" ? "text-red-600 bg-white" : "text-gray-900 bg-white"
-    }`}
-  >
-    <span className="text-xl font-bold">{card.value}</span>
-    <span className="text-2xl">{card.suit.icon}</span>
-  </div>
-);
+// const CardComponent = ({
+//   card,
+//   isSelected,
+//   onClick,
+// }: {
+//   card: Card;
+//   isSelected: boolean;
+//   onClick: () => void;
+// }) => (
+//   <div
+//     onClick={onClick}
+//     className={`relative w-16 h-24 rounded-md border-2 flex flex-col items-center justify-center cursor-pointer transition-all select-none ${
+//       isSelected
+//         ? "border-yellow-400 -translate-y-4 shadow-xl z-10"
+//         : "border-gray-300 hover:-translate-y-1"
+//     } ${
+//       card.color === "red" ? "text-red-600 bg-white" : "text-gray-900 bg-white"
+//     }`}
+//   >
+//     <span className="text-xl font-bold">{card.value}</span>
+//     <span className="text-2xl">{card.suit.icon}</span>
+//   </div>
+// );
 
 // Helper para tag visual do meld
 
@@ -302,7 +303,7 @@ export const DebugGame = () => {
               }
               className="w-24 h-32 rounded-lg bg-blue-900 flex flex-col items-center justify-center disabled:opacity-50 hover:enabled:-translate-y-2 transition-transform"
             >
-              <span className="text-3xl">🎴</span>
+              <span className="text-3xl">🎂</span>
               <span className="text-xs font-bold mt-2">COMPRAR</span>
             </button>
             <div className="flex flex-col items-center">
@@ -345,11 +346,11 @@ export const DebugGame = () => {
 
           {/* Mão do Jogador */}
           <div className="flex-1 overflow-x-auto pb-2">
-            <div className="flex gap-[-2.5rem] min-w-max pt-4 pl-16">
+            <div className="relative flex min-w-max pt-4">
               {(store.hands[1] || []).map((card) => (
                 <CardComponent
                   key={card.id}
-                  card={card}
+                  {...card}
                   isSelected={selectedCards.includes(card.id)}
                   onClick={() => toggleSelect(card.id)}
                 />

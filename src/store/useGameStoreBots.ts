@@ -37,7 +37,10 @@ interface GameActions {
   meld_cards: (card_ids: string[]) => void;
   add_card_to_meld: (card_ids: string[], meld_index: number) => void;
   pick_up_discard_new_meld: (hand_card_ids: string[]) => void;
-  pick_up_discard_add_to_meld: (meld_index: number, bridge_card_ids: string[]) => void;
+  pick_up_discard_add_to_meld: (
+    meld_index: number,
+    bridge_card_ids: string[]
+  ) => void;
   clear_error: () => void;
   internal_can_beat: () => boolean;
   internal_handle_empty_hand: (type: "DIRECT" | "INDIRECT") => void;
@@ -85,22 +88,44 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   },
 
   draw_card_from_deck: () => {
-    let { deck, hands, current_player, dead_piles, team_melds, mode } = get();
+    const { hands, current_player, dead_piles, team_melds, mode } = get();
+    let { deck } = get();
     if (deck.length === 0) {
       if (dead_piles.length > 0) {
         const [new_deck, ...remaining_piles] = dead_piles;
         deck = new_deck;
         set({ dead_piles: remaining_piles });
       } else {
-        const t1_score = calculate_score(team_melds[1], mode === '1v1' ? [hands[1]] : [hands[1], hands[3]], false, !get().has_taken_dead_pile[1]);
-        const t2_score = calculate_score(team_melds[2], mode === '1v1' ? [hands[2]] : [hands[2], hands[4]], false, !get().has_taken_dead_pile[2]);
-        set({ status: 'FINISHED', final_score: { team_1: t1_score, team_2: t2_score } });
+        const t1_score = calculate_score(
+          team_melds[1],
+          mode === "1v1" ? [hands[1]] : [hands[1], hands[3]],
+          false,
+          !get().has_taken_dead_pile[1]
+        );
+        const t2_score = calculate_score(
+          team_melds[2],
+          mode === "1v1" ? [hands[2]] : [hands[2], hands[4]],
+          false,
+          !get().has_taken_dead_pile[2]
+        );
+        set({
+          status: "FINISHED",
+          final_score: { team_1: t1_score, team_2: t2_score },
+        });
         return;
       }
     }
     const [new_card, ...remaining_deck] = deck;
-    const updated_hands = { ...hands, [current_player]: [...hands[current_player], new_card] };
-    set({ deck: remaining_deck, hands: updated_hands, turn_phase: "ACTION", last_error: null });
+    const updated_hands = {
+      ...hands,
+      [current_player]: [...hands[current_player], new_card],
+    };
+    set({
+      deck: remaining_deck,
+      hands: updated_hands,
+      turn_phase: "ACTION",
+      last_error: null,
+    });
   },
 
   pick_up_discard_new_meld: (hand_card_ids) => {
@@ -115,14 +140,20 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const validation = validate_sequence(potential_meld);
 
     if (!validation.is_valid || !validation.is_clean) {
-      set({ last_error: validation.is_valid ? "Para pegar o lixo, o novo jogo deve ser limpo." : validation.error });
+      set({
+        last_error: validation.is_valid
+          ? "Para pegar o lixo, o novo jogo deve ser limpo."
+          : validation.error,
+      });
       return;
     }
 
     const pile_to_take = [...discard_pile];
     pile_to_take.shift(); // Remove a carta do topo que vai para o jogo
-    const hand_cards_for_meld_ids = selected_cards.map(c => c.id);
-    const remaining_hand = my_hand.filter(c => !hand_cards_for_meld_ids.includes(c.id));
+    const hand_cards_for_meld_ids = selected_cards.map((c) => c.id);
+    const remaining_hand = my_hand.filter(
+      (c) => !hand_cards_for_meld_ids.includes(c.id)
+    );
     const new_hand = [...remaining_hand, ...pile_to_take];
 
     const team_id = get_team(current_player);
@@ -140,7 +171,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   },
 
   pick_up_discard_add_to_meld: (meld_index, bridge_card_ids) => {
-    const { discard_pile, hands, current_player, team_melds, turn_phase } = get();
+    const { discard_pile, hands, current_player, team_melds, turn_phase } =
+      get();
     if (turn_phase !== "DRAW" || discard_pile.length === 0) return;
 
     const team_id = get_team(current_player);
@@ -149,7 +181,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     if (!target_meld) return;
 
     const top_card = discard_pile[0];
-    const bridge_cards = my_hand.filter(c => bridge_card_ids.includes(c.id));
+    const bridge_cards = my_hand.filter((c) => bridge_card_ids.includes(c.id));
 
     const proposed_meld = [...target_meld, ...bridge_cards, top_card];
     const validation = validate_sequence(proposed_meld);
@@ -161,8 +193,10 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
     const pile_to_take = [...discard_pile];
     pile_to_take.shift();
-    const hand_cards_for_meld_ids = bridge_cards.map(c => c.id);
-    const remaining_hand = my_hand.filter(c => !hand_cards_for_meld_ids.includes(c.id));
+    const hand_cards_for_meld_ids = bridge_cards.map((c) => c.id);
+    const remaining_hand = my_hand.filter(
+      (c) => !hand_cards_for_meld_ids.includes(c.id)
+    );
     const new_hand = [...remaining_hand, ...pile_to_take];
 
     const new_melds = [...team_melds[team_id]];
@@ -233,7 +267,10 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const team_id = get_team(current_player);
     set({
       hands: { ...hands, [current_player]: new_hand },
-      team_melds: { ...team_melds, [team_id]: [...team_melds[team_id], organize_meld(cards)] },
+      team_melds: {
+        ...team_melds,
+        [team_id]: [...team_melds[team_id], organize_meld(cards)],
+      },
       last_error: null,
     });
 
@@ -246,8 +283,15 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const card = my_hand.find((c) => c.id === card_id);
     if (!card) return;
 
-    if (my_hand.length === 1 && card.value === '2' && get().has_taken_dead_pile[get_team(current_player)] && !get().internal_can_beat()) {
-      set({ last_error: "Não pode descartar um 2 para bater sem canastra limpa." });
+    if (
+      my_hand.length === 1 &&
+      card.value === "2" &&
+      get().has_taken_dead_pile[get_team(current_player)] &&
+      !get().internal_can_beat()
+    ) {
+      set({
+        last_error: "Não pode descartar um 2 para bater sem canastra limpa.",
+      });
       return;
     }
 
@@ -262,35 +306,57 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       get().internal_handle_empty_hand("INDIRECT");
     }
 
-    if (get().status !== 'FINISHED') {
+    if (get().status !== "FINISHED") {
       const next_player = get_next_player(current_player, mode);
       set({ current_player: next_player, turn_phase: "DRAW" });
     }
   },
-  
+
   sort_my_hand: () => {
     const { hands, current_player } = get();
-    set({ hands: { ...hands, [current_player]: sort_cards(hands[current_player]) } });
+    set({
+      hands: { ...hands, [current_player]: sort_cards(hands[current_player]) },
+    });
   },
 
   internal_can_beat: () => {
     const { team_melds, current_player } = get();
     const team_id = get_team(current_player);
-    return team_melds[team_id].some(meld => {
+    return team_melds[team_id].some((meld) => {
       const v = validate_sequence(meld);
       return v.is_valid && v.is_clean;
     });
   },
 
   internal_handle_empty_hand: (type: "DIRECT" | "INDIRECT") => {
-    const { dead_piles, has_taken_dead_pile, current_player, hands, team_melds, mode } = get();
+    const {
+      dead_piles,
+      has_taken_dead_pile,
+      current_player,
+      hands,
+      team_melds,
+      mode,
+    } = get();
     const team_id = get_team(current_player);
 
     if (has_taken_dead_pile[team_id]) {
       console.log(`[GAME] Jogador ${current_player} bateu final!`);
-      const t1_score = calculate_score(team_melds[1], mode === '1v1' || team_id === 2 ? [hands[1]] : [], team_id === 1, !has_taken_dead_pile[2]);
-      const t2_score = calculate_score(team_melds[2], mode === '1v1' || team_id === 1 ? [hands[2]] : [], team_id === 2, !has_taken_dead_pile[1]);
-      set({ status: 'FINISHED', final_score: { team_1: t1_score, team_2: t2_score } });
+      const t1_score = calculate_score(
+        team_melds[1],
+        mode === "1v1" || team_id === 2 ? [hands[1]] : [],
+        team_id === 1,
+        !has_taken_dead_pile[2]
+      );
+      const t2_score = calculate_score(
+        team_melds[2],
+        mode === "1v1" || team_id === 1 ? [hands[2]] : [],
+        team_id === 2,
+        !has_taken_dead_pile[1]
+      );
+      set({
+        status: "FINISHED",
+        final_score: { team_1: t1_score, team_2: t2_score },
+      });
       return;
     }
 
@@ -301,13 +367,26 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         hands: { ...hands, [current_player]: my_dead_pile },
         dead_piles: remaining_piles,
         has_taken_dead_pile: { ...has_taken_dead_pile, [team_id]: true },
-        turn_phase: type === 'DIRECT' ? 'ACTION' : 'DRAW',
+        turn_phase: type === "DIRECT" ? "ACTION" : "DRAW",
       });
     } else {
       console.log("[GAME] Fim de jogo, não há mais mortos para pegar.");
-      const t1_score = calculate_score(team_melds[1], mode === '1v1' ? [hands[1]] : [hands[1], hands[3]], false, !get().has_taken_dead_pile[1]);
-      const t2_score = calculate_score(team_melds[2], mode === '1v1' ? [hands[2]] : [hands[2], hands[4]], false, !get().has_taken_dead_pile[2]);
-      set({ status: 'FINISHED', final_score: { team_1: t1_score, team_2: t2_score } });
+      const t1_score = calculate_score(
+        team_melds[1],
+        mode === "1v1" ? [hands[1]] : [hands[1], hands[3]],
+        false,
+        !get().has_taken_dead_pile[1]
+      );
+      const t2_score = calculate_score(
+        team_melds[2],
+        mode === "1v1" ? [hands[2]] : [hands[2], hands[4]],
+        false,
+        !get().has_taken_dead_pile[2]
+      );
+      set({
+        status: "FINISHED",
+        final_score: { team_1: t1_score, team_2: t2_score },
+      });
     }
-  }
+  },
 }));

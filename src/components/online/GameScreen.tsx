@@ -1,100 +1,145 @@
-// =============================================================================
-// COMPONENTE ONLINE - TELA PRINCIPAL DE JOGO (SOCKET.IO)
-// =============================================================================
 import { useState } from "react";
 import { useGameStore } from "../../store/useGameStore";
-import { type Card } from "../../../common/types/card";
+import { type Card as CardType } from "../../../common/types/card";
 import { organize_meld } from "../../../common/utils/sort_cards";
 import {
   calculate_score,
   calculate_meld_score,
 } from "../../../common/utils/scoring";
-// import CardComponent from "../Card";
 
-// Helper para tag visual do meld
-const MeldInfo = ({ meld }: { meld: Card[] }) => {
+// --- NOVOS COMPONENTES VISUAIS (DESIGN PREMIUN COM PROPORÇÕES REVISADAS) ---
+
+const GameCard = ({
+  card,
+  isSelected,
+  onClick,
+  small = false,
+  hidden = false,
+}: {
+  card: CardType;
+  isSelected?: boolean;
+  onClick?: () => void;
+  small?: boolean;
+  hidden?: boolean;
+}) => {
+  const isRed = card.color === "red";
+
+  if (hidden) {
+    return (
+      <div
+        onClick={onClick}
+        className={`
+          relative rounded-lg shadow-xl border-2 border-white/10 bg-gradient-to-br from-indigo-900 via-blue-950 to-slate-900
+          flex items-center justify-center overflow-hidden transition-all duration-200
+          ${small ? "w-10 h-14" : "w-16 h-24 md:w-20 md:h-32"}
+          ${
+            onClick ? "cursor-pointer hover:scale-105 hover:brightness-110" : ""
+          }
+        `}
+      >
+        <div
+          className="absolute inset-0 opacity-10"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%)",
+            backgroundSize: "10px 10px",
+          }}
+        ></div>
+        <div className="text-white/20 text-4xl">♠</div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      onClick={onClick}
+      className={`
+        relative rounded-lg shadow-lg border bg-white select-none transition-all duration-300
+        flex flex-col items-center justify-between p-1
+        ${small ? "w-10 h-14 text-[10px]" : "w-16 h-24 md:w-20 md:h-32"}
+        ${
+          isSelected
+            ? "border-yellow-400 -translate-y-6 shadow-yellow-500/50 shadow-2xl z-50 ring-4 ring-yellow-400/30"
+            : "border-slate-300 hover:-translate-y-2"
+        }
+        ${isRed ? "text-red-600" : "text-slate-900"}
+        ${onClick ? "cursor-pointer" : ""}
+      `}
+    >
+      <div className="self-start flex flex-col items-center leading-none">
+        <span className="font-black text-lg md:text-2xl">{card.value}</span>
+        <span className="text-xs md:text-sm">{card.suit.icon}</span>
+      </div>
+
+      {!small && (
+        <div className="text-5xl opacity-[0.07] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+          {card.suit.icon}
+        </div>
+      )}
+
+      <div className="self-end flex flex-col items-center leading-none rotate-180">
+        <span className="font-black text-lg md:text-2xl">{card.value}</span>
+        <span className="text-xs md:text-sm">{card.suit.icon}</span>
+      </div>
+    </div>
+  );
+};
+
+const MeldBadge = ({ meld }: { meld: CardType[] }) => {
   const { score, type } = calculate_meld_score(meld);
+  if (type === "INSUFFICIENT" && meld.length < 3) return null;
 
-  let badgeColor = "bg-gray-500";
-  let badgeText = "Normal";
+  let color = "bg-slate-700";
+  let label = "Normal";
 
   switch (type) {
     case "CLEAN":
-      badgeColor = "bg-green-600";
-      badgeText = "LIMPA";
+      color = "bg-emerald-600";
+      label = "LIMPA";
       break;
     case "DIRTY":
-      badgeColor = "bg-yellow-600";
-      badgeText = "SUJA";
+      color = "bg-amber-600";
+      label = "SUJA";
       break;
     case "KING":
-      badgeColor = "bg-blue-600";
-      badgeText = "EXCELENTE";
+      color = "bg-blue-600";
+      label = "500";
       break;
     case "ACE":
-      badgeColor = "bg-purple-600";
-      badgeText = "PERFEITA";
-      break;
-    case "INSUFFICIENT":
-      badgeColor = "bg-gray-600";
-      badgeText = "Insuficiente";
+      color = "bg-purple-600";
+      label = "REAL";
       break;
   }
 
   return (
-    <div className="flex flex-col items-center mb-1 w-full">
-      <div
-        className={`text-[10px] font-bold px-2 py-0.5 rounded text-white ${badgeColor} uppercase tracking-wider shadow-sm w-full text-center`}
+    <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center z-20 min-w-max">
+      <span
+        className={`${color} text-[8px] md:text-[10px] text-white font-black px-2.5 py-0.5 rounded-full shadow-lg uppercase tracking-widest border border-white/10`}
       >
-        {badgeText}
-      </div>
-      <span className="text-xs font-mono text-gray-300 mt-0.5">
+        {label}
+      </span>
+      <span className="text-[10px] text-white font-black drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] mt-0.5">
         {score} pts
       </span>
     </div>
   );
 };
 
-// Na verdade, o usuário quer usar o CardComponent (default export de Card.tsx) DIRETAMENTE
-// mas o Card.tsx antigo não aceita onClick/className.
-// Vou criar um wrapper simples que imita o visual do DebugGame (que inlineava o HTML).
-// O DebugGame usava um HTML inline para renderizar a carta simplificada.
-// Vou manter essa consistência para garantir que fique "IGUAL AO DEBUGGAME".
-
-const SimpleCard = ({
-  card,
-  isSelected,
-  onClick,
-}: {
-  card: Card;
-  isSelected: boolean;
-  onClick: () => void;
-}) => (
-  <div
-    onClick={onClick}
-    className={`relative w-16 h-24 rounded-md border-2 flex flex-col items-center justify-center cursor-pointer transition-all select-none ${
-      isSelected
-        ? "border-yellow-400 -translate-y-4 shadow-xl z-10"
-        : "border-gray-300 hover:-translate-y-1"
-    } ${
-      card.color === "red" ? "text-red-600 bg-white" : "text-gray-900 bg-white"
-    }`}
-  >
-    <span className="text-xl font-bold">{card.value}</span>
-    <span className="text-2xl">{card.suit.icon}</span>
-  </div>
-);
-
+// --- TELA PRINCIPAL ---
 
 export const GameScreen = () => {
   const store = useGameStore();
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
 
-  // Deriva dados do jogador atual
   const my_player_id = store.my_player_number ?? 1;
   const my_team = my_player_id % 2 !== 0 ? 1 : 2;
   const opponent_team = my_team === 1 ? 2 : 1;
   const isMyTurn = store.current_player === my_player_id;
+  const canDraw = isMyTurn && store.turn_phase === "DRAW";
+  const canAction = isMyTurn && store.turn_phase === "ACTION";
+
+  const myScore = calculate_score(store.team_melds[my_team]).total_score;
+  const oppScore = calculate_score(store.team_melds[opponent_team]).total_score;
 
   const toggleSelect = (id: string) => {
     setSelectedCards((prev) =>
@@ -102,247 +147,306 @@ export const GameScreen = () => {
     );
   };
 
-  return (
-    <div className="min-h-screen bg-green-800 font-sans text-white pb-64">
-      {/* Barra de Erro */}
-      {store.last_error && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 bg-red-600 text-white p-3 rounded-lg shadow-lg text-center flex items-center justify-between z-50">
-          <span>⚠️ {store.last_error}</span>
-          <button
-            onClick={store.clear_error}
-            className="ml-4 px-2 py-1 bg-red-800 rounded text-xs"
-          >
-            OK
-          </button>
-        </div>
-      )}
+  const handleDeckClick = () => {
+    if (canDraw) store.draw_card();
+  };
 
-      {/* HUD Superior */}
-      <div className="sticky top-0 bg-black/30 backdrop-blur-sm border-b border-white/10 px-4 py-2 mb-6 flex items-center justify-between text-xs shadow-md z-40">
-        <div>
-          <span className="text-blue-300 font-bold uppercase">
-            VOCÊ (Time {my_team})
-          </span>
-          <span className="block text-lg font-bold">
-            {calculate_score(store.team_melds[my_team]).total_score} pts
+  const handleDiscardClick = () => {
+    if (canDraw && selectedCards.length >= 2) {
+      store.pick_up_discard_new_meld(selectedCards);
+      setSelectedCards([]);
+    } else if (canAction && selectedCards.length === 1) {
+      store.discard_card(selectedCards[0]);
+      setSelectedCards([]);
+    }
+  };
+
+  const handleMeldClick = (teamId: number, meldIndex: number) => {
+    if (teamId === my_team && canAction && selectedCards.length > 0) {
+      store.add_to_meld(selectedCards, meldIndex);
+      setSelectedCards([]);
+    }
+  };
+
+  return (
+    <div className="h-screen w-screen bg-[#0f2e1a] text-white overflow-hidden flex flex-col select-none relative font-sans">
+      {/* TEXTURA DA MESA */}
+      <div
+        className="absolute inset-0 opacity-20 pointer-events-none"
+        style={{
+          backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)",
+          backgroundSize: "30px 30px",
+        }}
+      ></div>
+
+      {/* 37.5% ÁREA DO ADVERSÁRIO */}
+      <div className="h-[37.5%] bg-gradient-to-b from-black/40 to-transparent border-b border-white/5 p-6 flex flex-col relative z-10">
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center gap-3">
+            <span className="w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_red]"></span>
+            <span className="text-xs font-black text-red-300 uppercase tracking-[0.3em]">
+              Mesa Adversária
+            </span>
+          </div>
+          <div className="bg-black/40 px-4 py-1 rounded-full border border-white/10 shadow-inner">
+            <span className="text-sm font-black font-mono text-white">
+              {oppScore}{" "}
+              <span className="text-[10px] text-gray-400 uppercase ml-1">
+                pts
+              </span>
+            </span>
+          </div>
+        </div>
+
+        <div className="flex-1 flex flex-wrap content-start gap-x-10 gap-y-14 overflow-y-auto scrollbar-hide pt-2">
+          {store.team_melds[opponent_team].map((meld, idx) => (
+            <div key={idx} className="relative group flex items-center">
+              <div className="flex -space-x-10 md:-space-x-12 transition-all group-hover:-space-x-8">
+                {organize_meld(meld).map((card) => (
+                  <GameCard key={card.id} card={card} />
+                ))}
+              </div>
+              <MeldBadge meld={meld} />
+            </div>
+          ))}
+          {store.team_melds[opponent_team].length === 0 && (
+            <div className="w-full h-full flex items-center justify-center">
+              <span className="text-white/10 text-xl font-black uppercase tracking-[0.5em] rotate-12">
+                Sem Jogos
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 5% HUD SLIM / INFORMAÇÕES - VISUAL GLASSMORPHISM */}
+      <div className="h-[5%] bg-white/5 backdrop-blur-md flex items-center justify-between px-8 border-y border-white/5 shadow-2xl z-30">
+        <div className="flex items-center gap-4">
+          <div
+            className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-500 shadow-lg ${
+              isMyTurn
+                ? "bg-yellow-500 text-black scale-110 shadow-yellow-500/20"
+                : "bg-slate-800 text-slate-500"
+            }`}
+          >
+            {isMyTurn
+              ? "Sua Vez"
+              : `Vez de: ${
+                  store.players_data[store.current_player]?.userName || "..."
+                }`}
+          </div>
+          <span className="text-[9px] font-bold text-white/40 uppercase tracking-[0.2em]">
+            {store.turn_phase === "DRAW"
+              ? "Fase de Compra"
+              : store.turn_phase === "ACTION"
+              ? "Fase de Jogo"
+              : "Aguardando"}
           </span>
         </div>
+
+        {/* Quantidade de Cartas na Mão de cada jogador */}
+        <div className="flex gap-4 items-center overflow-x-auto scrollbar-hide">
+          {Object.entries(store.players_data).map(([id, p]) => (
+            <div
+              key={id}
+              className={`flex items-center gap-1.5 px-2 py-0.5 rounded border ${
+                Number(id) === store.current_player
+                  ? "border-yellow-500/50 bg-yellow-500/10"
+                  : "border-white/5 bg-black/20"
+              }`}
+            >
+              <span className="text-[8px] font-black text-slate-500">
+                P{id}
+              </span>
+              <span className="text-[10px] font-mono font-bold text-white">
+                {store.hands[Number(id)]?.length || 0}🎴
+              </span>
+            </div>
+          ))}
+        </div>
+
         <div className="flex gap-6 items-center">
-          <div>
-            <span className="font-bold text-gray-300 uppercase">Mortos</span>
-            <span className="block text-lg font-bold">
+          <div className="flex items-center gap-2">
+            <span className="text-[8px] font-black text-slate-500 uppercase">
+              Mortos
+            </span>
+            <span className="bg-red-600/20 text-red-400 px-2 rounded-md font-mono font-bold text-xs">
               {store.dead_piles.length}
             </span>
           </div>
-          <div>
-            <span className="font-bold text-gray-300 uppercase">Monte</span>
-            <span className="block text-lg font-bold">{store.deck.length}</span>
-          </div>
-          <div className="border-l border-white/20 pl-4">
-            <span className="font-bold text-gray-300 uppercase">Turno</span>
-            <span
-              className={`block font-bold text-lg ${
-                isMyTurn ? "text-yellow-400" : ""
-              }`}
-            >
-              {isMyTurn
-                ? "SUA VEZ"
-                : `JOGADOR ${store.current_player}`}
+          <div className="flex items-center gap-2">
+            <span className="text-[8px] font-black text-slate-500 uppercase">
+              Deck
             </span>
-            <span>{store.turn_phase}</span>
+            <span className="bg-blue-600/20 text-blue-400 px-2 rounded-md font-mono font-bold text-xs">
+              {store.deck.length}
+            </span>
           </div>
-        </div>
-        <div className="text-right">
-          <span className="text-red-300 font-bold uppercase">
-            RIVAL (Time {opponent_team})
-          </span>
-          <span className="block text-lg font-bold">
-            {calculate_score(store.team_melds[opponent_team]).total_score} pts
-          </span>
         </div>
       </div>
 
-      {/* Área da Mesa */}
-      <div className="px-4">
-        {/* Mostra TODOS os melds (Time 1 e Time 2) */}
-        {[1, 2].map((teamIdNum) => {
-            const teamId = teamIdNum as 1 | 2;
-            const melds = store.team_melds[teamId];
-            const isMyTeamMeld = teamId === my_team;
-
-            return (
-          <div key={teamId} className="mb-4">
-            <h2 className={`text-lg font-bold mb-2 ${isMyTeamMeld ? "text-blue-200" : "text-red-200"}`}>
-              Jogos Baixados - Time {teamId} {isMyTeamMeld ? "(Seu)" : "(Rival)"}
-            </h2>
-
-            <div className={`p-3 rounded-lg min-h-[120px] flex flex-wrap gap-4 items-start ${isMyTeamMeld ? "bg-blue-900/20" : "bg-red-900/20"}`}>
-              {melds.map((meld, index) => {
-                return (
-                  <div key={index} className="flex flex-col items-center gap-1">
-                    {/* INFO DO MELD */}
-                    <MeldInfo meld={meld} />
-
-                    {/* Botões de Ação no Jogo */}
-                    <div className="flex gap-1 h-5">
-                      {isMyTurn &&
-                        store.turn_phase === "ACTION" &&
-                        selectedCards.length > 0 &&
-                        isMyTeamMeld && (
-                          <button
-                            onClick={() => {
-                              store.add_to_meld(selectedCards, index);
-                              setSelectedCards([]);
-                            }}
-                            className="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-0.5 rounded text-white shadow"
-                          >
-                            + Adicionar
-                          </button>
-                        )}
-                      {isMyTurn &&
-                        store.turn_phase === "DRAW" &&
-                        store.discard_pile.length > 0 &&
-                        isMyTeamMeld && (
-                          <button
-                            onClick={() => {
-                              store.pick_up_discard_add_to_meld(
-                                index,
-                                selectedCards
-                              );
-                              setSelectedCards([]);
-                            }}
-                            className="text-xs bg-orange-600 hover:bg-orange-500 px-2 py-0.5 rounded text-white shadow"
-                          >
-                            + Lixo
-                          </button>
-                        )}
-                    </div>
-
-                    {/* Cartas do Jogo */}
-                    <div className="flex -space-x-7 transition-all ">
-                      {organize_meld(meld).map((c) => (
-                        <div
-                          key={c.id}
-                          className={`relative w-12 h-16 bg-white rounded shadow
-                           ${
-                             c.color === "red" ? "text-red-600" : "text-black"
-                           } tracking-tighter leading-none text-xs border-2 border-gray-300`}
-                        >
-                          <span className="absolute left-0 flex flex-col items-center justify-center ">
-                            <p className="font-bold text-base">{c.value}</p>
-                            <p className="text-lg">{c.suit.icon}</p>
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+      {/* 37.5% ÁREA DO SEU JOGO */}
+      <div className="h-[37.5%] bg-gradient-to-t from-black/20 to-transparent p-6 flex flex-col relative z-10">
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center gap-3">
+            <span className="w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_8px_#3b82f6]"></span>
+            <span className="text-xs font-black text-blue-300 uppercase tracking-[0.3em]">
+              Seu Time (Time {my_team})
+            </span>
           </div>
-        )})}
-      </div>
+          <div className="bg-black/40 px-4 py-1 rounded-full border border-white/10 shadow-inner">
+            <span className="text-sm font-black font-mono text-white">
+              {myScore}{" "}
+              <span className="text-[10px] text-gray-400 uppercase ml-1">
+                pts
+              </span>
+            </span>
+          </div>
+        </div>
 
-      {/* Barra Inferior Fixa */}
-      <div className="fixed bottom-0 left-0 right-0 bg-green-900 p-4 border-t-2 border-green-700 shadow-2xl z-50">
-        <div className="max-w-7xl mx-auto flex gap-6 items-center">
-          {/* Ações de Compra */}
-          <div className="flex gap-4">
-            <button
-              onClick={store.draw_card}
-              disabled={
-                store.turn_phase !== "DRAW" || !isMyTurn
-              }
-              className="w-24 h-32 rounded-lg bg-blue-900 flex flex-col items-center justify-center disabled:opacity-50 hover:enabled:-translate-y-2 transition-transform"
+        <div className="flex-1 flex flex-wrap content-start gap-x-10 gap-y-14 overflow-y-auto scrollbar-hide pt-4">
+          {/* Botão Baixar Novo Jogo - VISUAL DE SLOT */}
+          {canAction && selectedCards.length >= 3 && (
+            <div
+              onClick={() => {
+                store.meld_cards(selectedCards);
+                setSelectedCards([]);
+              }}
+              className="w-16 h-24 md:w-20 md:h-32 border-2 border-dashed border-yellow-500/40 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-yellow-500/10 transition-all group animate-pulse"
             >
-              <span className="text-3xl">🎂</span>
-              <span className="text-xs font-bold mt-2">COMPRAR</span>
-            </button>
-            <div className="flex flex-col items-center">
-              {store.discard_pile.length > 0 ? (
-                <div
-                  className={`w-24 h-32 bg-white rounded-lg flex flex-col items-center justify-center ${
-                    store.discard_pile[0].color === "red"
-                      ? "text-red-600"
-                      : "text-black"
-                  } shadow-lg`}
-                >
-                  <span className="text-4xl font-bold">
-                    {store.discard_pile[0].value}
-                  </span>
-                  <span className="text-2xl">
-                    {store.discard_pile[0].suit.icon}
-                  </span>
-                </div>
-              ) : (
-                <div className="w-24 h-32 rounded-lg bg-black/20 flex items-center justify-center">
-                  Lixo Vazio
-                </div>
-              )}
-              <button
-                onClick={() => {
-                  store.pick_up_discard_new_meld(selectedCards);
-                  setSelectedCards([]);
-                }}
-                disabled={
-                  store.turn_phase !== "DRAW" ||
-                  !isMyTurn ||
-                  selectedCards.length < 2
-                }
-                className="mt-1 text-xs bg-orange-500 rounded px-2 py-0.5 disabled:opacity-50"
-              >
-                Pegar Lixo
-              </button>
+              <span className="text-yellow-500 text-3xl font-light group-hover:scale-125 transition-transform">
+                +
+              </span>
+              <span className="text-[8px] font-black text-yellow-500/60 uppercase tracking-tighter mt-1">
+                Baixar Jogo
+              </span>
             </div>
-          </div>
+          )}
 
-          {/* Mão do Jogador */}
-          <div className="flex-1 overflow-x-auto pb-2">
-            <div className="relative flex min-w-max pt-4 pl-4">
-              {(store.hands[my_player_id] || []).map((card) => (
-                <SimpleCard
-                  key={card.id}
-                  card={card}
-                  isSelected={selectedCards.includes(card.id)}
-                  onClick={() => toggleSelect(card.id)}
-                />
-              ))}
+          {store.team_melds[my_team].map((meld, idx) => (
+            <div
+              key={idx}
+              onClick={() => handleMeldClick(my_team, idx)}
+              className="relative flex items-center cursor-pointer group"
+            >
+              <div className="flex -space-x-10 md:-space-x-12 transition-all group-hover:-space-x-8 group-hover:brightness-110">
+                {organize_meld(meld).map((card) => (
+                  <GameCard key={card.id} card={card} />
+                ))}
+              </div>
+              <MeldBadge meld={meld} />
             </div>
-          </div>
+          ))}
+        </div>
+      </div>
 
-          {/* Ações de Jogo */}
-          <div className="flex flex-col gap-2 w-40">
-            {store.turn_phase === "ACTION" && isMyTurn && (
-              <>
-                <button
-                  onClick={() => {
-                    store.meld_cards(selectedCards);
-                    setSelectedCards([]);
-                  }}
-                  disabled={selectedCards.length < 3}
-                  className="bg-green-600 p-3 rounded font-bold shadow disabled:opacity-50"
-                >
-                  Baixar Jogo
-                </button>
-                <button
-                  onClick={() => {
-                    if (selectedCards.length === 1) {
-                      store.discard_card(selectedCards[0]);
-                      setSelectedCards([]);
-                    }
-                  }}
-                  disabled={selectedCards.length !== 1}
-                  className="bg-red-600 p-3 rounded font-bold shadow disabled:opacity-50"
-                >
-                  Descartar
-                </button>
-              </>
+      {/* 20% RODAPÉ: MONTE, LIXO E MÃO */}
+      <div className="h-[20%] bg-black/80 backdrop-blur-2xl border-t border-white/10 flex items-center px-8 gap-12 z-40">
+        {/* MONTE E LIXO */}
+        <div className="flex gap-6 shrink-0 pt-2">
+          <div
+            onClick={handleDeckClick}
+            className={`relative transition-all ${
+              canDraw
+                ? "cursor-pointer hover:scale-110 active:scale-95"
+                : "opacity-40 grayscale"
+            }`}
+          >
+            <div className="absolute inset-0 bg-blue-600 rounded-lg translate-y-2 translate-x-2 opacity-40"></div>
+            <div className="absolute inset-0 bg-blue-800 rounded-lg translate-y-1 translate-x-1 opacity-60"></div>
+            <GameCard
+              card={{
+                value: "A",
+                suit: { icon: "♠", name: "espadas" },
+                color: "black",
+                id: "idididi",
+              }}
+              hidden
+            />
+            {canDraw && (
+              <div className="absolute inset-0 border-4 border-yellow-400 rounded-lg animate-pulse shadow-[0_0_15px_rgba(234,179,8,0.5)]"></div>
             )}
-            {/* O botão Ordenar é local, mas o store online não tem essa action simples. 
-                Poderíamos implementar localmente, mas vou deixar de fora por enquanto 
-                ou adicionar dummy action. */}
+            <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-black text-blue-400 tracking-widest">
+              MONTE
+            </span>
+          </div>
+
+          <div
+            onClick={handleDiscardClick}
+            className={`relative transition-all ${
+              canDraw || (canAction && selectedCards.length === 1)
+                ? "cursor-pointer hover:scale-110"
+                : "opacity-40 grayscale"
+            }`}
+          >
+            {store.discard_pile.length > 0 ? (
+              <div
+                className={`${
+                  canAction && selectedCards.length === 1
+                    ? "ring-4 ring-orange-500 shadow-[0_0_20px_rgba(249,115,22,0.6)]"
+                    : ""
+                } rounded-lg transition-all`}
+              >
+                <GameCard card={store.discard_pile[0]} />
+              </div>
+            ) : (
+              <div className="w-14 h-20 md:w-16 md:h-24 border-2 border-dashed border-white/10 rounded-lg flex items-center justify-center text-[10px] font-black text-white/10">
+                LIXO
+              </div>
+            )}
+            <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-black text-red-400 tracking-widest">
+              LIXO
+            </span>
           </div>
         </div>
+
+        {/* SUA MÃO - LEQUE DINÂMICO AMPLIADO */}
+        <div className="flex-1 flex justify-center items-end h-full pb-6 relative overflow-visible">
+          <div className="flex -space-x-10 md:-space-x-14 hover:-space-x-4 transition-all duration-500 items-end">
+            {store.hands[my_player_id]?.map((card, i, arr) => {
+              const isSel = selectedCards.includes(card.id);
+              const center = (arr.length - 1) / 2;
+              const rotate = (i - center) * 4;
+              const translateY = Math.abs(i - center) * 4;
+
+              return (
+                <div
+                  key={card.id}
+                  className={`transform transition-all duration-300 origin-bottom ${
+                    isSel
+                      ? "-translate-y-24 z-[100] scale-110"
+                      : "hover:-translate-y-12 hover:z-[90]"
+                  }`}
+                  style={{
+                    zIndex: i,
+                    transform: isSel
+                      ? `translateY(-40px) rotate(0deg)`
+                      : `translateY(${translateY}px) rotate(${rotate}deg)`,
+                  }}
+                >
+                  <GameCard
+                    card={card}
+                    isSelected={isSel}
+                    onClick={() => toggleSelect(card.id)}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ERROR TOAST */}
+        {store.last_error && (
+          <div className="absolute -top-16 left-1/2 -translate-x-1/2 bg-red-600/90 backdrop-blur text-white px-6 py-2 rounded-full text-xs font-black shadow-2xl animate-bounce flex items-center gap-3 border border-white/20">
+            <span>⚠️ {store.last_error}</span>
+            <button
+              onClick={store.clear_error}
+              className="bg-black/20 hover:bg-black/40 rounded-full w-5 h-5 flex items-center justify-center"
+            >
+              ✕
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

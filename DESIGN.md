@@ -1,45 +1,45 @@
 # DESIGN DE GAMESCREEN
 
+_PORCENTAGEM DE OCUPAÇÃO DA TELA_
+
+:--------------------------------------------------:
+| AREA DO ADVERSARIO(37.5%) |
+:--------------------------------------------------:
+| INFORMAÇOES [DE QUEM É A VEZ - NOME DO JOGADOR ] |
+| - QUANTAS CARTAS TEM NA MÃO (5%) :
+:--------------------------------------------------:
+| AREA DO SEU JOGO(37.5%) |
+:--------------------------------------------------:
+| [MONTE][LIXO] CARTAS DA SUA MÃO (20%) |
+:--------------------------------------------------:
+
 Design responsivo, para telas mobile e desktop
 
-> Atenção não exiba informações sensíveis como: cartas da mão do adversário, nem do seu amigo.
+## CONTAINER MESA
 
-## DESIGN MOBILE
+### Parte Superior da MESA
 
-Faça com que as cartas sejam facilmente tocadas para touch screen.
-Desde que a tela do mobile é menor, vamos fazer o design diferente.
+A PARTE SUPERIOR SERÁ SEMPRE DO TIME ADVERSÁRIO, NÃO IMPORTA EM QUE TIME ESTÁ
+o jogo vai checar qual seu time é.
 
-### Parte Superior
+Será exibido Sequencias, canastras limpas ou sujas do adversário.
 
-Barra com informaçoes como pontuação, nome do jogador que deve jogar.
+### Parte do meio da MESA
 
-### Seção Montes
+Essa seção tem que ser pensada em ocupar menos espaço vertical. pensando principalmente para os mobiles.
+Monte de cartas para comprar, Monte do lixo, Mortos disponíveis na mesa, UI com informaçoes como: Vez de <nome do jogador>, estado do jogo, exemplo: sua vez de comprar ou jogue carta fora para finalizar jogada, pontuação seu time, pontuação do time adversário.
 
-Essa seção mostra o Monte(cartas viradas para baixo - quantas cartas possuem) e o Lixo (ultima carta exibida)
+### Parte Inferior da MESA
 
-### Seção Area de Sequencias ou Canastras
-
-Aqui estou pensando em uma mecanica diferente da versão desktop
-Como padrão, essa seção exibirá um container com as informações completas das sequencias do seu time em leque, se são canastras e estão: limpas (borda verde), sujas (borda amarela), 500 (borda azul), 1000 (borda roxa).
-Acima desse container uma pequena barra com informações minimalistas em textos do jogos baixados do time adversário, por exemplo em textos Copas:[4,5,6] - Espadas:[10,J,Q,K,A]. A mecanica seria movimento de swipe ou scrollar para alternar a exibição entre suas informações e as do adversário.
-
-### Seção Inferior
-
-Aqui é a mão do jogador com as cartas fazendo um leque
-
-## DESIGN DESKTOP
-
-### Parte Superior da tela
-
-Sequencias, canastras limpas ou sujas do time oponente
-
-### Parte do meio da tela
-
-Essa parte será um barra larga e servirá para separar o jogo do oponente com o seu jogo - Monte de cartas para comprar, Monte do lixo, Mortos disponíveis na mesa, UI com informaçoes como: Vez de <nome do jogador>, estado do jogo, pontuação seu time, pontuação do time adversário.
-
-### Parte inferior - Sequencias, canastras limpas ou sujas do seu time
-
+ESSA PARTE SEMPRE SERÁ DO SEU TIME, NÃO IMPORTA EM QUE TIME ESTÁ.
+Será exibido Sequencias, canastras limpas ou sujas do seu time
 abaixo de dessa parte - cartas da mão do jogador na parte inferior da tela.
+
+## MÃO DO JOGADOR
+
+Seja criativo
+Um stack de cartas, uma por cima da outra, com leve deslocamento só pra aparecer o número.
+Elas são destacadas quando interagidas
 
 ## Experiencia de Usuario
 
@@ -52,3 +52,8 @@ Se estiver na vez do jogador e estiver na fase de compras, ele tem opção de co
 Se ele comprou e está na vez de jogar, ele pode selecionar as cartas desejadas e clicar na mesa ou arrastando com drag and drop para criar um jogo.
 
 Mesma coisa para jogar carta fora, ele pode selecionar as cartas desejadas e clicar na lixo ou arrastando drag and drop.
+
+### PARA MOBILES
+
+Faça com que as cartas sejam facilmente tocadas para touch screen.
+Desde que a tela do mobile é menor, vamos fazer o design diferente.

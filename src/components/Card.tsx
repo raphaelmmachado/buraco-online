@@ -1,12 +1,16 @@
 import { type Card } from "../../common/types/card";
 interface CardProps extends Card {
   hidden?: boolean;
+  onClick?: () => void;
+  isSelected: boolean;
 }
 export default function Card({
   suit,
   value,
   color,
   deckIndex,
+  onClick,
+  isSelected,
   hidden = false,
 }: CardProps) {
   const colorMap = {
@@ -29,8 +33,11 @@ export default function Card({
   return (
     <>
       <div
-        className="relative h-44 w-24 rounded-md bg-white
-      select-none shadow-xl m-1 hover:-rotate-1 font-extrabold  leading-none"
+        onClick={onClick}
+        className={`relative h-32 w-20 rounded-md tracking-tighter bg-white transition ${
+          isSelected ? "outline-2 outline-amber-400 -translate-y-3" : ""
+        }
+           select-none shadow-xl m-1 font-extrabold  leading-none`}
       >
         <div
           className="absolute top-1 left-1
@@ -40,7 +47,7 @@ export default function Card({
           <span className={`${colorMap[color]}`}>{suit.icon}</span>
         </div>
 
-        <div className={`absolute text-8xl top-8 left-3.5 ${colorMap[color]}`}>
+        <div className={`absolute text-7xl top-6 left-3.5 ${colorMap[color]}`}>
           {suit.icon}
         </div>
 

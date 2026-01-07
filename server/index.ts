@@ -119,7 +119,7 @@ io.on("connection", (socket) => {
       const setup = distribute_cards(deck, mode);
       games[roomId] = {
         mode,
-        status: "PLAYING",
+        status: "LOBBY", // <-- INICIA COMO LOBBY
         deck: setup.remaining_deck,
         discard_pile: [],
         hands: setup.hands,
@@ -156,6 +156,35 @@ io.on("connection", (socket) => {
     const player_data = game.players_data[myPlayerNumber];
     socket.emit("player_assignment", myPlayerNumber, player_data?.userName ?? "??");
 
+    io.to(roomId).emit("game_update", game);
+  });
+
+  socket.on("action_start_game", ({ roomId }) => {
+    const ctx = validateTurn(roomId, socket.id); // validateTurn checks if it's current_player's turn, but here we just want to check if it's player 1 (host)
+    // Actually validateTurn checks if game.current_player === player_id. 
+    // But in LOBBY, current_player is 1. So validateTurn works for Player 1 starting the game.
+    // However, let's be explicit: any player might try to start? No, only host.
+    
+    // Custom validation for start game
+    const game = games[roomId];
+    if (!game) return;
+    
+    // Identify player
+    const playerIndex = game.players_connected.indexOf(socket.id);
+    if (playerIndex === -1) return;
+    const player_id = (playerIndex + 1) as PlayerID;
+
+    // Only Player 1 (Host) can start
+    if (player_id !== 1) return;
+
+    const maxPlayers = game.mode === "1v1" ? 2 : 4;
+    // Optional: Enforce full room? Yes, for this MVP logic.
+    if (game.players_connected.length !== maxPlayers) {
+        socket.emit("error_msg", "A sala precisa estar cheia para iniciar.");
+        return;
+    }
+
+    game.status = "PLAYING";
     io.to(roomId).emit("game_update", game);
   });
 

@@ -1,21 +1,22 @@
 # TODO
 
-Quando o monte acabar, checar se há mortos, se tiver mortos, as cartas do primeiro index das arrays de morto vão para o monte.
+MELHORAR DESIGN PARA APROVEITAR MELHOR OS ESPAÇOS.
 
-Se as cartas do monte acabarem e não tiver mortos disponíveis, finalizar o jogo.
+Por exemplo player-header e opponente-header ocupam muito espaço vertical
+Idéia para uma maneira melhor para indicar ao jogador que o lado de baixo é o dele.
+Atribuir a cor azul à tudo que se refere à ele ou ao time dele.
+exemplo, se for a vez dele de jogar, 'SUA VEZ' (cor azul) e tudo que for ao time oponente cor vermelha.
 
-explique esse bloco. Seria ele o vilão?
-linha 370 em server/index.ts
+Uma idéia é colocar um background color azul bem transparente, na area de jogo do time dele, lado de baixo.
+E um background color vermelho bem transparente na area do jogo do time oponente do lado de cima.
 
-```typescript
-if (game.deck.length === 0) {
-  socket.emit("error_msg", "O monte acabou!");
+Então você deixar a pontuação posicionada absolutamente no canto do componente ou passar para a barra do meio ou footer.
 
-  return;
-}
-```
+Passe informação de quantos mortos tem disponíveis para o lado do lixo
 
-Se está na sua vez e for fase de compras, e se houver cartas no lixo, ao passar o mouse sobre um jogo baixado, acender bordas nesse jogo e na carta do lixo. Indicando que você pode comprar lixo com o jogo baixado.
+Assim você pode remover esses headers
 
-Deixe as cartas da mesa um pouquinho menores. Esse componente de cartas está ficando muito complexo, sinta-se a vontade se precisar criar componente para cada tipo de cartas.
-Exemplo: componente para carta da mão, componente para cartas de sequencia, componente para cartas do monte, componente para carta do lixo.
+## DESIGN MOBILE
+
+Aqui você vai ter que ser muito criativo e usar sua capacidade para montar um bom desingn mobile para melhor experiencia sem perder a estética.
+Se tiver que remontar o design para telas pequenas, sinta-se a vontade. Apenas não quebre o design desktop

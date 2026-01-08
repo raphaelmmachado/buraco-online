@@ -34,7 +34,7 @@ export const DiscardCard = ({
       className={`
         relative rounded-lg shadow-lg border bg-white select-none transition-all duration-300
         flex flex-col items-center justify-between p-1
-        w-16 h-24 md:w-20 md:h-32
+        w-14 h-20 md:w-20 md:h-32
         ${
           isActionable
             ? "cursor-pointer hover:brightness-110"
@@ -49,8 +49,8 @@ export const DiscardCard = ({
       `}
     >
       <div className="self-start flex flex-col items-center leading-none">
-        <span className="font-black text-lg md:text-2xl">{card.value}</span>
-        <span className="text-xs md:text-sm">{card.suit.icon}</span>
+        <span className="font-black text-[12px] md:text-2xl">{card.value}</span>
+        <span className="text-[10px] md:text-sm">{card.suit.icon}</span>
       </div>
 
       <div className="text-5xl opacity-[0.07] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
@@ -58,8 +58,8 @@ export const DiscardCard = ({
       </div>
 
       <div className="self-end flex flex-col items-center leading-none rotate-180">
-        <span className="font-black text-lg md:text-2xl">{card.value}</span>
-        <span className="text-xs md:text-sm">{card.suit.icon}</span>
+        <span className="font-black text-[12px] md:text-2xl">{card.value}</span>
+        <span className="text-[10px] md:text-sm">{card.suit.icon}</span>
       </div>
     </div>
   );

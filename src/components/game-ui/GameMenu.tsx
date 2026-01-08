@@ -21,7 +21,11 @@ export const GameMenu = ({ onOpenRules }: GameMenuProps) => {
         `}
         title="Menu Principal"
       >
-        <span className={`text-xl transition-colors ${isOpen ? "text-yellow-500" : "text-white/70"}`}>
+        <span
+          className={`text-xl transition-colors ${
+            isOpen ? "text-yellow-500" : "text-white/70"
+          }`}
+        >
           {isOpen ? "✕" : "☰"}
         </span>
       </button>
@@ -38,9 +42,9 @@ export const GameMenu = ({ onOpenRules }: GameMenuProps) => {
             >
               <span className="text-lg">📜</span> Regras
             </button>
-            
+
             <div className="h-px bg-white/5 my-1 mx-2"></div>
-            
+
             <button
               onClick={() => {
                 store.leaveGame();

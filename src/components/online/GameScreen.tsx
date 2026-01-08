@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useGameStore } from "../../store/useGameStore";
 import { organize_meld } from "../../../common/utils/sort_cards";
 import { calculate_score } from "../../../common/utils/scoring";
@@ -11,13 +11,11 @@ import { HandCard } from "../game-ui/HandCard";
 import { MeldCard } from "../game-ui/MeldCard";
 import { PileCard } from "../game-ui/PileCard";
 import { DiscardCard } from "../game-ui/DiscardCard";
-
 // --- TELA PRINCIPAL ---
 
 export const GameScreen = () => {
   const store = useGameStore();
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
-  const [turnTooltip, setTurnTooltip] = useState<string>();
   const [showRules, setShowRules] = useState(false);
   const [hoveredMeld, setHoveredMeld] = useState<{
     teamId: number;
@@ -114,10 +112,22 @@ export const GameScreen = () => {
           {store.team_melds[opponent_team].length === 0 && (
             <div className="w-full h-full flex items-center justify-center">
               <span className="text-white/5 text-xl md:text-3xl font-black uppercase tracking-[0.5em]">
-                OPONENTE
+                ELES
               </span>
             </div>
           )}
+        </div>
+        {/* PLACAR */}
+        <div
+          className="absolute bottom-1 right-1 bg-black/40 px-2 md:px-4 py-1 md:py-2 rounded-full
+         border border-white/10 shadow-inner flex items-center"
+        >
+          <span className="text-[10px] md:text-sm font-black text-white leading-none">
+            {oppScore}{" "}
+            <span className="text-[8px] md:text-[10px] text-gray-400 uppercase ml-1">
+              pts
+            </span>
+          </span>
         </div>
       </section>
 
@@ -146,29 +156,11 @@ export const GameScreen = () => {
           </span>
         </div>
 
-        {/* PLACAR NO HUD */}
-        <div className="flex gap-4 md:gap-8 items-center">
-          <div className="flex flex-col items-center">
-            <span className="text-[7px] md:text-[8px] font-black text-blue-400 uppercase tracking-tighter">
-              Nós
-            </span>
-            <span className="text-sm md:text-base font-black font-mono text-white leading-none">
-              {myScore}
-            </span>
-          </div>
-          <div className="text-white/10 font-bold text-xs">VS</div>
-          <div className="flex flex-col items-center">
-            <span className="text-[7px] md:text-[8px] font-black text-red-400 uppercase tracking-tighter">
-              Eles
-            </span>
-            <span className="text-sm md:text-base font-black font-mono text-white leading-none">
-              {oppScore}
-            </span>
-          </div>
-        </div>
-
         {/* JOGADORES NO HUD (MOBILE OPTIMIZED) */}
-        <div className="flex gap-2 items-center overflow-x-auto scrollbar-hide max-w-[30%]">
+        <div
+          className="flex gap-2 items-center overflow-x-auto 
+        scrollbar-hide "
+        >
           {Object.entries(store.players_data).map(([id, p]) => (
             <div
               key={id}
@@ -180,16 +172,28 @@ export const GameScreen = () => {
               }`}
             >
               <span
-                className={`text-[8px] font-black uppercase ${
+                className={`hidden sm:block text-sm font-black uppercase ${
                   Number(id) % 2 === my_player_id % 2
                     ? "text-blue-300"
                     : "text-red-300"
                 }`}
               >
                 {p.userName}
-                <span className="text-[8px] text-gray-600">{" : "}</span>
+                <span className="text-sm text-gray-600">{" : "}</span>
               </span>
-              <span className="text-[9px] font-mono font-bold text-white">
+
+              <span
+                className={`block sm:hidden text-sm font-semibold uppercase ${
+                  Number(id) % 2 === my_player_id % 2
+                    ? "text-blue-300"
+                    : "text-red-300"
+                }`}
+              >
+                {p.userName.substring(0, 3)}
+                <span className="text-sm text-gray-600">{" | "}</span>
+              </span>
+
+              <span className="text-sm font-mono font-bold text-white">
                 {store.hands[Number(id)]?.length || 0}
               </span>
             </div>
@@ -230,6 +234,13 @@ export const GameScreen = () => {
               </div>
             );
           })}
+          {store.team_melds[my_team].length === 0 && (
+            <div className="w-full h-full flex items-center justify-center">
+              <span className="text-white/5 text-xl md:text-3xl font-black uppercase tracking-[0.5em]">
+                NÓS
+              </span>
+            </div>
+          )}
           {/* Botão Baixar Novo Jogo - VISUAL DE SLOT */}
           {canAction && selectedCards.length >= 3 && (
             <div
@@ -248,17 +259,30 @@ export const GameScreen = () => {
             </div>
           )}
         </div>
+        {/* PLACAR */}
+        <div
+          className="absolute top-1 right-1 bg-black/40 px-2 md:px-4 py-1 md:py-2 rounded-full
+         border border-white/10 shadow-inner flex items-center"
+        >
+          <span className="text-[10px] md:text-sm font-black text-white leading-none">
+            {myScore}{" "}
+            <span className="text-[8px] md:text-[10px] text-gray-400 uppercase ml-1">
+              pts
+            </span>
+          </span>
+        </div>
       </section>
 
       {/* 20% RODAPÉ: MÃO E CONTROLES (REORGANIZADO PARA MOBILE) */}
       <footer
         id="game-footer"
-        className="h-[20%] bg-gradient-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md flex items-end justify-center px-4 pb-4 gap-4 z-40 relative overflow-visible"
+        className="flex items-center justify-between
+         h-[20%] bg-linear-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md px-4 pb-4 gap-4 z-40 relative overflow-visible"
       >
         {/* MONTE E LIXO - FLUTUANTE NO MOBILE, INTEGRADO NO DESKTOP */}
         <div
           id="deck-discard-area"
-          className="fixed left-4 bottom-[22%] md:relative md:left-auto md:bottom-auto flex gap-4 md:gap-4 shrink-0 pb-2 md:pb-0 z-50"
+          className="flex gap-2 md:gap-4 shrink-0 pb-2 md:pb-0 z-50"
         >
           <div id="deck-pile" className="relative group">
             <PileCard onClick={handleDeckClick} active={canDraw} />
@@ -311,26 +335,24 @@ export const GameScreen = () => {
               />
             ))}
           </div>
-        </div>
-
-        {/* CONTROLES DO JOGADOR (Organizar + Menu) - COLUNA DISCRETA */}
-        <div
-          id="player-controls"
-          className="absolute bottom-[22%] right-6 z-50 flex flex-col items-center gap-3"
-        >
-          <button
-            onClick={store.sort_hand}
-            className="group relative w-10 h-10 bg-white/5 backdrop-blur-xl border border-white/10 hover:border-blue-500/50 rounded-full transition-all duration-300 shadow-2xl hover:shadow-blue-500/20 active:scale-95 flex items-center justify-center"
-            title="Organizar Mão"
+          {/* ORGANIZAR CARTAS */}
+          <div
+            id="player-controls"
+            className="z-50 absolute -bottom-3 right-1/3 md:right-1/3 md:-translate-x-1/2"
           >
-            <span className="text-xl group-hover:rotate-12 transition-transform duration-500">
-              🪄
-            </span>
-          </button>
-
-          <GameMenu onOpenRules={() => setShowRules(true)} />
+            <button
+              onClick={store.sort_hand}
+              className="group relative bg-gray-600 px-2 backdrop-blur-xl border-3 border-white/10 hover:border-blue-500/50 rounded-full transition-all duration-300 shadow-2xl hover:shadow-blue-500/20 active:scale-95 flex items-center justify-center"
+              title="Organizar Mão"
+            >
+              <span className="text-sm md:text-md group-hover:rotate-12 transition-transform duration-500">
+                🪄 Organizar
+              </span>
+            </button>
+          </div>
         </div>
 
+        {/* <GameMenu onOpenRules={() => setShowRules(true)} /> */}
         {/* ERROR TOAST */}
         {store.last_error && (
           <div

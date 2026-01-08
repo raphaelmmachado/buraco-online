@@ -10,7 +10,7 @@ export const PileCard = ({ onClick, active = false }: PileCardProps) => {
       className={`
         relative rounded-lg shadow-xl border-2 border-white/10 bg-linear-to-br from-indigo-900 via-blue-950 to-slate-900
         flex items-center justify-center overflow-hidden transition-all duration-200
-        w-10 h-16 md:w-20 md:h-32
+        w-14 h-20 md:w-20 md:h-32
         ${
           onClick && active
             ? "cursor-pointer hover:brightness-110 active:scale-95"

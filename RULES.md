@@ -30,12 +30,14 @@ O **Buraco Fechado** é um jogo de cartas para 2 ou 4 jogadores (duplas opostas)
 
 ### Bônus de Canastras
 
+> Coringa ou Curinga - uma carta '2' fora de sua posição natural ou Joker. \n Se o '2' for de naipe diferente, a canastra é suja permanentemente.
+
 | Tipo            | Pontos | Condição                                        |
 | --------------- | ------ | ----------------------------------------------- |
 | Canastra Suja   | +100   | 7+ cartas com exatamente **1 "2"** como curinga |
-| Canastra Limpa  | +400   | 7+ cartas **sem nenhum "2"**                    |
-| Canastra de 500 | +500   | A(baixo) até 7 **ou** 2 até A(alto), sem "2"    |
-| Canastra Real   | +1.000 | A(baixo) até A(alto) — 14 cartas reais, sem "2" |
+| Canastra Limpa  | +200   | 7+ cartas **sem nenhum "2"**                    |
+| Canastra de 500 | +500   | 13 cartas **sem curinga** - Ás-ao-K ou 2-ao-Ás  |
+| Canastra Real   | +1.000 | A(baixo) até A(alto) — 14 cartas reais limpa    |
 | Batida          | +100   | Zerar a mão e pegar o morto                     |
 | Não pegar morto | -100   | Por morto restante ao fim da rodada             |
 
@@ -64,8 +66,8 @@ Todas as sequências são organizadas **horizontalmente na mesa**, da **esquerda
 
 - Todas as cartas reais devem ser do **mesmo naipe**.
 - "2" de naipe diferente **assume o naipe da canastra**.
-- **Máximo 1 "2" por canastra** como curinga.
-- O "2" deve ser posicionado **exatamente no valor que representa**.
+- **Máximo um coringa por canastra**.
+- pode haver outro "2" no mesmo jogo se um deles estiver posicionado **exatamente no valor que representa**.
 
 ### Posicionamento do Ás
 
@@ -114,8 +116,7 @@ Todas as sequências são organizadas **horizontalmente na mesa**, da **esquerda
 
 - Organizar em ordem decrescente ou bagunçada.
 - Misturar naipes em cartas reais.
-- Usar mais de 1 "2" como curinga na mesma canastra.
-- Posicionar Ás errado (ex: Ás baixo após o 3 ou Ás alto antes do K).
+- Usar mais de um "2" como curinga na mesma canastra.
 - Fazer "wrap around" (K-A-2 na mesma sequência).
 - Baixar menos de 3 cartas como jogo.
 - Comprar do lixo sem formar jogo imediatamente (não pode guardar na mão).

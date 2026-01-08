@@ -26,7 +26,7 @@ export const MeldBadge = ({ meld }: { meld: CardType[] }) => {
       label = "PERFEITA";
       break;
     default:
-      label = `Faltam ${Math.abs(length - 7)} cartas`;
+      label = `Faltam ${Math.abs(length - 7)}`;
       color = "bg-slate-700";
   }
 

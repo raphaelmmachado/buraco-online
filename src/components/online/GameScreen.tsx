@@ -4,15 +4,24 @@ import { organize_meld } from "../../../common/utils/sort_cards";
 import { calculate_score } from "../../../common/utils/scoring";
 
 // UI Components
-import { GameCard } from "../game-ui/GameCard";
 import { MeldBadge } from "../game-ui/MeldBadge";
 import { GameMenu } from "../game-ui/GameMenu";
+import { RulesModal } from "../game-ui/RulesModal";
+import { HandCard } from "../game-ui/HandCard";
+import { MeldCard } from "../game-ui/MeldCard";
+import { PileCard } from "../game-ui/PileCard";
+import { DiscardCard } from "../game-ui/DiscardCard";
 
 // --- TELA PRINCIPAL ---
 
 export const GameScreen = () => {
   const store = useGameStore();
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
+  const [showRules, setShowRules] = useState(false);
+  const [hoveredMeld, setHoveredMeld] = useState<{
+    teamId: number;
+    index: number;
+  } | null>(null);
 
   // Auto-clear error after 3 seconds
   useEffect(() => {
@@ -71,6 +80,9 @@ export const GameScreen = () => {
       id="game-screen"
       className="h-screen w-screen bg-[#0f2e1a] text-white overflow-hidden flex flex-col select-none relative font-sans"
     >
+      {/* Rules Modal */}
+      {showRules && <RulesModal onClose={() => setShowRules(false)} />}
+
       {/* TEXTURA DA MESA */}
       <div
         id="table-texture"
@@ -106,9 +118,9 @@ export const GameScreen = () => {
         <div className="flex-1 flex flex-wrap content-start gap-x-10 gap-y-14 overflow-y-auto scrollbar-hide pt-2">
           {store.team_melds[opponent_team].map((meld, idx) => (
             <div key={idx} className="relative group flex items-center">
-              <div className="flex -space-x-10 md:-space-x-12 transition-all group-hover:-space-x-8">
+              <div className="flex -space-x-8 md:-space-x-10 transition-all">
                 {organize_meld(meld).map((card) => (
-                  <GameCard key={card.id} card={card} />
+                  <MeldCard key={card.id} card={card} />
                 ))}
               </div>
               <MeldBadge meld={meld} />
@@ -137,18 +149,14 @@ export const GameScreen = () => {
                 : "bg-slate-800 text-slate-500"
             }`}
           >
-            {isMyTurn
-              ? "Sua Vez"
-              : `Vez de: ${
-                  store.players_data[store.current_player]?.userName || "..."
-                }`}
+            {isMyTurn ? "Sua Vez" : "Aguarde"}
           </div>
 
           <span className="text-[9px] font-bold text-white/40 uppercase tracking-[0.2em]">
             {store.turn_phase === "DRAW"
-              ? "Fase de Compra"
+              ? "COMPRE OU PEGUE LIXO"
               : store.turn_phase === "ACTION"
-              ? "Fase de Jogo"
+              ? "JOGUE UMA CARTA"
               : "Aguardando"}
           </span>
         </div>
@@ -180,25 +188,6 @@ export const GameScreen = () => {
             </div>
           ))}
         </div>
-
-        <div className="flex gap-6 items-center">
-          <div className="flex items-center gap-2">
-            <span className="text-[8px] font-black text-slate-500 uppercase">
-              Mortos
-            </span>
-            <span className="bg-red-600/20 text-red-400 px-2 rounded-md font-mono font-bold text-xs">
-              {store.dead_piles.length}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[8px] font-black text-slate-500 uppercase">
-              Deck
-            </span>
-            <span className="bg-blue-600/20 text-blue-400 px-2 rounded-md font-mono font-bold text-xs">
-              {store.deck.length}
-            </span>
-          </div>
-        </div>
       </section>
 
       {/* 37.5% ÁREA DO SEU JOGO */}
@@ -223,6 +212,33 @@ export const GameScreen = () => {
           </div>
         </div>
         <div className="flex-1 flex flex-wrap content-start gap-x-10 gap-y-14 overflow-y-auto scrollbar-hide pt-4">
+          {store.team_melds[my_team].map((meld, idx) => {
+            const isHovered =
+              hoveredMeld?.teamId === my_team && hoveredMeld?.index === idx;
+            const canHighlight = canDraw && store.discard_pile.length > 0;
+
+            return (
+              <div
+                key={idx}
+                onClick={() => handleMeldClick(my_team, idx)}
+                onMouseEnter={() =>
+                  canHighlight &&
+                  setHoveredMeld({ teamId: my_team, index: idx })
+                }
+                onMouseLeave={() => setHoveredMeld(null)}
+                className={`relative flex items-center cursor-pointer transition-transform ${
+                  isHovered ? "scale-105" : ""
+                }`}
+              >
+                <div className="flex -space-x-8 md:-space-x-10 transition-all">
+                  {organize_meld(meld).map((card) => (
+                    <MeldCard key={card.id} card={card} highlight={isHovered} />
+                  ))}
+                </div>
+                <MeldBadge meld={meld} />
+              </div>
+            );
+          })}
           {/* Botão Baixar Novo Jogo - VISUAL DE SLOT */}
           {canAction && selectedCards.length >= 3 && (
             <div
@@ -230,31 +246,16 @@ export const GameScreen = () => {
                 store.meld_cards(selectedCards);
                 setSelectedCards([]);
               }}
-              className="w-16 h-24 md:w-20 md:h-32 border-2 border-dashed border-yellow-500/40 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-yellow-500/10 transition-all group animate-pulse"
+              className="w-14 h-20 md:w-16 md:h-24 border-2 border-dashed border-yellow-500/40 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-yellow-500/10 transition-all group animate-pulse"
             >
               <span className="text-yellow-500 text-3xl font-light group-hover:scale-125 transition-transform">
                 +
               </span>
               <span className="text-[8px] font-black text-yellow-500/60 uppercase tracking-tighter mt-1">
-                Baixar Jogo
+                Baixar
               </span>
             </div>
           )}
-
-          {store.team_melds[my_team].map((meld, idx) => (
-            <div
-              key={idx}
-              onClick={() => handleMeldClick(my_team, idx)}
-              className="relative flex items-center cursor-pointer group"
-            >
-              <div className="flex -space-x-10 md:-space-x-12 transition-all group-hover:-space-x-8 group-hover:brightness-110">
-                {organize_meld(meld).map((card) => (
-                  <GameCard key={card.id} card={card} />
-                ))}
-              </div>
-              <MeldBadge meld={meld} />
-            </div>
-          ))}
         </div>
       </section>
 
@@ -265,104 +266,51 @@ export const GameScreen = () => {
       >
         {/* MONTE E LIXO */}
         <div id="deck-discard-area" className="flex gap-4 shrink-0 pb-2">
-          {" "}
-                    <div
-                      id="deck-pile"
-                      onClick={handleDeckClick}
-                      className={`relative transition-all ${
-                        canDraw
-                          ? "cursor-pointer hover:brightness-110 active:scale-95"
-                          : "opacity-70 grayscale-[0.5]"
-                      }`}
-                    >
-                      <div className="absolute inset-0 bg-blue-600 rounded-lg translate-y-2 translate-x-2 opacity-40"></div>
-                      <div className="absolute inset-0 bg-blue-800 rounded-lg translate-y-1 translate-x-1 opacity-60"></div>
-                      <GameCard
-                        card={{
-                          value: "A",
-                          suit: { icon: "♠", name: "espadas", color: "black" },
-                          color: "black",
-                          id: "pile-card",
-                        }}
-                        hidden
-                      />
-                      {canDraw && (
-                        <div className="absolute inset-0 border-4 border-yellow-400 rounded-lg animate-pulse shadow-[0_0_15px_rgba(234,179,8,0.5)]"></div>
-                      )}
-                      <span className="absolute top-4 left-1/2 -translate-x-1/2 text-[9px] font-black text-blue-400 tracking-widest">
-                        MONTE
-                      </span>
-                    </div>
-          
-                              <div
-                                id="discard-pile"
-                                onClick={handleDiscardClick}
-                                className={`relative transition-all ${
-                                  canDraw || (canAction && selectedCards.length === 1)
-                                    ? "cursor-pointer hover:brightness-110"
-                                    : "opacity-70 grayscale-[0.5]"
-                                }`}
-                              >
-                                {store.discard_pile.length > 0 ? (
-                                  <div
-                                    className={`${
-                                      (canAction && selectedCards.length === 1) || (canDraw && selectedCards.length >= 2)
-                                        ? "ring-4 ring-yellow-400 shadow-yellow-500/50 shadow-2xl z-50"
-                                        : ""
-                                    } rounded-lg transition-all`}
-                                  >
-                                    <GameCard card={store.discard_pile[0]} disableHover />
-                                  </div>
-                                ) : (                        <div
-                          className="w-14 h-20 md:w-20 md:h-32 border-2 border-dashed 
-                         border-white/10 rounded-lg flex items-center justify-center text-[10px] font-black text-white/10"
-                        >
-                          LIXO
-                        </div>
-                      )}
-                      <span className="absolute top-4 left-1/2 -translate-x-1/2 text-[9px] font-black text-red-400 tracking-widest">
-                        LIXO
-                      </span>
-                    </div>
-                  </div>
-          
-                  {/* SUA MÃO - LEQUE DINÂMICO AMPLIADO */}
-                  <div
-                    id="player-hand"
-                    className="flex-1 flex justify-center items-end h-full relative overflow-visible pb-2"
-                  >
-                    <div className="flex -space-x-10 md:-space-x-14 hover:-space-x-4 transition-all duration-500 items-end origin-bottom">
-                      {store.hands[my_player_id]?.map((card, i, arr) => {
-                        const isSel = selectedCards.includes(card.id);
-                        const center = (arr.length - 1) / 2;
-                        const rotate = (i - center) * 4;
-                        const translateY = Math.abs(i - center) * 4;
-          
-                        return (
-                          <div
-                            key={card.id}
-                            className={`transform transition-all duration-300 origin-bottom ${
-                              isSel
-                                ? "-translate-y-12 z-100 scale-105"
-                                : "hover:-translate-y-6 hover:z-90"
-                            }`}
-                            style={{
-                              zIndex: i,
-                              transform: isSel
-                                ? `translateY(-20px) rotate(0deg)`
-                                : `translateY(${translateY}px) rotate(${rotate}deg)`,
-                            }}
-                          >
-                            <GameCard
-                              card={card}
-                              isSelected={isSel}
-                              onClick={() => toggleSelect(card.id)}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+          <div id="deck-pile" className="relative">
+            <PileCard onClick={handleDeckClick} active={canDraw} />
+            <span
+              className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[9px] font-black
+             text-white-400 tracking-widest text-center w-full"
+            >
+              <span>{`${store.deck.length} CARTAS`}</span>
+            </span>
+          </div>
+
+          <div id="discard-pile" className="relative">
+            <DiscardCard
+              card={store.discard_pile[0]}
+              onClick={handleDiscardClick}
+              isActionable={
+                canDraw || (canAction && selectedCards.length === 1)
+              }
+              highlight={
+                (canDraw && selectedCards.length >= 2) || hoveredMeld !== null
+              }
+            />
+            <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[9px] font-black text-white-400 tracking-widest">
+              LIXO
+            </span>
+          </div>
+        </div>
+
+        {/* SUA MÃO - LEQUE DINÂMICO AMPLIADO */}
+        <div
+          id="player-hand"
+          className="flex-1 flex justify-center items-end h-full relative overflow-visible pb-2"
+        >
+          <div className="flex -space-x-10 md:-space-x-14 hover:-space-x-4 transition-all duration-500 items-end origin-bottom">
+            {(store.hands[my_player_id] || []).map((card, i, arr) => (
+              <HandCard
+                key={card.id}
+                card={card}
+                isSelected={selectedCards.includes(card.id)}
+                onClick={() => toggleSelect(card.id)}
+                index={i}
+                totalCards={arr.length}
+              />
+            ))}
+          </div>
+        </div>
 
         {/* CONTROLES DO JOGADOR (Organizar + Menu) - COLUNA DISCRETA */}
         <div
@@ -379,7 +327,7 @@ export const GameScreen = () => {
             </span>
           </button>
 
-          <GameMenu />
+          <GameMenu onOpenRules={() => setShowRules(true)} />
         </div>
 
         {/* ERROR TOAST */}

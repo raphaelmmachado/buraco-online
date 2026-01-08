@@ -314,27 +314,13 @@ export const validate_sequence = (cards: Card[]): MeldValidation => {
 export const validate_discard_pickup = (
   discard_top_card: Card,
   selected_hand_cards: Card[]
-): MeldValidation => {
+): boolean => {
   if (selected_hand_cards.length < 2) {
-    return { 
-      is_valid: false, 
-      error: "Precisa de pelo menos duas cartas na mão para comprar lixo." 
-    };
+    return false;
   }
 
   const potential_meld = [discard_top_card, ...selected_hand_cards];
   const validation_result = validate_sequence(potential_meld);
 
-  if (!validation_result.is_valid) {
-      return validation_result;
-  }
-
-  if (!validation_result.is_clean) {
-      return { 
-          is_valid: false, 
-          error: "O jogo formado com o lixo deve ser LIMPO (sem curingas)." 
-      };
-  }
-
-  return validation_result;
+  return validation_result.is_valid && validation_result.is_clean;
 };

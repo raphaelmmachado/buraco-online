@@ -96,26 +96,9 @@ export const GameScreen = () => {
       {/* 37.5% ÁREA DO ADVERSÁRIO */}
       <section
         id="opponent-area"
-        className="h-[37.5%] bg-linear-to-b from-black/40 to-transparent border-b border-white/5 px-6 py-3 flex flex-col relative z-10"
+        className="h-[37.5%] bg-red-950/10 border-b border-white/5 px-4 md:px-6 py-2 flex flex-col relative z-10"
       >
-        <div className="flex justify-between items-center mb-2">
-          <div className="flex items-center gap-3">
-            <span className="w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_red]"></span>
-            <span className="text-xs font-black text-red-300 uppercase tracking-[0.3em]">
-              Mesa Adversária
-            </span>
-          </div>
-          <div className="bg-black/40 px-4 py-1 rounded-full border border-white/10 shadow-inner">
-            <span className="text-sm font-black font-mono text-white">
-              {oppScore}{" "}
-              <span className="text-[10px] text-gray-400 uppercase ml-1">
-                pts
-              </span>
-            </span>
-          </div>
-        </div>
-
-        <div className="flex-1 flex flex-wrap content-start gap-x-10 gap-y-14 overflow-y-auto scrollbar-hide pt-2">
+        <div className="flex-1 flex flex-wrap content-start gap-x-4 md:gap-x-10 gap-y-8 md:gap-y-14 overflow-y-auto scrollbar-hide pt-2">
           {store.team_melds[opponent_team].map((meld, idx) => (
             <div key={idx} className="relative group flex items-center">
               <div className="flex -space-x-8 md:-space-x-10 transition-all">
@@ -128,8 +111,8 @@ export const GameScreen = () => {
           ))}
           {store.team_melds[opponent_team].length === 0 && (
             <div className="w-full h-full flex items-center justify-center">
-              <span className="text-white/10 text-xl font-black uppercase tracking-[0.5em] rotate-12">
-                Sem Jogos
+              <span className="text-white/5 text-xl md:text-3xl font-black uppercase tracking-[0.5em]">
+                OPONENTE
               </span>
             </div>
           )}
@@ -139,51 +122,73 @@ export const GameScreen = () => {
       {/* 5% HUD SLIM / INFORMAÇÕES - VISUAL GLASSMORPHISM */}
       <section
         id="game-hud"
-        className="h-[5%] bg-white/5 backdrop-blur-md flex items-center justify-between px-8 border-y border-white/5 shadow-2xl z-30"
+        className="h-[6%] md:h-[5%] bg-white/5 backdrop-blur-md flex items-center justify-between px-4 md:px-8 border-y border-white/5 shadow-2xl z-30"
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           <div
-            className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-500 shadow-lg ${
+            className={`px-3 md:px-4 py-1 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-widest transition-all duration-500 shadow-lg ${
               isMyTurn
-                ? "bg-yellow-500 text-black scale-110 shadow-yellow-500/20"
-                : "bg-slate-800 text-slate-500"
+                ? "bg-blue-600 text-white scale-105 md:scale-110 shadow-blue-500/20"
+                : "bg-gray-600 text-white shadow-gray-500/20"
             }`}
           >
-            {isMyTurn ? "Sua Vez" : "Aguarde"}
+            {isMyTurn ? "Sua Vez" : `Aguarde sua vez`}
           </div>
 
-          <span className="text-[9px] font-bold text-white/40 uppercase tracking-[0.2em]">
+          <span className="hidden md:block text-[9px] font-bold text-white/40 uppercase tracking-[0.2em]">
             {store.turn_phase === "DRAW"
-              ? "COMPRE OU PEGUE LIXO"
+              ? "FASE DE COMPRA"
               : store.turn_phase === "ACTION"
-              ? "JOGUE UMA CARTA"
-              : "Aguardando"}
+              ? "FASE DE JOGO"
+              : "AGUARDANDO"}
           </span>
         </div>
 
-        {/* Quantidade de Cartas na Mão de cada jogador */}
-        <div className="flex gap-3 items-center overflow-x-auto scrollbar-hide max-w-[40%]">
+        {/* PLACAR NO HUD */}
+        <div className="flex gap-4 md:gap-8 items-center">
+          <div className="flex flex-col items-center">
+            <span className="text-[7px] md:text-[8px] font-black text-blue-400 uppercase tracking-tighter">
+              Nós
+            </span>
+            <span className="text-sm md:text-base font-black font-mono text-white leading-none">
+              {myScore}
+            </span>
+          </div>
+          <div className="text-white/10 font-bold text-xs">VS</div>
+          <div className="flex flex-col items-center">
+            <span className="text-[7px] md:text-[8px] font-black text-red-400 uppercase tracking-tighter">
+              Eles
+            </span>
+            <span className="text-sm md:text-base font-black font-mono text-white leading-none">
+              {oppScore}
+            </span>
+          </div>
+        </div>
+
+        {/* JOGADORES NO HUD (MOBILE OPTIMIZED) */}
+        <div className="hidden sm:flex gap-2 items-center overflow-x-auto scrollbar-hide max-w-[30%]">
           {Object.entries(store.players_data).map(([id, p]) => (
             <div
               key={id}
-              className={`flex items-center gap-2 px-3 py-1 rounded-full border transition-all ${
+              title="Cartas na mão"
+              className={`flex items-center gap-1.5 px-2 py-0.5 rounded border transition-all ${
                 Number(id) === store.current_player
-                  ? "border-yellow-500 bg-yellow-500/20 shadow-[0_0_10px_rgba(234,179,8,0.2)]"
-                  : "border-white/10 bg-white/5"
+                  ? "border-yellow-500 bg-yellow-500/20"
+                  : "border-white/5 bg-black/20"
               }`}
             >
               <span
-                className={`text-[9px] font-black truncate max-w-[60px] uppercase ${
-                  Number(id) === store.current_player
-                    ? "text-yellow-400"
-                    : "text-slate-400"
+                className={`text-[8px] font-black uppercase ${
+                  Number(id) % 2 === my_player_id % 2
+                    ? "text-blue-300"
+                    : "text-red-300"
                 }`}
               >
                 {p.userName}
+                <span className="text-[8px] text-gray-600">{" : "}</span>
               </span>
-              <span className="text-[10px] font-mono font-bold text-white flex items-center gap-1">
-                <span className="opacity-50 text-[8px]">x</span>
-                {`${store.hands[Number(id)]?.length || 0} cartas`}
+              <span className="text-[9px] font-mono font-bold text-white">
+                {store.hands[Number(id)]?.length || 0}
               </span>
             </div>
           ))}
@@ -193,25 +198,9 @@ export const GameScreen = () => {
       {/* 37.5% ÁREA DO SEU JOGO */}
       <section
         id="player-area"
-        className="h-[37.5%] bg-gradient-to-t from-black/20 to-transparent px-6 py-3 flex flex-col relative z-10"
+        className="h-[37.5%] bg-blue-950/10 px-4 md:px-6 py-2 flex flex-col relative z-10"
       >
-        <div className="flex justify-between items-center mb-2">
-          <div className="flex items-center gap-3">
-            <span className="w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_8px_#3b82f6]"></span>
-            <span className="text-xs font-black text-blue-300 uppercase tracking-[0.3em]">
-              Seu Time (Time {my_team})
-            </span>
-          </div>
-          <div className="bg-black/40 px-4 py-1 rounded-full border border-white/10 shadow-inner">
-            <span className="text-sm font-black font-mono text-white">
-              {myScore}{" "}
-              <span className="text-[10px] text-gray-400 uppercase ml-1">
-                pts
-              </span>
-            </span>
-          </div>
-        </div>
-        <div className="flex-1 flex flex-wrap content-start gap-x-10 gap-y-14 overflow-y-auto scrollbar-hide pt-4">
+        <div className="flex-1 flex flex-wrap content-start gap-x-4 md:gap-x-10 gap-y-8 md:gap-y-14 overflow-y-auto scrollbar-hide pt-4">
           {store.team_melds[my_team].map((meld, idx) => {
             const isHovered =
               hoveredMeld?.teamId === my_team && hoveredMeld?.index === idx;
@@ -262,21 +251,39 @@ export const GameScreen = () => {
       {/* 20% RODAPÉ: MONTE, LIXO E MÃO */}
       <footer
         id="game-footer"
-        className="h-[20%] bg-gradient-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md flex items-end justify-center px-4 pb-4 gap-8 z-40 relative overflow-visible"
+        className="h-[20%] bg-gradient-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md flex items-end justify-center px-4 pb-4 gap-4 md:gap-8 z-40 relative overflow-visible"
       >
         {/* MONTE E LIXO */}
-        <div id="deck-discard-area" className="flex gap-4 shrink-0 pb-2">
-          <div id="deck-pile" className="relative">
+        <div
+          id="deck-discard-area"
+          className="flex gap-2 md:gap-4 shrink-0 pb-2"
+        >
+          <div id="deck-pile" className="relative group">
             <PileCard onClick={handleDeckClick} active={canDraw} />
             <span
-              className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[9px] font-black
-             text-white-400 tracking-widest text-center w-full"
+              className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[8px] md:text-xs font-black
+             text-white-400/80 tracking-widest text-center w-full"
+            ></span>
+
+            {/* Contador de Mortos Próximo ao Deck */}
+
+            <div
+              className="absolute -top-2 -left-2 bg-yellow-600 text-white text-xs font-black w-6 h-6
+                 flex items-center justify-center rounded-full shadow-lg border border-white/20 z-50"
+              title="Cartas no deck"
             >
-              <span>{`${store.deck.length} CARTAS`}</span>
-            </span>
+              {store.deck.length}
+            </div>
+            <div
+              className="absolute -bottom-2 -right-2 bg-red-600 text-white text-xs font-black w-6 h-6
+                 flex items-center justify-center rounded-full shadow-lg border border-white/20 z-50"
+              title="Mortos disponíveis"
+            >
+              {store.dead_piles.length}
+            </div>
           </div>
 
-          <div id="discard-pile" className="relative">
+          <div id="discard-pile" className="relative group">
             <DiscardCard
               card={store.discard_pile[0]}
               onClick={handleDiscardClick}
@@ -287,9 +294,6 @@ export const GameScreen = () => {
                 (canDraw && selectedCards.length >= 2) || hoveredMeld !== null
               }
             />
-            <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[9px] font-black text-white-400 tracking-widest">
-              LIXO
-            </span>
           </div>
         </div>
 

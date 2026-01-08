@@ -7,12 +7,17 @@ interface DiscardCardProps {
   highlight: boolean;
 }
 
-export const DiscardCard = ({ card, onClick, isActionable, highlight }: DiscardCardProps) => {
+export const DiscardCard = ({
+  card,
+  onClick,
+  isActionable,
+  highlight,
+}: DiscardCardProps) => {
   if (!card) {
     return (
       <div
         onClick={onClick}
-        className={`w-16 h-24 md:w-20 md:h-32 border-2 border-dashed 
+        className={`w-10 h-16 md:w-20 md:h-32 border-2 border-dashed 
                    border-white/10 rounded-lg flex items-center justify-center text-[10px] font-black text-white/10
                    ${isActionable ? "cursor-pointer hover:bg-white/5" : ""}`}
       >
@@ -30,8 +35,16 @@ export const DiscardCard = ({ card, onClick, isActionable, highlight }: DiscardC
         relative rounded-lg shadow-lg border bg-white select-none transition-all duration-300
         flex flex-col items-center justify-between p-1
         w-16 h-24 md:w-20 md:h-32
-        ${isActionable ? "cursor-pointer hover:brightness-110" : "opacity-70 grayscale-[0.5]"}
-        ${highlight ? "ring-4 ring-yellow-400 shadow-yellow-500/50 shadow-2xl z-50" : "border-slate-300"}
+        ${
+          isActionable
+            ? "cursor-pointer hover:brightness-110"
+            : "opacity-70 grayscale-[0.5]"
+        }
+        ${
+          highlight
+            ? "ring-4 ring-yellow-400 shadow-yellow-500/50 shadow-2xl z-50"
+            : "border-slate-300"
+        }
         ${isRed ? "text-red-600" : "text-slate-900"}
       `}
     >

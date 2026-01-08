@@ -13,7 +13,7 @@ export const MeldCard = ({ card, highlight = false }: MeldCardProps) => {
       className={`
         relative rounded shadow-md border bg-white select-none transition-all duration-300
         flex flex-col items-center justify-between p-1
-        w-14 h-20 md:w-16 md:h-24
+        w-12 h-16 md:w-16 md:h-24
         ${
           highlight
             ? "border-yellow-400 ring-2 ring-yellow-400/50 z-50 shadow-yellow-500/30"
@@ -23,7 +23,7 @@ export const MeldCard = ({ card, highlight = false }: MeldCardProps) => {
       `}
     >
       <div className="self-start flex flex-col items-center leading-none">
-        <span className="font-black text-base md:text-xl">{card.value}</span>
+        <span className="font-black text-sm md:text-xl">{card.value}</span>
         <span className="text-[10px] md:text-sm">{card.suit.icon}</span>
       </div>
 
@@ -32,7 +32,7 @@ export const MeldCard = ({ card, highlight = false }: MeldCardProps) => {
       </div>
 
       <div className="self-end flex flex-col items-center leading-none rotate-180">
-        <span className="font-black text-base md:text-xl">{card.value}</span>
+        <span className="font-black text-sm md:text-xl">{card.value}</span>
         <span className="text-[10px] md:text-sm">{card.suit.icon}</span>
       </div>
     </div>

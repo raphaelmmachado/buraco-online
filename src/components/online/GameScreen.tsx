@@ -17,6 +17,7 @@ import { DiscardCard } from "../game-ui/DiscardCard";
 export const GameScreen = () => {
   const store = useGameStore();
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
+  const [turnTooltip, setTurnTooltip] = useState<string>();
   const [showRules, setShowRules] = useState(false);
   const [hoveredMeld, setHoveredMeld] = useState<{
     teamId: number;
@@ -37,6 +38,7 @@ export const GameScreen = () => {
   const my_team = my_player_id % 2 !== 0 ? 1 : 2;
   const opponent_team = my_team === 1 ? 2 : 1;
   const isMyTurn = store.current_player === my_player_id;
+
   const canDraw = isMyTurn && store.turn_phase === "DRAW";
   const canAction = isMyTurn && store.turn_phase === "ACTION";
 
@@ -135,7 +137,7 @@ export const GameScreen = () => {
             {isMyTurn ? "Sua Vez" : `Aguarde sua vez`}
           </div>
 
-          <span className="hidden md:block text-[9px] font-bold text-white/40 uppercase tracking-[0.2em]">
+          <span className="text-[9px] font-bold text-white/40 uppercase tracking-[0.2em]">
             {store.turn_phase === "DRAW"
               ? "FASE DE COMPRA"
               : store.turn_phase === "ACTION"
@@ -166,7 +168,7 @@ export const GameScreen = () => {
         </div>
 
         {/* JOGADORES NO HUD (MOBILE OPTIMIZED) */}
-        <div className="hidden sm:flex gap-2 items-center overflow-x-auto scrollbar-hide max-w-[30%]">
+        <div className="flex gap-2 items-center overflow-x-auto scrollbar-hide max-w-[30%]">
           {Object.entries(store.players_data).map(([id, p]) => (
             <div
               key={id}
@@ -248,34 +250,29 @@ export const GameScreen = () => {
         </div>
       </section>
 
-      {/* 20% RODAPÉ: MONTE, LIXO E MÃO */}
+      {/* 20% RODAPÉ: MÃO E CONTROLES (REORGANIZADO PARA MOBILE) */}
       <footer
         id="game-footer"
-        className="h-[20%] bg-gradient-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md flex items-end justify-center px-4 pb-4 gap-4 md:gap-8 z-40 relative overflow-visible"
+        className="h-[20%] bg-gradient-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md flex items-end justify-center px-4 pb-4 gap-4 z-40 relative overflow-visible"
       >
-        {/* MONTE E LIXO */}
+        {/* MONTE E LIXO - FLUTUANTE NO MOBILE, INTEGRADO NO DESKTOP */}
         <div
           id="deck-discard-area"
-          className="flex gap-2 md:gap-4 shrink-0 pb-2"
+          className="fixed left-4 bottom-[22%] md:relative md:left-auto md:bottom-auto flex gap-4 md:gap-4 shrink-0 pb-2 md:pb-0 z-50"
         >
           <div id="deck-pile" className="relative group">
             <PileCard onClick={handleDeckClick} active={canDraw} />
-            <span
-              className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[8px] md:text-xs font-black
-             text-white-400/80 tracking-widest text-center w-full"
-            ></span>
 
-            {/* Contador de Mortos Próximo ao Deck */}
-
+            {/* Contadores Integrados ao Monte */}
             <div
-              className="absolute -top-2 -left-2 bg-yellow-600 text-white text-xs font-black w-6 h-6
+              className="absolute -top-2 -left-2 bg-slate-800 text-white text-[10px] font-black w-6 h-6
                  flex items-center justify-center rounded-full shadow-lg border border-white/20 z-50"
               title="Cartas no deck"
             >
               {store.deck.length}
             </div>
             <div
-              className="absolute -bottom-2 -right-2 bg-red-600 text-white text-xs font-black w-6 h-6
+              className="absolute -bottom-2 -right-2 bg-amber-600 text-white text-[10px] font-black w-6 h-6
                  flex items-center justify-center rounded-full shadow-lg border border-white/20 z-50"
               title="Mortos disponíveis"
             >
@@ -297,7 +294,7 @@ export const GameScreen = () => {
           </div>
         </div>
 
-        {/* SUA MÃO - LEQUE DINÂMICO AMPLIADO */}
+        {/* SUA MÃO */}
         <div
           id="player-hand"
           className="flex-1 flex justify-center items-end h-full relative overflow-visible pb-2"

@@ -11,7 +11,7 @@ import { get_sequence_details } from "./rules_logic";
  * @function sort_cards
  * @description Ordenação padrão para a mão do jogador: agrupa por naipe e depois por valor.
  */
-export const sort_cards = (cards: Card[]): Card[] => {
+export const sort_cards = (cards: Card[], randomize_suits: boolean = false): Card[] => {
   // 1. Agrupa as cartas por naipe
   const suits_map: Record<string, Card[]> = {};
   
@@ -26,7 +26,18 @@ export const sort_cards = (cards: Card[]): Card[] => {
     group.sort((a, b) => PRIMARY_CARD_WEIGHTS[a.value] - PRIMARY_CARD_WEIGHTS[b.value]);
   });
 
-  // 3. Separa os grupos de naipes por cor
+  // 3. Se for aleatório, embaralha a ordem dos naipes e retorna
+  if (randomize_suits) {
+      const all_groups = Object.values(suits_map);
+      // Fisher-Yates shuffle simples para os grupos
+      for (let i = all_groups.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [all_groups[i], all_groups[j]] = [all_groups[j]!, all_groups[i]!];
+      }
+      return all_groups.flat();
+  }
+
+  // 4. Lógica Padrão: Intercala Vermelho/Preto (Determinístico)
   const red_suit_groups: Card[][] = [];
   const black_suit_groups: Card[][] = [];
 
@@ -43,7 +54,6 @@ export const sort_cards = (cards: Card[]): Card[] => {
     }
   });
 
-  // 4. Intercala os grupos de naipes
   const result: Card[] = [];
   const max_groups = Math.max(red_suit_groups.length, black_suit_groups.length);
 

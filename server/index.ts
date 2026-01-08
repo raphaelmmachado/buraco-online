@@ -125,7 +125,26 @@ const handle_empty_hand = (
     game.turn_phase = type === "DIRECT" ? "ACTION" : "DRAW";
     console.log(`Jogador ${player_id} pegou o morto (${type})`);
   } else {
+    // Fim de jogo: Não tem morto para pegar
+    console.log(`Fim de Jogo! Sem mortos disponíveis.`);
+    const t1_hand_1 = game.hands[1] ?? [];
+    const t1_hand_2 = game.hands[3] ?? [];
+    const t2_hand_1 = game.hands[2] ?? [];
+    const t2_hand_2 = game.hands[4] ?? [];
+
+    const t1_melds = game.team_melds[1] ?? [];
+    const t2_melds = game.team_melds[2] ?? [];
+
+    const t1_score = calculate_score(t1_melds, [t1_hand_1, t1_hand_2], team_id === 1, !game.has_taken_dead_pile[0]);
+    const t2_score = calculate_score(t2_melds, [t2_hand_1, t2_hand_2], team_id === 2, !game.has_taken_dead_pile[1]);
+
     game.status = "FINISHED";
+    game.final_score = {
+      team_1: t1_score.total_score,
+      team_2: t2_score.total_score,
+      details_t1: t1_score,
+      details_t2: t2_score,
+    };
   }
 };
 
@@ -367,31 +386,195 @@ io.on("connection", (socket) => {
 
   
 
-      if (game.deck.length === 0) {
-
-        socket.emit("error_msg", "O monte acabou!");
-
-        return;
-
-      }
+              if (game.deck.length === 0) {
 
   
 
-      const card = game.deck.shift();
+                if (game.dead_piles.length > 0) {
 
-      const player_hand = game.hands[player_id];
+  
 
-      if (card && player_hand) {
+                  console.log(`[GAME] Deck vazio. Movendo morto para o monte.`);
 
-        player_hand.push(card);
+  
 
-        game.hands[player_id] = sort_cards(player_hand);
+                  const new_deck = game.dead_piles.shift();
 
-        game.turn_phase = "ACTION";
+  
 
-        io.to(roomId).emit("game_update", game);
+                  if (new_deck) {
 
-      }
+  
+
+                    game.deck = new_deck;
+
+  
+
+                  }
+
+  
+
+                } else {
+
+  
+
+                  console.log("[GAME] Monte e mortos acabaram. Finalizando jogo.");
+
+  
+
+                  // Chama a lógica de fim de jogo (mesma do handle_empty_hand quando bate final)
+
+  
+
+                  const t1_hand_1 = game.hands[1] ?? [];
+
+  
+
+                  const t1_hand_2 = game.hands[3] ?? [];
+
+  
+
+                  const t2_hand_1 = game.hands[2] ?? [];
+
+  
+
+                  const t2_hand_2 = game.hands[4] ?? [];
+
+  
+
+          
+
+  
+
+                  const t1_melds = game.team_melds[1] ?? [];
+
+  
+
+                  const t2_melds = game.team_melds[2] ?? [];
+
+  
+
+          
+
+  
+
+                  const t1_score = calculate_score(t1_melds, [t1_hand_1, t1_hand_2], false, !game.has_taken_dead_pile[0]);
+
+  
+
+                  const t2_score = calculate_score(t2_melds, [t2_hand_1, t2_hand_2], false, !game.has_taken_dead_pile[1]);
+
+  
+
+          
+
+  
+
+                  game.status = "FINISHED";
+
+  
+
+                  game.final_score = {
+
+  
+
+                    team_1: t1_score.total_score,
+
+  
+
+                    team_2: t2_score.total_score,
+
+  
+
+                    details_t1: t1_score,
+
+  
+
+                    details_t2: t2_score,
+
+  
+
+                  };
+
+  
+
+                  io.to(roomId).emit("game_update", game);
+
+  
+
+                  return;
+
+  
+
+                }
+
+  
+
+              }
+
+  
+
+          
+
+  
+
+                  const card = game.deck.shift();
+
+  
+
+          
+
+  
+
+                  const player_hand = game.hands[player_id];
+
+  
+
+          
+
+  
+
+                  if (card && player_hand) {
+
+  
+
+          
+
+  
+
+                    // Adiciona a carta no INICIO da mão em vez de ordenar tudo
+
+  
+
+          
+
+  
+
+                    player_hand.unshift(card);
+
+  
+
+          
+
+  
+
+                    game.turn_phase = "ACTION";
+
+  
+
+          
+
+  
+
+                    io.to(roomId).emit("game_update", game);
+
+  
+
+          
+
+  
+
+                  }
 
     });
 
@@ -453,37 +636,63 @@ io.on("connection", (socket) => {
 
   
 
-        const combined = [...hand_cards, top_discard];
+            const combined = [...hand_cards, top_discard];
 
   
 
-        // VALIDACAO: Usa a função específica que exige jogo LIMPO para comprar o lixo
-
-        const pickup_validation = validate_discard_pickup(top_discard, hand_cards);
+            
 
   
 
-        if (!pickup_validation.is_valid) {
-
-          const error_msg = pickup_validation.error || "Erro ao comprar do lixo.";
+            // VALIDACAO: Usa a função específica que exige jogo LIMPO para comprar o lixo
 
   
 
-          console.log(
-
-            `[VALIDATION FAIL] Player ${player_id} pickup discard: ${error_msg}`
-
-          );
-
-          socket.emit("error_msg", `Lixo bloqueado: ${error_msg}`);
-
-          return;
-
-        }
+            const is_valid_pickup = validate_discard_pickup(top_discard, hand_cards);
 
   
 
-        // Sucesso! Pega TODO o lixo
+        
+
+  
+
+            if (!is_valid_pickup) {
+
+  
+
+              const detail = validate_sequence(combined);
+
+  
+
+              const error_msg = !detail.is_valid ? detail.error : "O jogo formado deve ser LIMPO (sem curingas) para comprar o lixo.";
+
+  
+
+              
+
+  
+
+              console.log(`[VALIDATION FAIL] Player ${player_id} pickup discard: ${error_msg}`);
+
+  
+
+              socket.emit("error_msg", `Lixo bloqueado: ${error_msg}`);
+
+  
+
+              return;
+
+  
+
+            }
+
+  
+
+        
+
+  
+
+            // Sucesso! Pega TODO o lixo
 
         const all_discard = [...game.discard_pile];
 
@@ -1139,17 +1348,31 @@ io.on("connection", (socket) => {
 
   
 
-      const current_hand = game.hands[player_id];
+          const current_hand = game.hands[player_id];
 
-      if (current_hand) {
+  
 
-        game.hands[player_id] = sort_cards(current_hand);
+          if (current_hand) {
 
-        io.to(roomId).emit("game_update", game);
+  
 
-      }
+            // Manual sort now randomizes suit order to allow user customization
 
-    });
+  
+
+            game.hands[player_id] = sort_cards(current_hand, true);
+
+  
+
+            io.to(roomId).emit("game_update", game);
+
+  
+
+          }
+
+  
+
+        });
 
       
 

@@ -1,10 +1,21 @@
-# TODO (Concluído)
+# TODO
 
-Borda de select à carta do lixo. Apenas quando selecionamos ela para comprar do lixo, exemplos de jogada:
-selecionamos ela para adicionar em um jogo válido existente na mesa ou selecionamos ela e cartas da mão para tentar adicionar em um jogada válida da mesa ou criar novo jogo válido.
+Quando o monte acabar, checar se há mortos, se tiver mortos, as cartas do primeiro index das arrays de morto vão para o monte.
 
-Cartas baixadas na mesa não precisam ter efeito de hover.
+Se as cartas do monte acabarem e não tiver mortos disponíveis, finalizar o jogo.
 
-Menu de regras está abrindo no footer, ficando com metade do componente não visível. Ele tem que estar posicionado em relação ao elemento pricipal do jogo
+explique esse bloco. Seria ele o vilão?
+linha 370 em server/index.ts
 
-Algumas jogadas bloqueadas ainda não aparecem no feedback para o usuario, por exemplo: tentar pegar lixo com uma carta.
+```typescript
+if (game.deck.length === 0) {
+  socket.emit("error_msg", "O monte acabou!");
+
+  return;
+}
+```
+
+Se está na sua vez e for fase de compras, e se houver cartas no lixo, ao passar o mouse sobre um jogo baixado, acender bordas nesse jogo e na carta do lixo. Indicando que você pode comprar lixo com o jogo baixado.
+
+Deixe as cartas da mesa um pouquinho menores. Esse componente de cartas está ficando muito complexo, sinta-se a vontade se precisar criar componente para cada tipo de cartas.
+Exemplo: componente para carta da mão, componente para cartas de sequencia, componente para cartas do monte, componente para carta do lixo.

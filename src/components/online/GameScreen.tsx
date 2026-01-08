@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useGameStore } from "../../store/useGameStore";
 import { organize_meld } from "../../../common/utils/sort_cards";
 import { calculate_score } from "../../../common/utils/scoring";
-
+import start_sound from "../../sound/start.wav";
 // UI Components
 import { MeldBadge } from "../game-ui/MeldBadge";
 import { GameMenu } from "../game-ui/GameMenu";
@@ -21,6 +21,16 @@ export const GameScreen = () => {
     teamId: number;
     index: number;
   } | null>(null);
+  const [hudTicker, setHudTicker] = useState(0);
+
+  // Ticker timer for HUD
+  useEffect(() => {
+    const timer = setInterval(
+      () => setHudTicker((prev) => (prev + 1) % 2),
+      3500
+    );
+    return () => clearInterval(timer);
+  }, []);
 
   // Auto-clear error after 3 seconds
   useEffect(() => {
@@ -43,6 +53,19 @@ export const GameScreen = () => {
   const myScore = calculate_score(store.team_melds[my_team]).total_score;
   const oppScore = calculate_score(store.team_melds[opponent_team]).total_score;
 
+  const start_audio = new Audio(start_sound);
+
+  useEffect(() => {
+    if (isMyTurn) {
+      start_audio.play();
+      if (document.hidden) {
+        new Notification("É sua vez!", {
+          body: "Volte para o jogo 🎮",
+        });
+        start_audio.play();
+      }
+    }
+  }, [isMyTurn]);
   const toggleSelect = (id: string) => {
     setSelectedCards((prev) =>
       prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
@@ -131,29 +154,83 @@ export const GameScreen = () => {
         </div>
       </section>
 
-      {/* 5% HUD SLIM / INFORMAÇÕES - VISUAL GLASSMORPHISM */}
+      {/* 5% SEPARATOR SLIM / INFORMAÇÕES - VISUAL GLASSMORPHISM */}
       <section
-        id="game-hud"
+        id="game-separator"
         className="h-[6%] md:h-[5%] bg-white/5 backdrop-blur-md flex items-center justify-between px-4 md:px-8 border-y border-white/5 shadow-2xl z-30"
       >
         <div className="flex items-center gap-2 md:gap-4">
-          <div
-            className={`px-3 md:px-4 py-1 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-widest transition-all duration-500 shadow-lg ${
-              isMyTurn
-                ? "bg-blue-600 text-white scale-105 md:scale-110 shadow-blue-500/20"
-                : "bg-gray-600 text-white shadow-gray-500/20"
-            }`}
-          >
-            {isMyTurn ? "Sua Vez" : `Aguarde sua vez`}
+          {/* MOBILE: Ticker Animado (Economiza espaço) */}
+          <div className="md:hidden">
+            <div
+              className={`
+                relative overflow-hidden w-28 h-7 rounded-full shadow-lg transition-colors duration-500 
+                flex items-center justify-center border border-white/10
+                ${
+                  isMyTurn
+                    ? "bg-blue-600 shadow-blue-500/20"
+                    : "bg-gray-700 shadow-gray-500/20"
+                }
+              `}
+            >
+              {/* Texto 1: Status */}
+              <div
+                className={`absolute inset-0 flex items-center justify-center transition-all duration-700 ease-in-out transform ${
+                  hudTicker === 0
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 -translate-y-full"
+                }`}
+              >
+                <span className="text-[10px] font-black uppercase tracking-widest text-white">
+                  {isMyTurn ? "SUA VEZ" : "AGUARDE"}
+                </span>
+              </div>
+
+              {/* Texto 2: Fase */}
+              <div
+                className={`absolute inset-0 flex items-center justify-center transition-all duration-500 ease-in-out transform ${
+                  hudTicker === 1
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-full"
+                }`}
+              >
+                <span className="text-[10px] font-bold text-white/90 uppercase tracking-widest">
+                  {isMyTurn
+                    ? store.turn_phase === "DRAW"
+                      ? "COMPRE"
+                      : store.turn_phase === "ACTION"
+                      ? "JOGUE"
+                      : "..."
+                    : store.turn_phase === "DRAW"
+                    ? "COMPRANDO"
+                    : store.turn_phase === "ACTION"
+                    ? "JOGANDO"
+                    : "..."}
+                </span>
+              </div>
+            </div>
           </div>
 
-          <span className="text-[9px] font-bold text-white/40 uppercase tracking-[0.2em]">
-            {store.turn_phase === "DRAW"
-              ? "FASE DE COMPRA"
-              : store.turn_phase === "ACTION"
-              ? "FASE DE JOGO"
-              : "AGUARDANDO"}
-          </span>
+          {/* DESKTOP: Layout Original */}
+          <div className="hidden md:flex items-center gap-4">
+            <div
+              className={`px-3 md:px-4 py-1 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-widest transition-all duration-500 shadow-lg ${
+                isMyTurn
+                  ? "bg-blue-600 text-white scale-105 md:scale-110 shadow-blue-500/20"
+                  : "bg-gray-600 text-white shadow-gray-500/20"
+              }`}
+            >
+              {isMyTurn ? "Sua Vez" : `Aguarde sua vez`}
+            </div>
+
+            <span className="text-[9px] font-bold text-white/40 uppercase tracking-[0.2em]">
+              {store.turn_phase === "DRAW"
+                ? "FASE DE COMPRA"
+                : store.turn_phase === "ACTION"
+                ? "FASE DE JOGO"
+                : "AGUARDANDO"}
+            </span>
+          </div>
         </div>
 
         {/* JOGADORES NO HUD (MOBILE OPTIMIZED) */}
@@ -183,17 +260,17 @@ export const GameScreen = () => {
               </span>
 
               <span
-                className={`block sm:hidden text-sm font-semibold uppercase ${
+                className={`block sm:hidden text-xs font-semibold uppercase ${
                   Number(id) % 2 === my_player_id % 2
                     ? "text-blue-300"
                     : "text-red-300"
                 }`}
               >
                 {p.userName.substring(0, 3)}
-                <span className="text-sm text-gray-600">{" | "}</span>
+                <span className="text-xs text-gray-600">{" | "}</span>
               </span>
 
-              <span className="text-sm font-mono font-bold text-white">
+              <span className="text-xs font-mono font-bold text-white">
                 {store.hands[Number(id)]?.length || 0}
               </span>
             </div>

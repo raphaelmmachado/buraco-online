@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { useGameStore } from "../../store/useGameStore";
 import { organize_meld } from "../../../common/utils/sort_cards";
 import { calculate_score } from "../../../common/utils/scoring";
 import start_sound from "../../assets/sound/start.wav";
@@ -12,10 +11,11 @@ import { HandCard } from "../game-ui/HandCard";
 import { MeldCard } from "../game-ui/MeldCard";
 import { PileCard } from "../game-ui/PileCard";
 import { DiscardCard } from "../game-ui/DiscardCard";
+import { type GameAdapterInterface } from "../game-ui/useLocalGameAdapter";
+
 // --- TELA PRINCIPAL ---
 
-export const GameScreen = () => {
-  const store = useGameStore();
+export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
   const [showRules, setShowRules] = useState(false);
   const [hoveredMeld, setHoveredMeld] = useState<{
@@ -74,24 +74,24 @@ export const GameScreen = () => {
 
   // Auto-clear error after 3 seconds
   useEffect(() => {
-    if (store.last_error) {
+    if (game.last_error) {
       const timer = setTimeout(() => {
-        store.clear_error();
+        game.clear_error();
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [store.last_error]);
+  }, [game.last_error]);
 
-  const my_player_id = store.my_player_number ?? 1;
+  const my_player_id = game.my_player_number ?? 1;
   const my_team = my_player_id % 2 !== 0 ? 1 : 2;
   const opponent_team = my_team === 1 ? 2 : 1;
-  const isMyTurn = store.current_player === my_player_id;
+  const isMyTurn = game.current_player === my_player_id;
 
-  const canDraw = isMyTurn && store.turn_phase === "DRAW";
-  const canAction = isMyTurn && store.turn_phase === "ACTION";
+  const canDraw = isMyTurn && game.turn_phase === "DRAW";
+  const canAction = isMyTurn && game.turn_phase === "ACTION";
 
-  const myScore = calculate_score(store.team_melds[my_team]).total_score;
-  const oppScore = calculate_score(store.team_melds[opponent_team]).total_score;
+  const myScore = calculate_score(game.team_melds[my_team]).total_score;
+  const oppScore = calculate_score(game.team_melds[opponent_team]).total_score;
 
   const start_audio = new Audio(start_sound);
 
@@ -108,13 +108,13 @@ export const GameScreen = () => {
   }, [isMyTurn]);
 
   // --- RENDER FINISH SCREEN ---
-  if (store.status === "FINISHED" && store.final_score) {
+  if (game.status === "FINISHED" && game.final_score) {
     return (
       <FinishScreen
-        finalScore={store.final_score}
+        finalScore={game.final_score}
         myTeam={my_team}
-        onPlayAgain={store.startGame}
-        onLeave={store.leaveGame}
+        onPlayAgain={() => game.startGame(game.mode)}
+        onLeave={game.leaveGame}
       />
     );
   }
@@ -126,15 +126,15 @@ export const GameScreen = () => {
   };
 
   const handleDeckClick = () => {
-    if (canDraw) store.draw_card();
+    if (canDraw) game.draw_card();
   };
 
   const handleDiscardClick = () => {
     if (canDraw && selectedCards.length >= 2) {
-      store.pick_up_discard_new_meld(selectedCards);
+      game.pick_up_discard_new_meld(selectedCards);
       setSelectedCards([]);
     } else if (canAction && selectedCards.length === 1) {
-      store.discard_card(selectedCards[0]);
+      game.discard_card(selectedCards[0]);
       setSelectedCards([]);
     }
   };
@@ -143,10 +143,10 @@ export const GameScreen = () => {
     if (teamId !== my_team) return;
 
     if (canAction && selectedCards.length > 0) {
-      store.add_to_meld(selectedCards, meldIndex);
+      game.add_to_meld(selectedCards, meldIndex);
       setSelectedCards([]);
     } else if (canDraw) {
-      store.pick_up_discard_add_to_meld(meldIndex, selectedCards);
+      game.pick_up_discard_add_to_meld(meldIndex, selectedCards);
       setSelectedCards([]);
     }
   };
@@ -160,7 +160,7 @@ export const GameScreen = () => {
       {showRules && <RulesModal onClose={() => setShowRules(false)} />}
 
       {/* Menu Dropdown */}
-      <div className="absolute top-4 right-4 z-[100]">
+      <div className="absolute top-4 right-4 z-100">
         <GameMenu onOpenRules={() => setShowRules(true)} />
       </div>
 
@@ -181,7 +181,7 @@ export const GameScreen = () => {
         className="bg-red-950/10 border-b border-white/5 px-4 md:px-6 py-2 flex flex-col relative z-10 min-h-0 transition-[height] duration-75 ease-linear"
       >
         <div className="flex-1 flex flex-wrap content-start gap-x-4 md:gap-x-10 gap-y-4 md:gap-y-14 overflow-y-auto scrollbar-hide pt-2">
-          {store.team_melds[opponent_team].map((meld, idx) => (
+          {game.team_melds[opponent_team].map((meld, idx) => (
             <div key={idx} className="relative group flex items-center">
               <div className="flex -space-x-8 md:-space-x-10 transition-all scale-75 md:scale-100 origin-left">
                 {organize_meld(meld).map((card) => (
@@ -191,7 +191,7 @@ export const GameScreen = () => {
               <MeldBadge meld={meld} />
             </div>
           ))}
-          {store.team_melds[opponent_team].length === 0 && (
+          {game.team_melds[opponent_team].length === 0 && (
             <div className="w-full h-full flex items-center justify-center">
               <span className="text-white/5 text-xl md:text-3xl font-black uppercase tracking-[0.5em]">
                 ELES
@@ -238,9 +238,9 @@ export const GameScreen = () => {
             >
               <>
                 {isMyTurn ? "Você deve" : "Alguém deve"}{" "}
-                {store.turn_phase === "DRAW"
+                {game.turn_phase === "DRAW"
                   ? "COMPRAR"
-                  : store.turn_phase === "ACTION"
+                  : game.turn_phase === "ACTION"
                   ? "JOGAR"
                   : "..."}
               </>
@@ -250,11 +250,11 @@ export const GameScreen = () => {
 
         {/* RIGHT: JOGADORES (NAMES VISIBLE ON MOBILE) */}
         <div className="w-full md:w-auto flex gap-2 items-center  justify-between overflow-x-auto scrollbar-hide">
-          {Object.entries(store.players_data).map(([id, p]) => (
+          {Object.entries(game.players_data).map(([id, p]) => (
             <div
               key={id}
               className={`relative shrink-0 flex items-center justify-center px-3 py-1 md:px-2 md:py-0.5 rounded-full border transition-all ${
-                Number(id) === store.current_player
+                Number(id) === game.current_player
                   ? "border-yellow-500 bg-yellow-500/20"
                   : "border-white/5 bg-black/20"
               }`}
@@ -270,7 +270,7 @@ export const GameScreen = () => {
                 <span className="text-gray-500 mx-1">:</span>
               </span>
               <span className="text-[10px] md:text-sm font-mono font-bold text-white">
-                {store.hands[Number(id)]?.length || 0}
+                {game.hands[Number(id)]?.length || 0}
               </span>
             </div>
           ))}
@@ -283,10 +283,10 @@ export const GameScreen = () => {
         className="flex-1 bg-blue-950/10 px-2 md:px-6 py-2 flex flex-col relative z-10 min-h-0"
       >
         <div className="flex-1 flex flex-wrap content-start gap-x-4 md:gap-x-10 gap-y-4 md:gap-y-14 overflow-y-auto scrollbar-hide pt-2 pb-20">
-          {store.team_melds[my_team].map((meld, idx) => {
+          {game.team_melds[my_team].map((meld, idx) => {
             const isHovered =
               hoveredMeld?.teamId === my_team && hoveredMeld?.index === idx;
-            const canHighlight = canDraw && store.discard_pile.length > 0;
+            const canHighlight = canDraw && game.discard_pile.length > 0;
 
             return (
               <div
@@ -310,7 +310,7 @@ export const GameScreen = () => {
               </div>
             );
           })}
-          {store.team_melds[my_team].length === 0 && (
+          {game.team_melds[my_team].length === 0 && (
             <div className="w-full h-full flex items-center justify-center">
               <span className="text-white/5 text-xl md:text-3xl font-black uppercase tracking-[0.5em]">
                 NÓS
@@ -322,7 +322,7 @@ export const GameScreen = () => {
         {canAction && selectedCards.length >= 3 && (
           <div
             onClick={() => {
-              store.meld_cards(selectedCards);
+              game.meld_cards(selectedCards);
               setSelectedCards([]);
             }}
             className="w-24 h-12 md:w-32 md:h-16 border-2 border-dashed border-yellow-500/40 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-yellow-500/10 transition-all group animate-pulse"
@@ -372,7 +372,7 @@ export const GameScreen = () => {
               isMobile ? "w-4 h-4 text-[8px]" : "w-6 h-6 text-xs"
             } -top-2 -right-2 bg-slate-800 text-white font-black flex items-center justify-center rounded-full shadow-lg border border-white/20 z-50`}
           >
-            {store.deck.length}
+            {game.deck.length}
           </div>
           {/* contador de mortos */}
           <div
@@ -381,7 +381,7 @@ export const GameScreen = () => {
               isMobile ? " w-4 h-4 text-[8px]" : "w-6 h-6 text-xs"
             } -bottom-2 -right-2 bg-red-600 text-white font-black flex items-center justify-center rounded-full shadow-lg border border-white/20 z-50`}
           >
-            {store.dead_piles.length}
+            {game.dead_piles.length}
           </div>
         </div>
 
@@ -391,7 +391,7 @@ export const GameScreen = () => {
           className="flex-1 h-full flex items-end justify-center px-2 relative"
         >
           <div className="flex -space-x-10 md:-space-x-14 transition-all duration-500 items-end origin-bottom pb-2">
-            {(store.hands[my_player_id] || []).map((card, i, arr) => (
+            {(game.hands[my_player_id] || []).map((card, i, arr) => (
               <HandCard
                 key={card.id}
                 card={card}
@@ -409,7 +409,7 @@ export const GameScreen = () => {
             className="absolute bottom-4 left-1/2 -translate-x-1/2 translate-y-full z-50 mb-1"
           >
             <button
-              onClick={store.sort_hand}
+              onClick={game.sort_hand}
               className="bg-gray-800/90 hover:bg-blue-600/90 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full backdrop-blur-md border border-white/10 shadow-lg transition-all active:scale-95 flex items-center gap-1"
               title="Organizar Mão"
             >
@@ -421,7 +421,7 @@ export const GameScreen = () => {
         {/* RIGHT: DISCARD PILE */}
         <div className="shrink-0 pb-1 relative">
           <DiscardCard
-            card={store.discard_pile[0]}
+            card={game.discard_pile[0]}
             onClick={handleDiscardClick}
             isActionable={canDraw || (canAction && selectedCards.length === 1)}
             highlight={
@@ -433,16 +433,16 @@ export const GameScreen = () => {
         </div>
 
         {/* ERROR TOAST */}
-        {store.last_error && (
+        {game.last_error && (
           <div
             id="error-toast"
             className="absolute -top-16 left-1/2 -translate-x-1/2 bg-red-600/90 backdrop-blur
              text-white px-6 py-2 rounded-md text-sm font-black shadow-2xl animate-bounce
               flex items-center gap-3 border border-white/20 z-100"
           >
-            <span>⚠️ {store.last_error}</span>
+            <span>⚠️ {game.last_error}</span>
             <button
-              onClick={store.clear_error}
+              onClick={game.clear_error}
               className="bg-black/20 hover:bg-black/40 rounded-full w-5 h-5 flex items-center justify-center"
             >
               ✕

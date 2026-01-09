@@ -232,9 +232,9 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
       <section
         id="opponent-area"
         style={{ height: `${opponentHeight}%` }}
-        className="bg-red-950/10 border-b border-white/5 px-4 md:px-6 py-2 flex flex-col relative z-10 min-h-0 transition-[height] duration-75 ease-linear"
+        className="bg-red-950/10 border-b border-white/5 px-2 md:px-6 py-2 flex flex-col relative z-10 min-h-0 transition-[height] duration-75 ease-linear"
       >
-        <div className="flex-1 flex flex-wrap content-start gap-x-4 md:gap-x-10 gap-y-4 md:gap-y-14 overflow-y-auto scrollbar-hide pt-2">
+        <div className="flex-1 flex flex-wrap content-start md:gap-x-8 gap-y-4 md:gap-y-14 overflow-y-auto scrollbar-hide pt-2">
           {game.team_melds[opponent_team].map((meld, idx) => (
             <div key={idx} className="relative group flex items-center">
               <div className="flex -space-x-8 md:-space-x-10 transition-all scale-75 md:scale-100 origin-left">
@@ -255,7 +255,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
         </div>
         {/* PLACAR */}
         <div
-          className="absolute bottom-1 right-1 bg-black/40 px-2 md:px-4 py-1 md:py-2 rounded-full
+          className="absolute bottom-1 right-1 bg-black/40 px-2 md:px-4 py-1 md:py-2 rounded-lg
          border border-white/10 shadow-inner flex items-center"
         >
           <span className="text-[10px] md:text-sm font-black text-white leading-none">
@@ -272,42 +272,16 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
         id="game-separator"
         onMouseDown={startDrag}
         onTouchStart={startDrag}
-        className="relative flex items-center justify-between h-10 md:h-[5%] bg-white/5 backdrop-blur-md
-         px-4 md:px-8 border-y border-white/5 shadow-2xl z-30 shrink-0 cursor-row-resize select-none active:bg-white/10 transition-colors group overflow-hidden"
+        className="h-10 md:h-[5%] bg-white/5 backdrop-blur-md
+         px-4 md:px-8 border-y border-white/5 shadow-2xl z-30 shrink-0
+          cursor-row-resize select-none active:bg-white/10 transition-colors group overflow-hidden"
       >
-        {/* LEFT: STATUS (DESKTOP ONLY NOW) */}
-        <div className="absolute -bottom-5 left-2 md:static flex items-center gap-2 md:gap-4 shrink-0">
-          {/* DESKTOP: Layout Original */}
-          <div className="flex items-center gap-4">
-            <span
-              className={`w-2 h-2 ${
-                isMyTurn ? "bg-blue-400 animate-pulse" : "bg-white/40"
-              } rounded-full`}
-            ></span>
-
-            <span
-              className={`text-[8px] font-bold ${
-                isMyTurn ? "text-blue-400" : "text-white/50"
-              } uppercase tracking-[0.2em]`}
-            >
-              <>
-                {isMyTurn ? "Você deve" : "Alguém deve"}{" "}
-                {game.turn_phase === "DRAW"
-                  ? "COMPRAR"
-                  : game.turn_phase === "ACTION"
-                  ? "JOGAR"
-                  : "..."}
-              </>
-            </span>
-          </div>
-        </div>
-
-        {/* RIGHT: JOGADORES (NAMES VISIBLE ON MOBILE) */}
-        <div className="w-full md:w-auto flex gap-2 items-center  justify-between overflow-x-auto scrollbar-hide">
+        {/* JOGADORES*/}
+        <div className="flex h-full gap-2 items-center  justify-between overflow-x-auto scrollbar-hide">
           {Object.entries(game.players_data).map(([id, p]) => (
             <div
               key={id}
-              className={`relative shrink-0 flex items-center justify-center px-3 py-1 md:px-2 md:py-0.5 rounded-full border transition-all ${
+              className={`relative shrink-0 flex items-center justify-center px-3 py-1 md:px-2 md:py-0.5 rounded-lg border transition-all ${
                 Number(id) === game.current_player
                   ? "border-yellow-500 bg-yellow-500/20"
                   : "border-white/5 bg-black/20"
@@ -336,7 +310,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
         id="player-area"
         className="flex-1 bg-blue-950/10 px-2 md:px-6 py-2 flex flex-col relative z-10 min-h-0"
       >
-        <div className="flex-1 flex flex-wrap content-start gap-x-4 md:gap-x-10 gap-y-4 md:gap-y-14 overflow-y-auto scrollbar-hide pt-2 pb-20">
+        <div className="flex-1 flex flex-wrap content-start md:gap-x-8 gap-y-4 md:gap-y-14 overflow-y-auto scrollbar-hide pt-2 pb-20">
           {game.team_melds[my_team].map((meld, idx) => {
             const isHovered =
               hoveredMeld?.teamId === my_team && hoveredMeld?.index === idx;
@@ -394,7 +368,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
 
         {/* PLACAR */}
         <div
-          className="absolute top-1 right-1 bg-black/40 px-2 md:px-4 py-1 md:py-2 rounded-full
+          className="absolute top-1 right-1 bg-black/40 px-2 md:px-4 py-1 md:py-2 rounded-lg
          border border-white/10 shadow-inner flex items-center"
         >
           <span className="text-[10px] md:text-sm font-black text-white leading-none">
@@ -409,8 +383,34 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
       {/* FOOTER: [MONTE] [MÃO] [LIXO] */}
       <footer
         id="game-footer"
-        className="h-28 md:h-[20%] bg-linear-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md px-2 pb-2 z-40 relative w-full flex items-end justify-between gap-2 md:gap-6"
+        className="h-28 md:h-[20%] bg-linear-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md px-2 pb-2 z-40
+         relative w-full flex items-end justify-between gap-2 md:gap-6"
       >
+        <div className="absolute top-1 md:-top-10 flex items-center gap-2 md:gap-4 shrink-0">
+          {/* DESKTOP: Layout Original */}
+          <div className="flex items-center gap-x-1">
+            <span
+              className={`w-2 h-2 ${
+                isMyTurn ? "bg-blue-400 animate-pulse" : "bg-white/40"
+              } rounded-full`}
+            ></span>
+
+            <span
+              className={`text-[8px] sm:text-xs font-bold ${
+                isMyTurn ? "text-blue-400" : "text-white/50"
+              } uppercase tracking-[0.2em]`}
+            >
+              <>
+                {isMyTurn ? "Você" : "Alguém"}{" "}
+                {game.turn_phase === "DRAW"
+                  ? "COMPRA"
+                  : game.turn_phase === "ACTION"
+                  ? "JOGA"
+                  : "..."}
+              </>
+            </span>
+          </div>
+        </div>
         {/* LEFT: DECK PILE */}
         <div className="shrink-0 pb-1 relative">
           <PileCard
@@ -443,9 +443,15 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
         {/* CENTER: PLAYER HAND */}
         <div
           id="player-hand"
-          className="flex-1 h-full flex items-end justify-center px-2 relative overflow-x-auto"
+          className="flex-1 h-full flex items-end justify-center px-2 pt-8 relative overflow-x-auto md:overflow-visible scrollbar-hide"
         >
-          <div className="flex -space-x-10 md:-space-x-14 transition-all duration-500 items-end origin-bottom pb-2">
+          <div
+            className={`flex transition-all duration-500 items-end origin-bottom pb-2 md:-space-x-14 md:touch:space-x-0 ${
+              isMobile && selectedCards.length > 0
+                ? "-space-x-12"
+                : "-space-x-10 touch:-space-x-8"
+            }`}
+          >
             {(game.hands[my_player_id] || []).map((card, i, arr) => (
               <HandCard
                 key={card.id}
@@ -465,7 +471,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           >
             <button
               onClick={game.sort_hand}
-              className="bg-gray-800/90 hover:bg-blue-600/90 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full backdrop-blur-md border border-white/10 shadow-lg transition-all active:scale-95 flex items-center gap-1"
+              className="bg-gray-800/90 hover:bg-gray-600 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full backdrop-blur-md border border-white/10 shadow-lg transition-all active:scale-95 flex items-center gap-1"
               title="Organizar Mão"
             >
               <span>🪄 Organizar</span>
@@ -500,7 +506,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
             <span>⚠️ {game.last_error}</span>
             <button
               onClick={game.clear_error}
-              className="bg-black/20 hover:bg-black/40 rounded-full w-5 h-5 flex items-center justify-center"
+              className="bg-black/20 hover:bg-black/40 rounded-lg w-5 h-5 flex items-center justify-center"
             >
               ✕
             </button>

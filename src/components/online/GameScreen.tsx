@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useGameStore } from "../../store/useGameStore";
 import { organize_meld } from "../../../common/utils/sort_cards";
 import { calculate_score } from "../../../common/utils/scoring";
@@ -20,6 +20,55 @@ export const GameScreen = () => {
     teamId: number;
     index: number;
   } | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Splitter State
+  const [opponentHeight, setOpponentHeight] = useState(35); // Percentage
+  const isDragging = useRef(false);
+
+  // Drag Logic
+  useEffect(() => {
+    const handleMove = (y: number) => {
+      if (!isDragging.current) return;
+      const percentage = (y / window.innerHeight) * 100;
+      // Clamp between 15% and 60% to prevent breaking layout
+      if (percentage >= 15 && percentage <= 60) {
+        setOpponentHeight(percentage);
+      }
+    };
+
+    const onMouseMove = (e: MouseEvent) => handleMove(e.clientY);
+    const onTouchMove = (e: TouchEvent) => handleMove(e.touches[0].clientY);
+
+    const onEnd = () => {
+      isDragging.current = false;
+      document.body.style.cursor = "default";
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("mouseup", onEnd);
+    window.addEventListener("touchend", onEnd);
+
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("mouseup", onEnd);
+      window.removeEventListener("touchend", onEnd);
+    };
+  }, []);
+
+  const startDrag = () => {
+    isDragging.current = true;
+    document.body.style.cursor = "row-resize";
+  };
 
   // Auto-clear error after 3 seconds
   useEffect(() => {
@@ -105,10 +154,11 @@ export const GameScreen = () => {
         }}
       ></div>
 
-      {/* 30% ÁREA DO ADVERSÁRIO (Reduced) */}
+      {/* ÁREA DO ADVERSÁRIO (Resizable) */}
       <section
         id="opponent-area"
-        className="flex-[0.3] md:flex-[0.35] bg-red-950/10 border-b border-white/5 px-4 md:px-6 py-2 flex flex-col relative z-10 min-h-0"
+        style={{ height: `${opponentHeight}%` }}
+        className="bg-red-950/10 border-b border-white/5 px-4 md:px-6 py-2 flex flex-col relative z-10 min-h-0 transition-[height] duration-75 ease-linear"
       >
         <div className="flex-1 flex flex-wrap content-start gap-x-4 md:gap-x-10 gap-y-4 md:gap-y-14 overflow-y-auto scrollbar-hide pt-2">
           {store.team_melds[opponent_team].map((meld, idx) => (
@@ -143,11 +193,13 @@ export const GameScreen = () => {
         </div>
       </section>
 
-      {/* SEPARATOR / INFO BAR */}
+      {/* SEPARATOR / INFO BAR (Draggable) */}
       <section
         id="game-separator"
-        className=" flex items-center justify-between h-10 md:h-[5%] bg-white/5 backdrop-blur-md
-         px-4 md:px-8 border-y border-white/5 shadow-2xl z-30 shrink-0"
+        onMouseDown={startDrag}
+        onTouchStart={startDrag}
+        className="relative flex items-center justify-between h-10 md:h-[5%] bg-white/5 backdrop-blur-md
+         px-4 md:px-8 border-y border-white/5 shadow-2xl z-30 shrink-0 cursor-row-resize select-none active:bg-white/10 transition-colors group"
       >
         {/* LEFT: STATUS (DESKTOP ONLY NOW) */}
         <div className="absolute -bottom-5 md:static flex items-center gap-2 md:gap-4 shrink-0">
@@ -155,20 +207,23 @@ export const GameScreen = () => {
           <div className="flex items-center gap-4">
             <span
               className={`w-2 h-2 ${
-                isMyTurn ? "bg-green-600 animate-pulse" : "bg-white/40"
+                isMyTurn ? "bg-blue-400 animate-pulse" : "bg-white/40"
               } rounded-full`}
             ></span>
 
             <span
-              className={`text-[9px] font-bold ${
-                isMyTurn ? "text-green-500" : "text-white/50"
+              className={`text-[8px] font-bold ${
+                isMyTurn ? "text-blue-400" : "text-white/50"
               } uppercase tracking-[0.2em]`}
             >
-              {store.turn_phase === "DRAW"
-                ? "FASE DE COMPRA"
-                : store.turn_phase === "ACTION"
-                ? "FASE DE JOGO"
-                : "AGUARDANDO"}
+              <>
+                {isMyTurn ? "Você deve" : "Alguém deve"}{" "}
+                {store.turn_phase === "DRAW"
+                  ? "COMPRAR"
+                  : store.turn_phase === "ACTION"
+                  ? "JOGAR"
+                  : "..."}
+              </>
             </span>
           </div>
         </div>
@@ -202,7 +257,7 @@ export const GameScreen = () => {
         </div>
       </section>
 
-      {/* ÁREA DO JOGADOR (FLEX GROWTH) */}
+      {/* ÁREA DO JOGADOR (Resizable) */}
       <section
         id="player-area"
         className="flex-1 bg-blue-950/10 px-2 md:px-6 py-2 flex flex-col relative z-10 min-h-0"
@@ -244,52 +299,23 @@ export const GameScreen = () => {
           )}
         </div>
 
-        {/* DECK & DISCARD & ACTIONS (MOBILE: FLOATING BOTTOM LEFT) */}
-        <div className="absolute bottom-2 left-2 md:bottom-4 md:left-6 flex flex-col gap-2 z-40">
-          {/* Botão Baixar (Contextual) - VISIBLE ON BOTH, BUT POSITIONED HERE FOR MOBILE */}
-          {canAction && selectedCards.length >= 3 && (
+        {/* BOTÃO BAIXAR JOGO (FLOATING ABOVE FOOTER) */}
+        {canAction && selectedCards.length >= 3 && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50">
             <button
               onClick={() => {
                 store.meld_cards(selectedCards);
                 setSelectedCards([]);
               }}
-              className="mb-2 bg-yellow-500 hover:bg-yellow-400 text-black text-xs font-black px-4 py-2 rounded-full shadow-lg animate-bounce flex items-center gap-2"
+              className="bg-yellow-500 hover:bg-yellow-400 text-black text-xs font-black px-6 py-2 rounded-full shadow-2xl animate-bounce flex items-center gap-2 border-2 border-black/10"
             >
               <span>BAIXAR JOGO</span>
               <span className="bg-black/20 rounded px-1">
                 {selectedCards.length}
               </span>
             </button>
-          )}
-
-          {/* DECK AND DISCARD ROW - MOBILE ONLY */}
-          <div className="md:hidden flex items-end gap-2">
-            <div id="deck-pile" className="relative group">
-              <PileCard onClick={handleDeckClick} active={canDraw} />
-
-              {/* Contadores */}
-              <div className="absolute -top-2 -left-2 bg-slate-800 text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full shadow-lg border border-white/20 z-50">
-                {store.deck.length}
-              </div>
-              <div className="absolute -bottom-2 -right-2 bg-amber-600 text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full shadow-lg border border-white/20 z-50">
-                {store.dead_piles.length}
-              </div>
-            </div>
-
-            <div id="discard-pile" className="relative group">
-              <DiscardCard
-                card={store.discard_pile[0]}
-                onClick={handleDiscardClick}
-                isActionable={
-                  canDraw || (canAction && selectedCards.length === 1)
-                }
-                highlight={
-                  (canDraw && selectedCards.length >= 2) || hoveredMeld !== null
-                }
-              />
-            </div>
           </div>
-        </div>
+        )}
 
         {/* PLACAR */}
         <div
@@ -305,44 +331,46 @@ export const GameScreen = () => {
         </div>
       </section>
 
-      {/* FOOTER: MÃO DO JOGADOR (FULL WIDTH) */}
+      {/* FOOTER: [MONTE] [MÃO] [LIXO] */}
       <footer
         id="game-footer"
-        className="h-32 md:h-[20%] bg-linear-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md px-2 pb-2 z-40 relative w-full flex items-end justify-between gap-4"
+        className="h-28 md:h-[20%] bg-linear-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md px-2 pb-2 z-40 relative w-full flex items-end justify-between gap-2 md:gap-6"
       >
-        {/* DESKTOP ONLY: DECK & DISCARD (Left Side) */}
-        <div className="hidden md:flex gap-4 shrink-0 pb-2 pl-4">
-          <div id="deck-pile" className="relative group">
-            <PileCard onClick={handleDeckClick} active={canDraw} />
+        {/* LEFT: DECK PILE */}
+        <div className="shrink-0 pb-1 relative">
+          <PileCard
+            onClick={handleDeckClick}
+            active={canDraw}
+            mini={isMobile}
+          />
 
-            {/* Contadores */}
-            <div className="absolute -top-2 -left-2 bg-slate-800 text-white text-xs font-black w-6 h-6 flex items-center justify-center rounded-full shadow-lg border border-white/20 z-50">
-              {store.deck.length}
-            </div>
-            <div className="absolute -bottom-2 -right-2 bg-amber-600 text-white text-xs font-black w-6 h-6 flex items-center justify-center rounded-full shadow-lg border border-white/20 z-50">
-              {store.dead_piles.length}
-            </div>
+          {/* Contadores */}
+          {/* contador de deck */}
+          <div
+            title="Cartas no monte"
+            className={`absolute ${
+              isMobile ? "w-4 h-4 text-[8px]" : "w-6 h-6 text-xs"
+            } -top-2 -right-2 bg-slate-800 text-white font-black flex items-center justify-center rounded-full shadow-lg border border-white/20 z-50`}
+          >
+            {store.deck.length}
           </div>
-
-          <div id="discard-pile" className="relative group">
-            <DiscardCard
-              card={store.discard_pile[0]}
-              onClick={handleDiscardClick}
-              isActionable={
-                canDraw || (canAction && selectedCards.length === 1)
-              }
-              highlight={
-                (canDraw && selectedCards.length >= 2) || hoveredMeld !== null
-              }
-            />
+          {/* contador de mortos */}
+          <div
+            title="Quantidade de mortos"
+            className={`absolute ${
+              isMobile ? " w-4 h-4 text-[8px]" : "w-6 h-6 text-xs"
+            } -bottom-2 -right-2 bg-red-600 text-white font-black flex items-center justify-center rounded-full shadow-lg border border-white/20 z-50`}
+          >
+            {store.dead_piles.length}
           </div>
         </div>
 
+        {/* CENTER: PLAYER HAND */}
         <div
           id="player-hand"
-          className="w-full h-full flex justify-center items-end relative"
+          className="flex-1 h-full flex items-end justify-center px-2 relative"
         >
-          <div className="flex -space-x-8 md:-space-x-14 hover:-space-x-4 transition-all duration-500 items-end origin-bottom pb-2 overflow-x-visible">
+          <div className="flex -space-x-10 md:-space-x-14 transition-all duration-500 items-end origin-bottom pb-2">
             {(store.hands[my_player_id] || []).map((card, i, arr) => (
               <HandCard
                 key={card.id}
@@ -355,19 +383,33 @@ export const GameScreen = () => {
             ))}
           </div>
 
-          {/* ORGANIZAR CARTAS (Moved to top right of footer) */}
+          {/* ORGANIZAR CARTAS (Centered below hand) */}
           <div
             id="player-controls"
-            className="absolute top-0 right-2 md:right-4 -translate-y-1/2 z-50"
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 translate-y-full z-50 mb-1"
           >
             <button
               onClick={store.sort_hand}
-              className="bg-gray-700/80 hover:bg-blue-600/80 text-white p-2 rounded-full backdrop-blur-md border border-white/10 shadow-lg transition-all active:scale-95"
+              className="bg-gray-800/90 hover:bg-blue-600/90 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full backdrop-blur-md border border-white/10 shadow-lg transition-all active:scale-95 flex items-center gap-1"
               title="Organizar Mão"
             >
-              <span className="text-lg">🪄</span>
+              <span>🪄 Organizar</span>
             </button>
           </div>
+        </div>
+
+        {/* RIGHT: DISCARD PILE */}
+        <div className="shrink-0 pb-1 relative">
+          <DiscardCard
+            card={store.discard_pile[0]}
+            onClick={handleDiscardClick}
+            isActionable={canDraw || (canAction && selectedCards.length === 1)}
+            highlight={
+              (canDraw && selectedCards.length >= 2) || hoveredMeld !== null
+            }
+            mini={isMobile}
+          />
+          {/* Morto Contador */}
         </div>
 
         {/* ERROR TOAST */}

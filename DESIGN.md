@@ -5,12 +5,12 @@ _PORCENTAGEM DE OCUPAÇÃO DA TELA_
 :--------------------------------------------------:
 | AREA DO ADVERSARIO(37.5%) |
 :--------------------------------------------------:
-| INFORMAÇOES [DE QUEM É A VEZ - NOME DO JOGADOR ] |
+| SEPARADOR [DE QUEM É A VEZ - NOME DO JOGADOR ] |
 | - QUANTAS CARTAS TEM NA MÃO (5%) :
 :--------------------------------------------------:
 | AREA DO SEU JOGO(37.5%) |
 :--------------------------------------------------:
-| [MONTE][LIXO] CARTAS DA SUA MÃO (20%) |
+| [MONTE] [MÃO] [LIXO](20%) |
 :--------------------------------------------------:
 
 Design responsivo, para telas mobile e desktop

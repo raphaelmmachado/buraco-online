@@ -28,14 +28,14 @@ export const HandCard = ({
 
   const isRed = card.color === "red";
   const center = (totalCards - 1) / 2;
-  
+
   // Desktop values
   const rotateDesktop = (index - center) * 4;
-  const translateYDesktop = Math.abs(index - center) * 4;
+  const translateYDesktop = Math.abs(index - center) * 1;
 
   // Mobile values (More subtle fan)
-  const rotateMobile = (index - center) * 2; 
-  const translateYMobile = Math.abs(index - center) * 2;
+  const rotateMobile = (index - center) * 4;
+  const translateYMobile = Math.abs(index - center) * 4;
 
   const dynamicStyle = {
     zIndex: index,
@@ -45,14 +45,13 @@ export const HandCard = ({
       ? `translateY(${translateYMobile}px) rotate(${rotateMobile}deg)`
       : `translateY(${translateYDesktop}px) rotate(${rotateDesktop}deg)`,
   };
-
   return (
     <div
       onClick={onClick}
       className={`
-        relative rounded-lg shadow-lg border bg-white select-none transition-all duration-300
+        relative rounded-md shadow-lg border bg-white select-none transition-all duration-300
         flex flex-col items-center justify-between p-1 cursor-pointer
-        w-14 h-20 md:w-20 md:h-32 transform origin-bottom
+        w-14 h-20 md:w-20 md:h-32 transform origin-bottom mb-5
         ${
           isSelected
             ? "-translate-y-8 md:-translate-y-12 z-100 scale-105 border-yellow-400 ring-4 ring-yellow-400/30 shadow-yellow-500/50 shadow-2xl"

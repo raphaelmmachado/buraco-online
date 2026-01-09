@@ -1,10 +1,9 @@
 # TODO
 
-## DESIGN MOBILE
+## IDEIA DE DESIGN
 
-Faça um design exclusivo para mobile
+### FOOTER
 
-As cartas da mão não tem formato de leque em dispositivos mobile
+[MONTE][MÃO][LIXO] Mantendo o botão de organizar cartas onde está.
 
-Parece que só precisar de um redesign para o footer.
-Vai ter que mover Monte e Lixo para fora do footer e deixar só as cartas da mão.
+Então quando a tela diminuir apenas renderize um versão pequena das cartas do morto e lixo

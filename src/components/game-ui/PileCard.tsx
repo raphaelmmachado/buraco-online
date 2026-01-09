@@ -4,7 +4,11 @@ interface PileCardProps {
   mini?: boolean;
 }
 
-export const PileCard = ({ onClick, active = false, mini = false }: PileCardProps) => {
+export const PileCard = ({
+  onClick,
+  active = false,
+  mini = false,
+}: PileCardProps) => {
   return (
     <div
       onClick={onClick}

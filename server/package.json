@@ -8,9 +8,7 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@types/node": "^25.0.3",
-    "ts-node": "^10.9.2",
-    "tsconfig-paths": "^4.2.0"
+    "@types/node": "^25.0.3"
   },
   "peerDependencies": {
     "typescript": "^5.9.3"

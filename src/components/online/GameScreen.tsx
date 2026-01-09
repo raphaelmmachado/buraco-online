@@ -1,7 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { organize_meld } from "../../../common/utils/sort_cards";
 import { calculate_score } from "../../../common/utils/scoring";
 import start_sound from "../../assets/sound/start.wav";
+import pounding_card_sound from "../../assets/sound/pounding.mp3";
+import flick_card_sound from "../../assets/sound/flick-card.wav";
+import flip_card_sound from "../../assets/sound/flipcard.mp3";
+import card_placement_sound from "../../assets/sound/card-placement.wav";
 // UI Components
 import { MeldBadge } from "../game-ui/MeldBadge";
 import { GameMenu } from "../game-ui/GameMenu";
@@ -93,19 +97,69 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   const myScore = calculate_score(game.team_melds[my_team]).total_score;
   const oppScore = calculate_score(game.team_melds[opponent_team]).total_score;
 
-  const start_audio = new Audio(start_sound);
+  // --- AUDIO SYSTEM (Optimized) ---
+  // Memoize audio instances so they are not re-created on every render
+  const sfx = useMemo(
+    () => ({
+      start: new Audio(start_sound),
+      deadPile: new Audio(pounding_card_sound),
+      flick: new Audio(flick_card_sound),
+      flip: new Audio(flip_card_sound),
+      placement: new Audio(card_placement_sound),
+    }),
+    []
+  );
 
+  // Helper to safely play sound
+  const playSound = (audio: HTMLAudioElement) => {
+    audio.currentTime = 0; // Rewind to start for rapid playback
+    audio.play().catch((e) => console.warn("Audio play blocked:", e));
+  };
+
+  // State trackers to prevent sounds on mount
+  const isMounted = useRef(false);
+  const prevDeckLen = useRef(game.deck.length);
+  const prevDeadPileLen = useRef(game.dead_piles.length);
+  const prevMeldsStr = useRef(JSON.stringify(game.team_melds)); // Deep compare string trick
+
+  // Notification & Start Sound
   useEffect(() => {
     if (isMyTurn) {
-      start_audio.play();
+      playSound(sfx.start);
       if (document.hidden) {
         new Notification("É sua vez!", {
-          body: "Volte para o jogo 🎮",
+          body: "Compre uma carta do monte ou pegue o lixo.",
         });
-        start_audio.play();
       }
     }
-  }, [isMyTurn]);
+  }, [isMyTurn, sfx]);
+
+  // SFX Triggers
+  useEffect(() => {
+    if (!isMounted.current) {
+      isMounted.current = true;
+      return;
+    }
+
+    // Dead Pile Taken
+    if (game.dead_piles.length < prevDeadPileLen.current) {
+      playSound(sfx.deadPile);
+    }
+    prevDeadPileLen.current = game.dead_piles.length;
+
+    // Deck Draw (Deck size decreased)
+    if (game.deck.length < prevDeckLen.current) {
+      playSound(sfx.flip);
+    }
+    prevDeckLen.current = game.deck.length;
+
+    // Meld Change (Card placed)
+    const currentMeldsStr = JSON.stringify(game.team_melds);
+    if (currentMeldsStr !== prevMeldsStr.current) {
+      playSound(sfx.flick);
+      prevMeldsStr.current = currentMeldsStr;
+    }
+  }, [game.dead_piles.length, game.deck.length, game.team_melds, sfx]);
 
   // --- RENDER FINISH SCREEN ---
   if (game.status === "FINISHED" && game.final_score) {
@@ -317,26 +371,27 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               </span>
             </div>
           )}
-        </div>
-        {/* Botão Baixar Novo Jogo - VISUAL DE SLOT RETANGULAR */}
-        {canAction && selectedCards.length >= 3 && (
-          <div
-            onClick={() => {
-              game.meld_cards(selectedCards);
-              setSelectedCards([]);
-            }}
-            className="w-24 h-12 md:w-32 md:h-16 border-2 border-dashed border-yellow-500/40 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-yellow-500/10 transition-all group animate-pulse"
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-yellow-500 text-xl font-light group-hover:scale-125 transition-transform">
-                +
-              </span>
-              <span className="text-[10px] font-black text-yellow-500/60 uppercase tracking-widest">
-                Novo Jogo
-              </span>
+          {/* Botão Baixar Novo Jogo - VISUAL DE SLOT RETANGULAR */}
+          {canAction && selectedCards.length >= 3 && (
+            <div
+              onClick={() => {
+                game.meld_cards(selectedCards);
+                setSelectedCards([]);
+              }}
+              className="w-24 h-12 md:w-44 md:h-24 border-2 border-dashed border-yellow-500/40 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-yellow-500/10 transition-all group animate-pulse"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-yellow-500 text-xl font-light group-hover:scale-125 transition-transform">
+                  +
+                </span>
+                <span className="text-[10px] font-black text-yellow-500/60 uppercase tracking-widest">
+                  Novo Jogo
+                </span>
+              </div>
             </div>
-          </div>
-        )}{" "}
+          )}{" "}
+        </div>
+
         {/* PLACAR */}
         <div
           className="absolute top-1 right-1 bg-black/40 px-2 md:px-4 py-1 md:py-2 rounded-full
@@ -388,7 +443,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
         {/* CENTER: PLAYER HAND */}
         <div
           id="player-hand"
-          className="flex-1 h-full flex items-end justify-center px-2 relative"
+          className="flex-1 h-full flex items-end justify-center px-2 relative overflow-x-auto"
         >
           <div className="flex -space-x-10 md:-space-x-14 transition-all duration-500 items-end origin-bottom pb-2">
             {(game.hands[my_player_id] || []).map((card, i, arr) => (
@@ -432,12 +487,14 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           {/* Morto Contador */}
         </div>
 
+        {/* ADICIONE AQUI UM TOASTER para informar jogadas - por exemplo: Jogador['nome do jogador'] pegou o morto */}
+
         {/* ERROR TOAST */}
         {game.last_error && (
           <div
             id="error-toast"
             className="absolute -top-16 left-1/2 -translate-x-1/2 bg-red-600/90 backdrop-blur
-             text-white px-6 py-2 rounded-md text-sm font-black shadow-2xl animate-bounce
+             text-white px-6 py-2 rounded-md text-sm font-black shadow-2xl
               flex items-center gap-3 border border-white/20 z-100"
           >
             <span>⚠️ {game.last_error}</span>

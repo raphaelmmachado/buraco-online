@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { type Card as CardType } from "../../../common/types/card";
+import { SuitIcon } from "./SuitIcon";
 
 interface HandCardProps {
   card: CardType;
@@ -27,17 +28,23 @@ export const HandCard = ({
 
   const isRed = card.color === "red";
   const center = (totalCards - 1) / 2;
-  const rotate = (index - center) * 4;
-  const translateY = Math.abs(index - center) * 4;
+  
+  // Desktop values
+  const rotateDesktop = (index - center) * 4;
+  const translateYDesktop = Math.abs(index - center) * 4;
 
-  const dynamicStyle = isMobile 
-    ? { zIndex: index }
-    : {
-        zIndex: index,
-        transform: isSelected
-          ? `translateY(-20px) rotate(0deg)`
-          : `translateY(${translateY}px) rotate(${rotate}deg)`,
-      };
+  // Mobile values (More subtle fan)
+  const rotateMobile = (index - center) * 2; 
+  const translateYMobile = Math.abs(index - center) * 2;
+
+  const dynamicStyle = {
+    zIndex: index,
+    transform: isSelected
+      ? `translateY(${isMobile ? "-10px" : "-20px"}) rotate(0deg)`
+      : isMobile
+      ? `translateY(${translateYMobile}px) rotate(${rotateMobile}deg)`
+      : `translateY(${translateYDesktop}px) rotate(${rotateDesktop}deg)`,
+  };
 
   return (
     <div
@@ -57,16 +64,16 @@ export const HandCard = ({
     >
       <div className="self-start flex flex-col items-center leading-none">
         <span className="font-black text-sm md:text-2xl">{card.value}</span>
-        <span className="text-[10px] md:text-lg">{card.suit.icon}</span>
+        <SuitIcon suit={card.suit.name} className="w-3 h-3 md:w-5 md:h-5" />
       </div>
 
-      <div className="text-3xl md:text-5xl opacity-15 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-        <div className="flex flex-col items-center gap-2">{card.suit.icon}</div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-20">
+        <SuitIcon suit={card.suit.name} className="w-8 h-8 md:w-16 md:h-16" />
       </div>
 
       <div className="self-end flex flex-col items-center leading-none rotate-180">
         <span className="font-black text-sm md:text-2xl">{card.value}</span>
-        <span className="text-[10px] md:text-lg">{card.suit.icon}</span>
+        <SuitIcon suit={card.suit.name} className="w-3 h-3 md:w-5 md:h-5" />
       </div>
     </div>
   );

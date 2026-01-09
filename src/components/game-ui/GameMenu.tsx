@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useGameStore } from "../../store/useGameStore";
-import { RulesModal } from "./RulesModal";
 
 interface GameMenuProps {
   onOpenRules: () => void;

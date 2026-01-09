@@ -6,7 +6,7 @@ import type { ScoreResult } from "../../../common/utils/scoring";
 // This interface mirrors the one in useGameStore (Online)
 // We are making the Local Store look like the Online Store
 export interface GameAdapterInterface {
-  status: "LOBBY" | "PLAYING" | "FINISHED";
+  status: "IDLE" | "LOBBY" | "PLAYING" | "FINISHED";
   mode: "1v1" | "2v2";
   
   // State

@@ -1,12 +1,23 @@
 # TODO
 
-## CARTÃO DA MÃO EM TELA MOBILE
+## CARTAS DA MÃO [OK]
 
-Só falta resolver isso para o MVP finalizar
+SEPARE A ESTILIZAÇÃO DE MOBILE E DESKTOP.
 
-Eu gostei muito desse design de cartas na mão.
-Mas temos um problema muito comum. Quando acumula muitas cartas na mão, o tamanho de tela não suporta tantas cartas.
-Você precisa pensar em uma idéia, eu pensei em algo parecido com um carrossel de cartas, mas sen interferir no -space-x.
-Então o jogador poderia passar o dedo como slide para acessar TODAS as cartas
+### DESKTOP [OK]
 
-##
+- [x] REMOVA EFEITO DE SOBREPOR CARTAS COM INDEX: 100
+- [x] DIMINUA UM POUCO O SALTO DAS CARTAS SELECIONADAS.
+- [x] PRIORIZAR O DESIGN DE DESKTOP
+- [x] REMOVA O EFEITO DE ROTACIONAR CARTAS AO SELECIONAR (MANTIDO O LEQUE).
+- [x] TROQUE POR MAIS UMA LEVE LEVANTADA.
+
+### MOBILE [OK]
+
+- [x] REMOVA O EFEITO EXAGERADO DE 'SALTAR' AS CARTAS QUANDO SELECIONAS.
+  ADICIONE UM LEVE LEVANTAMENTO, O MESMO EFEITO DO HOVER, JUNTO COM A BORDA AMARELA.
+- [x] ADICIONE UMA LÓGICA DE DIMINUIR LEVEMENTE O TAMANHO DAS CARTAS QUANTO TIVER COM MAIS DE 11 CARTAS NA MÃO.
+  [x] ESCONDER OVERFLOW E PERMITIR SLIDE SOBRE AS CARTAS.
+- [x] DIMINUA UM POUCO O TAMANHO DAS CARTAS, CLARO, ACOMPANHANDO A LÓGICA DE ROTAÇÃO DO LEQUE.
+- [x] REMOVA O EFEITO DE ROTACIONAR CARTA QUANDO SELECIONADA.
+- [x] ADICIONE UM PADDING TOP PARA RESOLVER CLIPPING.

@@ -51,9 +51,12 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
     const players_data: Record<number, { socketId: string; userName: string }> = {
         1: { socketId: "local-1", userName: "Você" },
         2: { socketId: "local-2", userName: "Bot 1" },
-        3: { socketId: "local-3", userName: "Bot 2" },
-        4: { socketId: "local-4", userName: "Bot 3" },
     };
+
+    if (local.mode === "2v2") {
+        players_data[3] = { socketId: "local-3", userName: "Bot 2" };
+        players_data[4] = { socketId: "local-4", userName: "Bot 3" };
+    }
 
     return {
       // State

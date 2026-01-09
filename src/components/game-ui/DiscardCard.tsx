@@ -1,4 +1,5 @@
 import { type Card as CardType } from "../../../common/types/card";
+import { SuitIcon } from "./SuitIcon";
 
 interface DiscardCardProps {
   card?: CardType;
@@ -49,17 +50,17 @@ export const DiscardCard = ({
       `}
     >
       <div className="self-start flex flex-col items-center leading-none">
-        <span className="font-black text-[12px] md:text-2xl">{card.value}</span>
-        <span className="text-[10px] md:text-sm">{card.suit.icon}</span>
+        <span className="font-black text-xs md:text-2xl">{card.value}</span>
+        <SuitIcon suit={card.suit.name} className="w-3 h-3 md:w-5 md:h-5" />
       </div>
 
-      <div className="text-5xl opacity-[0.07] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-        {card.suit.icon}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-20">
+        <SuitIcon suit={card.suit.name} className="w-8 h-8 md:w-16 md:h-16" />
       </div>
 
       <div className="self-end flex flex-col items-center leading-none rotate-180">
-        <span className="font-black text-[12px] md:text-2xl">{card.value}</span>
-        <span className="text-[10px] md:text-sm">{card.suit.icon}</span>
+        <span className="font-black text-xs md:text-2xl">{card.value}</span>
+        <SuitIcon suit={card.suit.name} className="w-3 h-3 md:w-5 md:h-5" />
       </div>
     </div>
   );

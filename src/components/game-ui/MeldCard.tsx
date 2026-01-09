@@ -1,4 +1,5 @@
 import { type Card as CardType } from "../../../common/types/card";
+import { SuitIcon } from "./SuitIcon";
 
 interface MeldCardProps {
   card: CardType;
@@ -24,16 +25,16 @@ export const MeldCard = ({ card, highlight = false }: MeldCardProps) => {
     >
       <div className="self-start flex flex-col items-center leading-none">
         <span className="font-black text-sm md:text-xl">{card.value}</span>
-        <span className="text-[10px] md:text-sm">{card.suit.icon}</span>
+        <SuitIcon suit={card.suit.name} className="w-3 h-3 md:w-4 md:h-4" />
       </div>
 
-      <div className="text-4xl opacity-[0.06] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-        {card.suit.icon}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-10">
+        <SuitIcon suit={card.suit.name} className="w-6 h-6 md:w-12 md:h-12" />
       </div>
 
       <div className="self-end flex flex-col items-center leading-none rotate-180">
         <span className="font-black text-sm md:text-xl">{card.value}</span>
-        <span className="text-[10px] md:text-sm">{card.suit.icon}</span>
+        <SuitIcon suit={card.suit.name} className="w-3 h-3 md:w-4 md:h-4" />
       </div>
     </div>
   );

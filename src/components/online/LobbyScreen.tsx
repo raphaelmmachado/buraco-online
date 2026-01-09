@@ -63,17 +63,25 @@ export const LobbyScreen = () => {
           {[...Array(missingCount)].map((_, i) => (
             <div
               key={i}
-              className="flex items-center gap-4 bg-slate-800/50 p-4 rounded-xl border border-slate-700 border-dashed opacity-40"
+              className="flex items-center gap-4 bg-slate-800/50 p-4 rounded-xl border border-slate-700 border-dashed opacity-70"
             >
               <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center text-xl font-black text-slate-500 italic">
                 ?
               </div>
-              <div>
-                <p className="font-bold text-slate-500">Aguardando...</p>
+              <div className="flex-1">
+                <p className="font-bold text-slate-500">Vaga Disponível</p>
                 <p className="text-[10px] text-slate-600 uppercase tracking-widest text-xs">
-                  Vaga disponível
+                  Aguardando...
                 </p>
               </div>
+              {my_player_number === 1 && (
+                  <button
+                    onClick={useGameStore.getState().addBot}
+                    className="text-[10px] font-bold bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-full text-slate-300 transition-colors uppercase tracking-wider"
+                  >
+                    + Bot
+                  </button>
+              )}
             </div>
           ))}
         </div>

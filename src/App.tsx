@@ -1,15 +1,20 @@
 import "./style.css";
 import { OnlineGame } from "./components/online/OnlineGame";
-import { DebugGame } from "./components/DebugGame";
+import { LocalGame } from "./components/LocalGame";
+import { useState } from "react";
 
-type DEV_STATUS = "BOT" | "MULTIPLAYER";
-
-const DEV: DEV_STATUS = "MULTIPLAYER";
+type VIEW_MODE = "BOT" | "MULTIPLAYER";
 
 function App() {
+  const [view, setView] = useState<VIEW_MODE>("MULTIPLAYER");
+
   return (
     <main className="">
-      {DEV === "MULTIPLAYER" ? <OnlineGame /> : <DebugGame />}
+      {view === "MULTIPLAYER" ? (
+        <OnlineGame onPlayLocal={() => setView("BOT")} />
+      ) : (
+        <LocalGame onBack={() => setView("MULTIPLAYER")} />
+      )}
     </main>
   );
 }

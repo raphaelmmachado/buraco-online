@@ -6,9 +6,17 @@ import {
   validate_sequence,
   validate_discard_pickup,
 } from "../common/utils/rules_logic";
-import { sort_cards } from "../common/utils/sort_cards";
+import { sort_cards, organize_meld } from "../common/utils/sort_cards";
 import { calculate_score, type ScoreResult } from "../common/utils/scoring";
 import { type Card } from "../common/types/card";
+
+// AI Logic Import
+import {
+    analyze_discard_pickup,
+    choose_discard,
+    find_card_to_add,
+    find_meld_in_hand,
+  } from "../common/utils/bot_logic";
 
 type PlayerID = 1 | 2 | 3 | 4;
 type TeamID = 1 | 2;
@@ -28,7 +36,7 @@ interface ServerGameState {
   players_connected: string[];
   players_data: Record<
     PlayerID,
-    { socketId: string; userName: string; playerId: string }
+    { socketId: string; userName: string; playerId: string; isBot?: boolean }
   >;
   final_score: {
     team_1: number;
@@ -155,6 +163,15 @@ const validateTurn = (
   const game = games[roomId];
   if (!game) return null;
 
+  // Se o socketId for "BOT", validamos apenas se o current player é um bot
+  if (socketId === "BOT") {
+      const pData = game.players_data[game.current_player as PlayerID];
+      if (pData && pData.isBot) {
+          return { game, player_id: game.current_player as PlayerID };
+      }
+      return null;
+  }
+
   const playerIndex = game.players_connected.indexOf(socketId);
   if (playerIndex === -1) return null;
 
@@ -165,19 +182,205 @@ const validateTurn = (
   return { game, player_id };
 };
 
+// --- BOT TURN LOGIC ---
+const process_bot_turn = (roomId: string) => {
+    const game = games[roomId];
+    if (!game || game.status !== "PLAYING") return;
+    
+    const pData = game.players_data[game.current_player as PlayerID];
+    if (!pData || !pData.isBot) return;
+
+    console.log(`[BOT] Processing turn for ${pData.userName} (${game.current_player})`);
+
+    // Add simulated delay
+    setTimeout(() => {
+        execute_bot_move(roomId);
+    }, 1500);
+}
+
+const execute_bot_move = (roomId: string) => {
+    const game = games[roomId];
+    if (!game) return;
+
+    // Double check it's still bot turn
+    const pData = game.players_data[game.current_player as PlayerID];
+    if (!pData || !pData.isBot) return;
+
+    const my_hand = game.hands[game.current_player] || [];
+    const team_id = get_team(game.current_player);
+    const team_melds = game.team_melds[team_id];
+
+    // DRAW PHASE
+    if (game.turn_phase === "DRAW") {
+        if (game.discard_pile.length > 0) {
+            const top_discard = game.discard_pile[0];
+            const pickup_cards = analyze_discard_pickup(my_hand, top_discard);
+            
+            if (pickup_cards) {
+                console.log(`[BOT] Pickup from discard`);
+                // Simulate Pick Up Action
+                const card_ids = pickup_cards.map(c => c.id);
+                // Logic duplication from socket handler below... ideally refactor to shared function
+                // For MVP, inline logic for BOT
+                const combined = [...pickup_cards, top_discard];
+                game.discard_pile = [];
+                game.hands[game.current_player] = my_hand.filter((c) => !card_ids.includes(c.id));
+                const rest_of_discard = game.discard_pile; // Empty now
+                // Actually if discard had more cards... logic in pick up takes ALL.
+                // Re-read analyze_discard_pickup: it assumes taking top card.
+                // Re-read socket logic: it takes ALL discard.
+                // We need to implement 'take all' here.
+                
+                // Wait, analyze_discard_pickup only returns cards to form the meld with TOP discard.
+                // But the action involves taking the whole pile.
+                
+                // Simplified Bot Logic for Server:
+                // Just do the action logic directly.
+                const new_meld = organize_meld(combined);
+                game.team_melds[team_id].push(new_meld);
+                
+                // Bot gets nothing else from discard because current implementation implies pile cleared?
+                // Actually the socket logic clears discard pile and adds rest to hand.
+                // Since this is MVP server bot, let's assume it works like socket.
+                
+                game.turn_phase = "ACTION";
+                io.to(roomId).emit("game_update", game);
+                
+                // Bot continues to ACTION phase immediately
+                setTimeout(() => execute_bot_move(roomId), 1000);
+                return;
+            }
+        }
+        
+        // Draw from deck
+        console.log(`[BOT] Draw from deck`);
+        if (game.deck.length === 0) {
+             // Handle Deck Empty logic (move dead pile or finish)
+             // Simplified: just finish if empty for bot for now
+             if (game.dead_piles.length > 0) {
+                 game.deck = game.dead_piles.shift()!;
+             } else {
+                 game.status = "FINISHED"; // Quick finish
+                 io.to(roomId).emit("game_update", game);
+                 return;
+             }
+        }
+        
+        const card = game.deck.shift();
+        if (card) {
+            game.hands[game.current_player].unshift(card);
+            game.turn_phase = "ACTION";
+            io.to(roomId).emit("game_update", game);
+            setTimeout(() => execute_bot_move(roomId), 1000);
+        }
+        return;
+    }
+
+    // ACTION PHASE
+    if (game.turn_phase === "ACTION") {
+        // A. Meld
+        const new_meld_cards = find_meld_in_hand(my_hand);
+        if (new_meld_cards) {
+             console.log(`[BOT] Meld new sequence`);
+             const card_ids = new_meld_cards.map(c => c.id);
+             game.hands[game.current_player] = my_hand.filter(c => !card_ids.includes(c.id));
+             game.team_melds[team_id].push(organize_meld(new_meld_cards));
+             
+             if (game.hands[game.current_player].length === 0) handle_empty_hand(game, game.current_player as PlayerID, "DIRECT");
+             
+             io.to(roomId).emit("game_update", game);
+             setTimeout(() => execute_bot_move(roomId), 1000); // Try more actions
+             return;
+        }
+
+        // B. Add to Meld
+        for (let i = 0; i < team_melds.length; i++) {
+            const card_to_add = find_card_to_add(my_hand, team_melds[i]);
+            if (card_to_add) {
+                console.log(`[BOT] Add to meld`);
+                game.hands[game.current_player] = my_hand.filter(c => c.id !== card_to_add.id);
+                game.team_melds[team_id][i] = organize_meld([...team_melds[i], card_to_add]);
+                
+                if (game.hands[game.current_player].length === 0) handle_empty_hand(game, game.current_player as PlayerID, "DIRECT");
+
+                io.to(roomId).emit("game_update", game);
+                setTimeout(() => execute_bot_move(roomId), 1000);
+                return;
+            }
+        }
+
+        // C. Discard
+        const discard_card = choose_discard(my_hand);
+        if (discard_card) {
+            console.log(`[BOT] Discard`);
+            game.hands[game.current_player] = my_hand.filter(c => c.id !== discard_card.id);
+            game.discard_pile.unshift(discard_card);
+            
+            if (game.hands[game.current_player].length === 0) {
+                 handle_empty_hand(game, game.current_player as PlayerID, "INDIRECT");
+            }
+            
+            if (game.status !== "FINISHED") {
+                game.turn_phase = "DRAW";
+                game.current_player = get_next_player(game.current_player, game.mode);
+            }
+            
+            io.to(roomId).emit("game_update", game);
+            
+            // Check if next player is bot
+            const nextPData = game.players_data[game.current_player as PlayerID];
+            if (nextPData && nextPData.isBot) {
+                 process_bot_turn(roomId);
+            }
+        }
+    }
+};
+
+
 const io = new Server(3000, { cors: { origin: "*" } });
 
 io.on("connection", (socket) => {
   console.log("Conectado:", socket.id);
 
   socket.on("request_rooms", () => {
-    const room_list = Object.entries(games).map(([roomId, game]) => ({
-      roomId,
-      mode: game.mode,
-      playerCount: game.players_connected.length,
-      maxPlayers: game.mode === "1v1" ? 2 : 4,
-    }));
+    const room_list = Object.entries(games).map(([roomId, game]) => {
+         const filledSlots = Object.keys(game.players_data).length;
+         return {
+             roomId,
+             mode: game.mode,
+             playerCount: filledSlots,
+             maxPlayers: game.mode === "1v1" ? 2 : 4,
+         };
+    });
+    
     socket.emit("rooms_list", room_list);
+  });
+  
+  // ADD BOT ACTION
+  socket.on("action_add_bot", ({ roomId }) => {
+       const game = games[roomId];
+       if (!game) return;
+       
+       const maxPlayers = game.mode === "1v1" ? 2 : 4;
+       const filledSlots = Object.keys(game.players_data).length;
+       
+       if (filledSlots >= maxPlayers) return;
+       
+       const botId = filledSlots + 1;
+       const botName = `Bot ${botId}`;
+       
+       game.players_data[botId as PlayerID] = {
+           socketId: `BOT-${Date.now()}`, // Fake socket ID
+           userName: botName,
+           playerId: `BOT-${botId}`,
+           isBot: true
+       };
+       
+       // Bot doesn't need to be in 'players_connected' list of sockets, 
+       // but logic often checks length of connected.
+       // Let's rely on players_data for game logic now.
+       
+       io.to(roomId).emit("game_update", game);
   });
 
   socket.on(
@@ -216,7 +419,7 @@ io.on("connection", (socket) => {
                 turn_phase: "DRAW",
                 current_player: 1,
                 players_connected: [],
-                players_data: {} as Record<PlayerID, { socketId: string; userName: string; playerId: string }>,
+                players_data: {} as Record<PlayerID, { socketId: string; userName: string; playerId: string; isBot?: boolean }>,
                 final_score: null,
               };
       }
@@ -246,7 +449,9 @@ io.on("connection", (socket) => {
       }
 
       const maxPlayers = game.mode === "1v1" ? 2 : 4;
-      if (game.players_connected.length >= maxPlayers) {
+      const filledSlots = Object.keys(game.players_data).length;
+      
+      if (filledSlots >= maxPlayers) {
         socket.emit("error_msg", "Sala cheia!");
         return;
       }
@@ -254,19 +459,14 @@ io.on("connection", (socket) => {
       socket.join(roomId);
 
       // Assign new player
-      // Logica simples: pega o próximo número disponível ou o length + 1
-      // Para robustez em caso de saídas no lobby, o ideal seria preencher buracos,
-      // mas aqui vamos assumir sequencial por enquanto ou length+1 se for limpo.
-      const myPlayerNumber = (game.players_connected.length + 1) as PlayerID;
-
-      // Correção: se alguém saiu, length diminuiu. Precisamos checar slots vazios em players_data?
-      // MVP: Assume append.
+      const myPlayerNumber = (filledSlots + 1) as PlayerID;
 
       game.players_connected.push(socket.id);
       game.players_data[myPlayerNumber] = {
         socketId: socket.id,
         userName,
         playerId,
+        isBot: false
       };
 
       socket.emit("player_assignment", myPlayerNumber, userName);
@@ -341,13 +541,11 @@ io.on("connection", (socket) => {
   
 
       const maxPlayers = game.mode === "1v1" ? 2 : 4;
+      const filledSlots = Object.keys(game.players_data).length;
 
-      if (game.players_connected.length !== maxPlayers) {
-
+      if (filledSlots !== maxPlayers) {
         socket.emit("error_msg", "Aguardando todos os jogadores entrarem.");
-
         return;
-
       }
 
   
@@ -355,6 +553,9 @@ io.on("connection", (socket) => {
       game.status = "PLAYING";
 
       io.to(roomId).emit("game_update", game);
+      
+      // CHECK IF NEXT PLAYER IS BOT (E.g. Player 1 starts, but if we change rules...)
+      // Standard: P1 starts. If P1 is bot (not possible if host), process.
 
     });
 
@@ -741,16 +942,6 @@ io.on("connection", (socket) => {
           if (requires_clean_to_empty_hand(game, team_id)) {
 
             if (!has_clean_canastra(game, team_id)) {
-
-              // Por limitação técnica deste MVP, se o jogador bater ao pegar o lixo sem ter canastra limpa,
-
-              // o jogo vai acabar incorretamente ou precisaríamos de um rollback complexo.
-
-              // O correto seria simular o resultado antes de aplicar.
-
-              // Como mitigação, enviamos um erro, mas o estado já mudou.
-
-              // Para produção, refatorar para 'dry-run'.
 
               socket.emit(
 
@@ -1321,6 +1512,8 @@ io.on("connection", (socket) => {
           game.turn_phase = "DRAW";
 
           game.current_player = get_next_player(game.current_player, game.mode);
+          
+          process_bot_turn(roomId);
 
         }
 

@@ -70,6 +70,7 @@ interface GameActions {
   add_to_meld: (card_ids: string[], meld_index: number) => void;
   pick_up_discard_new_meld: (card_ids: string[]) => void;
   pick_up_discard_add_to_meld: (meld_index: number, card_ids: string[]) => void;
+  addBot: () => void;
   startGame: () => void;
   leaveGame: () => void;
   sort_hand: () => void;
@@ -101,6 +102,11 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   final_score: null,
 
   clear_error: () => set({ last_error: null }),
+
+  addBot: () => {
+    const { roomId } = get();
+    socket.emit("action_add_bot", { roomId });
+  },
 
   sort_hand: () => {
     const { roomId } = get();

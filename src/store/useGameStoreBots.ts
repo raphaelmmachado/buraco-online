@@ -322,7 +322,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   sort_my_hand: () => {
     const { hands, current_player } = get();
     set({
-      hands: { ...hands, [current_player]: sort_cards(hands[current_player]) },
+      hands: { ...hands, [current_player]: sort_cards(hands[current_player], true) },
     });
   },
 

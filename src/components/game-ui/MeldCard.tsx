@@ -33,7 +33,7 @@ export const MeldCard = ({ card, highlight = false }: MeldCardProps) => {
       </div>
 
       <div className="self-end flex flex-col items-center leading-none rotate-180">
-        <span className="font-black text-sm md:text-xl">{card.value}</span>
+        <span className="font-black text-[10px] md:text-xl">{card.value}</span>
         <SuitIcon suit={card.suit.name} className="w-3 h-3 md:w-4 md:h-4" />
       </div>
     </div>

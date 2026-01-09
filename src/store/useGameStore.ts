@@ -3,6 +3,8 @@ import { io, Socket } from "socket.io-client";
 import type { Card } from "../../common/types/card";
 import { SERVER_ADDRESS } from "../../common/const/server-adress";
 
+import { type ScoreResult } from "../../common/utils/scoring";
+
 // 1. O QUE CHEGA DO SERVIDOR
 interface IncomingServerState {
   mode: "1v1" | "2v2";
@@ -15,6 +17,12 @@ interface IncomingServerState {
   turn_phase: "DRAW" | "ACTION" | "DISCARD";
   current_player: number;
   players_data: Record<number, { socketId: string; userName: string }>;
+  final_score: {
+    team_1: number;
+    team_2: number;
+    details_t1: ScoreResult;
+    details_t2: ScoreResult;
+  } | null;
 }
 
 export interface RoomInfo {
@@ -42,6 +50,12 @@ interface GameState {
   dead_piles: Card[][];
   turn_phase: "DRAW" | "ACTION" | "DISCARD";
   current_player: number;
+  final_score: {
+    team_1: number;
+    team_2: number;
+    details_t1: ScoreResult;
+    details_t2: ScoreResult;
+  } | null;
 }
 
 interface GameActions {
@@ -84,6 +98,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   dead_piles: [],
   turn_phase: "DRAW",
   current_player: 1,
+  final_score: null,
 
   clear_error: () => set({ last_error: null }),
 
@@ -105,6 +120,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       team_melds: { 1: [], 2: [] },
       discard_pile: [],
       deck: [],
+      final_score: null,
     });
   },
 
@@ -183,6 +199,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       },
       hands: server_data.hands,
       players_data: server_data.players_data,
+      final_score: server_data.final_score,
       last_error: null,
     });
   },

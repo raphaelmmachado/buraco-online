@@ -52,12 +52,13 @@ export const HomeScreen = () => {
         {/* LADO ESQUERDO: PERFIL E CRIAÇÃO */}
         <div className="flex flex-col gap-6">
             <div className="bg-slate-800 p-6 rounded-2xl shadow-xl border border-slate-700">
-                <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Seu Perfil</h2>
+                <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Nome de Usuário</h2>
                 <input
                     type="text"
                     value={userName}
                     onChange={(e) => setUserName(e.target.value)}
-                    placeholder="Como quer ser chamado?"
+                    maxLength={8}
+                    placeholder="Ex: Player1 (Máx 8 letras)"
                     className="w-full px-4 py-4 rounded-xl bg-slate-900 text-white border border-slate-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-lg font-bold placeholder:text-slate-600"
                 />
             </div>

@@ -5,7 +5,9 @@ import { calculate_score } from "../../../common/utils/scoring";
 import start_sound from "../../assets/sound/start.wav";
 // UI Components
 import { MeldBadge } from "../game-ui/MeldBadge";
+import { GameMenu } from "../game-ui/GameMenu";
 import { RulesModal } from "../game-ui/RulesModal";
+import { FinishScreen } from "./FinishScreen";
 import { HandCard } from "../game-ui/HandCard";
 import { MeldCard } from "../game-ui/MeldCard";
 import { PileCard } from "../game-ui/PileCard";
@@ -104,6 +106,19 @@ export const GameScreen = () => {
       }
     }
   }, [isMyTurn]);
+
+  // --- RENDER FINISH SCREEN ---
+  if (store.status === "FINISHED" && store.final_score) {
+    return (
+      <FinishScreen
+        finalScore={store.final_score}
+        myTeam={my_team}
+        onPlayAgain={store.startGame}
+        onLeave={store.leaveGame}
+      />
+    );
+  }
+
   const toggleSelect = (id: string) => {
     setSelectedCards((prev) =>
       prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
@@ -143,6 +158,11 @@ export const GameScreen = () => {
     >
       {/* Rules Modal */}
       {showRules && <RulesModal onClose={() => setShowRules(false)} />}
+
+      {/* Menu Dropdown */}
+      <div className="absolute top-4 right-4 z-[100]">
+        <GameMenu onOpenRules={() => setShowRules(true)} />
+      </div>
 
       {/* TEXTURA DA MESA */}
       <div
@@ -199,10 +219,10 @@ export const GameScreen = () => {
         onMouseDown={startDrag}
         onTouchStart={startDrag}
         className="relative flex items-center justify-between h-10 md:h-[5%] bg-white/5 backdrop-blur-md
-         px-4 md:px-8 border-y border-white/5 shadow-2xl z-30 shrink-0 cursor-row-resize select-none active:bg-white/10 transition-colors group"
+         px-4 md:px-8 border-y border-white/5 shadow-2xl z-30 shrink-0 cursor-row-resize select-none active:bg-white/10 transition-colors group overflow-hidden"
       >
         {/* LEFT: STATUS (DESKTOP ONLY NOW) */}
-        <div className="absolute -bottom-5 md:static flex items-center gap-2 md:gap-4 shrink-0">
+        <div className="absolute -bottom-5 left-2 md:static flex items-center gap-2 md:gap-4 shrink-0">
           {/* DESKTOP: Layout Original */}
           <div className="flex items-center gap-4">
             <span
@@ -229,7 +249,7 @@ export const GameScreen = () => {
         </div>
 
         {/* RIGHT: JOGADORES (NAMES VISIBLE ON MOBILE) */}
-        <div className="w-full md:w-auto flex gap-2 items-center md:justify-end justify-between overflow-x-auto scrollbar-hide">
+        <div className="w-full md:w-auto flex gap-2 items-center  justify-between overflow-x-auto scrollbar-hide">
           {Object.entries(store.players_data).map(([id, p]) => (
             <div
               key={id}
@@ -298,25 +318,25 @@ export const GameScreen = () => {
             </div>
           )}
         </div>
-
-        {/* BOTÃO BAIXAR JOGO (FLOATING ABOVE FOOTER) */}
+        {/* Botão Baixar Novo Jogo - VISUAL DE SLOT RETANGULAR */}
         {canAction && selectedCards.length >= 3 && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50">
-            <button
-              onClick={() => {
-                store.meld_cards(selectedCards);
-                setSelectedCards([]);
-              }}
-              className="bg-yellow-500 hover:bg-yellow-400 text-black text-xs font-black px-6 py-2 rounded-full shadow-2xl animate-bounce flex items-center gap-2 border-2 border-black/10"
-            >
-              <span>BAIXAR JOGO</span>
-              <span className="bg-black/20 rounded px-1">
-                {selectedCards.length}
+          <div
+            onClick={() => {
+              store.meld_cards(selectedCards);
+              setSelectedCards([]);
+            }}
+            className="w-24 h-12 md:w-32 md:h-16 border-2 border-dashed border-yellow-500/40 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-yellow-500/10 transition-all group animate-pulse"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-yellow-500 text-xl font-light group-hover:scale-125 transition-transform">
+                +
               </span>
-            </button>
+              <span className="text-[10px] font-black text-yellow-500/60 uppercase tracking-widest">
+                Novo Jogo
+              </span>
+            </div>
           </div>
-        )}
-
+        )}{" "}
         {/* PLACAR */}
         <div
           className="absolute top-1 right-1 bg-black/40 px-2 md:px-4 py-1 md:py-2 rounded-full
@@ -416,7 +436,9 @@ export const GameScreen = () => {
         {store.last_error && (
           <div
             id="error-toast"
-            className="absolute -top-16 left-1/2 -translate-x-1/2 bg-red-600/90 backdrop-blur text-white px-6 py-2 rounded-full text-xs font-black shadow-2xl animate-bounce flex items-center gap-3 border border-white/20 z-[100]"
+            className="absolute -top-16 left-1/2 -translate-x-1/2 bg-red-600/90 backdrop-blur
+             text-white px-6 py-2 rounded-md text-sm font-black shadow-2xl animate-bounce
+              flex items-center gap-3 border border-white/20 z-100"
           >
             <span>⚠️ {store.last_error}</span>
             <button

@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { type Card as CardType } from "../../../common/types/card";
 import { SuitIcon } from "./SuitIcon";
 
@@ -8,6 +7,7 @@ interface HandCardProps {
   onClick: () => void;
   index: number;
   totalCards: number;
+  isMobile: boolean;
 }
 
 export const HandCard = ({
@@ -16,16 +16,8 @@ export const HandCard = ({
   onClick,
   index,
   totalCards,
+  isMobile,
 }: HandCardProps) => {
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-
   const isRed = card.color === "red";
   const center = (totalCards - 1) / 2;
 
@@ -40,8 +32,8 @@ export const HandCard = ({
   const translateYDesktop = Math.abs(index - center) * 1;
 
   // Mobile values (More subtle fan)
-  const rotateMobile = (index - center) * 4;
-  const translateYMobile = Math.abs(index - center) * 4;
+  const rotateMobile = (index - center) * 4.5; // edite aqui para rotação do leque
+  const translateYMobile = Math.abs(index - center) * 2;
 
   const dynamicStyle = {
     zIndex: index,
@@ -63,7 +55,7 @@ export const HandCard = ({
       onClick={onClick}
       className={`
         relative rounded-md shadow-lg border bg-white select-none transition-all duration-300
-        flex flex-col items-center justify-between p-1 cursor-pointer
+        flex flex-col items-center justify-between md:p-1 cursor-pointer
         w-12 h-16 sm:w-14 sm:h-20 md:w-20 md:h-32 transform origin-bottom mb-5
         ${
           isSelected

@@ -1,0 +1,53 @@
+import { memo, useMemo } from "react";
+import { organize_meld } from "../../../common/utils/sort_cards";
+import { MeldCard } from "./MeldCard";
+import { MeldBadge } from "./MeldBadge";
+import type { Card } from "../../../common/types/card";
+
+interface MeldDisplayProps {
+  meld: Card[];
+  isHovered?: boolean;
+  onClick?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+  scale?: string; // e.g. "scale-75 md:scale-100"
+  interactive?: boolean;
+}
+
+export const MeldDisplay = memo(
+  ({
+    meld,
+    isHovered = false,
+    onClick,
+    onMouseEnter,
+    onMouseLeave,
+    scale = "scale-75 md:scale-100",
+    interactive = false,
+  }: MeldDisplayProps) => {
+    // Memoize the expensive organization logic
+    // Only re-run if the meld array itself changes (reference change)
+    const organizedCards = useMemo(() => organize_meld(meld), [meld]);
+
+    return (
+      <div
+        onClick={onClick}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+        className={`relative group flex items-center ${
+          interactive ? "cursor-pointer origin-top-left transition-transform" : "origin-left"
+        } ${scale} ${
+          interactive && isHovered ? "scale-95 md:scale-105" : ""
+        }`}
+      >
+        <div className="flex -space-x-8 md:-space-x-10 transition-all">
+          {organizedCards.map((card) => (
+            <MeldCard key={card.id} card={card} highlight={isHovered} />
+          ))}
+        </div>
+        <MeldBadge meld={meld} />
+      </div>
+    );
+  }
+);
+
+MeldDisplay.displayName = "MeldDisplay";

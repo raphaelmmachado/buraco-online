@@ -366,7 +366,8 @@ const execute_bot_move = (roomId: string) => {
 };
 
 
-const io = new Server(3000, { 
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+const io = new Server(PORT, { 
     cors: { 
         origin: "*", 
         methods: ["GET", "POST"] 
@@ -1046,4 +1047,4 @@ io.on("connection", (socket: Socket) => {
   });
 });
 
-console.log("Servidor rodando na porta 3000");
+console.log(`Servidor rodando na porta ${PORT}`);

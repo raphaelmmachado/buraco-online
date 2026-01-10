@@ -80,7 +80,6 @@ export const organize_meld = (cards: Card[]): Card[] => {
   const details = get_sequence_details(cards);
 
   if (!details.is_valid) {
-    console.error("[organize_meld] Tentativa de organizar um meld inválido:", details.error);
     return sort_cards(cards);
   }
 
@@ -88,23 +87,32 @@ export const organize_meld = (cards: Card[]): Card[] => {
   const sequence_length = end_weight - start_weight + 1;
   
   if (sequence_length <= 0 || sequence_length > 14) {
-    console.error("[organize_meld] Comprimento de sequência inválido:", sequence_length);
     return sort_cards(cards);
   }
 
+  // Criamos um array fixo para o tamanho da sequência
   const final_meld: (Card | null)[] = new Array(sequence_length).fill(null);
   
+  // Usamos um Set para garantir que não processamos o mesmo ID de carta duas vezes
+  // (caso o array de entrada tenha duplicatas acidentais)
+  const processed_ids = new Set<string>();
+
   // Posiciona as cartas diretamente baseadas no peso atribuído pelo solver
   cards.forEach(card => {
+    if (processed_ids.has(card.id)) return;
+    
     const weight = assigned_weights[card.id];
-    // Se por acaso o peso não estiver no map (impossível se validado), ignora
     if (weight === undefined) return;
 
     const position = weight - start_weight;
     if (position >= 0 && position < sequence_length) {
       final_meld[position] = card;
+      processed_ids.add(card.id);
     }
   });
 
-  return final_meld.filter(Boolean) as Card[];
+  // Se houver "buracos" (null), o filter(Boolean) vai colapsar a sequência.
+  // Em um jogo válido isso NÃO deve acontecer, mas se acontecer, mantemos
+  // a integridade do array resultante.
+  return final_meld.filter((c): c is Card => c !== null);
 };

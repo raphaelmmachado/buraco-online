@@ -52,7 +52,7 @@ const CARD_DEFINITIONS = [
   { val: "A", weight: [1, 14], points: 15 },
   {
     val: "2",
-    weight: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+    weight: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
     points: 20,
   }, // Curinga
   { val: "3", weight: [3], points: 5 },
@@ -110,7 +110,7 @@ export const BONUS_POINTS = {
 export const MELD_POINTS = {
   INSUFFICIENT: 0,
   DIRTY: 100,
-  CLEAN: 400,
+  CLEAN: 300, // quero que valha 200
   KING: 500,
   ACE: 1000,
 } as const;

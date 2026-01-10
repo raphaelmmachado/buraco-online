@@ -42,7 +42,7 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white p-6 font-sans">
       <div className="text-center mb-12 animate-fade-in">
         <h1 className="text-7xl font-black text-transparent bg-clip-text bg-linear-to-r from-yellow-400 to-orange-600 mb-2">
-          BURACO
+          BARALHO
         </h1>
         <p className="text-xl text-slate-400 tracking-[0.2em] uppercase">
           Multiplayer Online

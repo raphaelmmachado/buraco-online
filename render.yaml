@@ -1,0 +1,25 @@
+services:
+  # BACKEND SERVICE (Bun)
+  - type: web
+    name: buraco-server
+    env: bun
+    plan: free
+    buildCommand: bun install && cd server && bun install
+    startCommand: cd server && bun run index.ts
+    envVars:
+      - key: PORT
+        value: 10000
+    autoDeploy: true
+
+  # FRONTEND (Static Site)
+  - type: static
+    name: buraco-web
+    env: static
+    buildCommand: bun install && bun run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_SERVER_URL
+        fromService:
+          type: web
+          name: buraco-server
+          property: url

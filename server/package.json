@@ -4,11 +4,13 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start": "bun run index.ts"
+    "start": "tsx index.ts",
+    "dev": "bun run index.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@types/node": "^25.0.3"
+    "@types/node": "^25.0.3",
+    "tsx": "^4.21.0"
   },
   "peerDependencies": {
     "typescript": "^5.9.3"

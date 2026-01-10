@@ -16,8 +16,8 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
       manifest: {
-        name: "Buraco GG",
-        short_name: "Buraco",
+        name: "Baralho Resenha",
+        short_name: "Baralho",
         description: "Buraco da resenha",
         theme_color: "#0f2e1a",
         background_color: "#0f2e1a",

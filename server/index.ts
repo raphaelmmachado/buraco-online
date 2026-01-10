@@ -1,5 +1,6 @@
 console.log("--- SCRIPT START ---");
 import { Server, Socket } from "socket.io";
+import { createServer } from "http";
 
 import { create_deck, distribute_cards } from "../common/utils/game_logic.ts";
 import {
@@ -367,10 +368,12 @@ const execute_bot_move = (roomId: string) => {
 
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
-const io = new Server(PORT, { 
+const httpServer = createServer();
+const io = new Server(httpServer, { 
     cors: { 
         origin: "*", 
-        methods: ["GET", "POST"] 
+        methods: ["GET", "POST"],
+        credentials: true
     } 
 });
 
@@ -506,18 +509,17 @@ io.on("connection", (socket: Socket) => {
     }
   );
 
-  socket.on(
-    "rejoin_game",
-    ({ roomId, playerId }: { roomId: string; playerId: string }) => {
-      const game = games[roomId];
-      if (!game) {
-        // Sala não existe mais
-        socket.emit("error_msg", "Sala não encontrada ou expirada.");
-        return;
-      }
-
-      const playerEntry = Object.entries(game.players_data).find(
-        ([_, p]) => p.playerId === playerId
+      socket.on(
+      "rejoin_game",
+      ({ roomId, playerId }: { roomId: string; playerId: string }) => {
+        const game = games[roomId];
+        if (!game) {
+          // Sala não existe mais. Avisa o cliente para parar de tentar.
+          socket.emit("rejoin_failed");
+          return;
+        }
+  
+        const playerEntry = Object.entries(game.players_data).find(        ([_, p]) => p.playerId === playerId
       );
 
       if (!playerEntry) {
@@ -1025,6 +1027,27 @@ io.on("connection", (socket: Socket) => {
       }
     });
 
+    socket.on("action_close_room", ({ roomId }: { roomId: string }) => {
+      const game = games[roomId];
+      if (!game) return;
+
+      const playerIndex = game.players_connected.indexOf(socket.id);
+      if (playerIndex === -1) return;
+      const player_id = (playerIndex + 1) as PlayerID;
+
+      if (player_id !== 1) {
+        socket.emit("error_msg", "Apenas o dono da sala pode encerrar a sala.");
+        return;
+      }
+
+      console.log(`Sala ${roomId} encerrada pelo anfitrião.`);
+      io.to(roomId).emit("game_closed", "O anfitrião encerrou a sala.");
+      
+      // Close all sockets in the room? Or let client handle it.
+      // Ideally, let client handle the redirect.
+      delete games[roomId];
+    });
+
     socket.on("leave_game", ({ roomId }: { roomId: string }) => {
     const game = games[roomId];
     if (!game) return;
@@ -1047,4 +1070,6 @@ io.on("connection", (socket: Socket) => {
   });
 });
 
-console.log(`Servidor rodando na porta ${PORT}`);
+httpServer.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
+});

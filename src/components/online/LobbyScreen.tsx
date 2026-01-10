@@ -99,7 +99,7 @@ export const LobbyScreen = () => {
           {my_player_number === 1 && missingCount === 0 && (
             <button
               onClick={() => startGame()}
-              className="bg-green-600 hover:bg-green-500 text-white px-8 py-4 rounded-full font-bold text-xl shadow-lg transition-transform hover:scale-105 animate-pulse"
+              className="bg-green-600 hover:bg-green-500 text-white px-8 py-4 rounded-full font-bold text-xl shadow-lg transition-transform hover:scale-105 animate-pulse mb-4 block mx-auto"
             >
               INICIAR JOGO
             </button>
@@ -107,13 +107,30 @@ export const LobbyScreen = () => {
 
           {/* Loading indicator se não for o anfitrião ou se ainda faltar gente */}
           {(my_player_number !== 1 || missingCount > 0) && (
-            <div className="flex justify-center">
+            <div className="flex justify-center mb-6">
               <div className="flex gap-2">
                 <div className="w-2 h-2 bg-yellow-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
                 <div className="w-2 h-2 bg-yellow-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
                 <div className="w-2 h-2 bg-yellow-500 rounded-full animate-bounce"></div>
               </div>
             </div>
+          )}
+
+          {/* Botões de Saída */}
+          {my_player_number === 1 ? (
+            <button
+              onClick={() => useGameStore.getState().closeRoom()}
+              className="text-xs font-bold text-red-500 hover:text-red-400 uppercase tracking-widest transition-colors border-b border-transparent hover:border-red-500 pb-0.5"
+            >
+              Encerrar Sala
+            </button>
+          ) : (
+            <button
+              onClick={() => useGameStore.getState().leaveGame()}
+              className="text-xs font-bold text-slate-500 hover:text-slate-300 uppercase tracking-widest transition-colors border-b border-transparent hover:border-slate-300 pb-0.5"
+            >
+              Sair da Sala
+            </button>
           )}
         </div>
       </div>

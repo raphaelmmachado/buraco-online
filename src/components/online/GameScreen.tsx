@@ -1,18 +1,16 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { organize_meld } from "../../../common/utils/sort_cards";
 import { calculate_score } from "../../../common/utils/scoring";
 import start_sound from "../../assets/sound/start.wav";
 import pounding_card_sound from "../../assets/sound/pounding.mp3";
-import flick_card_sound from "../../assets/sound/flick-card.wav";
+import flick_card_sound from "../../assets/sound/flick-card.mp3";
 import flip_card_sound from "../../assets/sound/flipcard.mp3";
-import card_placement_sound from "../../assets/sound/card-placement.wav";
+import card_placement_sound from "../../assets/sound/card-placement.mp3";
 // UI Components
-import { MeldBadge } from "../game-ui/MeldBadge";
+import { MeldDisplay } from "../game-ui/MeldDisplay";
 import { GameMenu } from "../game-ui/GameMenu";
 import { RulesModal } from "../game-ui/RulesModal";
 import { FinishScreen } from "./FinishScreen";
 import { HandCard } from "../game-ui/HandCard";
-import { MeldCard } from "../game-ui/MeldCard";
 import { PileCard } from "../game-ui/PileCard";
 import { DiscardCard } from "../game-ui/DiscardCard";
 import { type GameAdapterInterface } from "../game-ui/useLocalGameAdapter";
@@ -27,6 +25,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     index: number;
   } | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [isTouched, setIsTouched] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -236,14 +235,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
       >
         <div className="flex-1 flex flex-wrap content-start md:gap-x-8 gap-y-4 md:gap-y-14 overflow-y-auto scrollbar-hide pt-2">
           {game.team_melds[opponent_team].map((meld, idx) => (
-            <div key={idx} className="relative group flex items-center">
-              <div className="flex -space-x-8 md:-space-x-10 transition-all scale-75 md:scale-100 origin-left">
-                {organize_meld(meld).map((card) => (
-                  <MeldCard key={card.id} card={card} />
-                ))}
-              </div>
-              <MeldBadge meld={meld} />
-            </div>
+            <MeldDisplay key={idx} meld={meld} />
           ))}
           {game.team_melds[opponent_team].length === 0 && (
             <div className="w-full h-full flex items-center justify-center">
@@ -317,25 +309,19 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
             const canHighlight = canDraw && game.discard_pile.length > 0;
 
             return (
-              <div
+              <MeldDisplay
                 key={idx}
+                meld={meld}
+                isHovered={isHovered}
+                interactive={true}
                 onClick={() => handleMeldClick(my_team, idx)}
                 onMouseEnter={() =>
                   canHighlight &&
                   setHoveredMeld({ teamId: my_team, index: idx })
                 }
                 onMouseLeave={() => setHoveredMeld(null)}
-                className={`relative flex items-center cursor-pointer transition-transform scale-90 md:scale-100 origin-top-left ${
-                  isHovered ? "scale-95 md:scale-105" : ""
-                }`}
-              >
-                <div className="flex -space-x-8 md:-space-x-10 transition-all">
-                  {organize_meld(meld).map((card) => (
-                    <MeldCard key={card.id} card={card} highlight={isHovered} />
-                  ))}
-                </div>
-                <MeldBadge meld={meld} />
-              </div>
+                scale="scale-90 md:scale-100"
+              />
             );
           })}
           {game.team_melds[my_team].length === 0 && (
@@ -442,15 +428,24 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
 
         {/* CENTER: PLAYER HAND */}
         <div
+          onContextMenu={(e) => e.preventDefault()}
+          onTouchMove={() => {
+            setIsTouched((prev) => (prev ? false : true));
+          }}
+          // onTouchEndCapture={() => {
+          //   setTimeout(() => {
+          //     setIsTouched(false);
+          //   }, 3200);
+          // }}
           id="player-hand"
-          className="flex-1 h-full flex items-end justify-center px-2 pt-8 relative overflow-x-auto md:overflow-visible scrollbar-hide"
+          className="flex-1 h-full flex items-end justify-center select-none touch-manipulation
+          group/hand px-2 pt-8 relative overflow-x-auto md:overflow-visible scrollbar-hide"
         >
           <div
-            className={`flex transition-all duration-500 items-end origin-bottom pb-2 md:-space-x-14 md:touch:space-x-0 ${
-              isMobile && selectedCards.length > 0
-                ? "-space-x-12"
-                : "-space-x-10 touch:-space-x-8"
-            }`}
+            className={`flex md:-space-x-14 ${
+              isTouched ? "-space-x-8" : "-space-x-10"
+            }
+            transition-all duration-500 items-end origin-bottom pb-2`}
           >
             {(game.hands[my_player_id] || []).map((card, i, arr) => (
               <HandCard
@@ -460,6 +455,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                 onClick={() => toggleSelect(card.id)}
                 index={i}
                 totalCards={arr.length}
+                isMobile={isMobile}
               />
             ))}
           </div>

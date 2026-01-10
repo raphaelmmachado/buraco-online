@@ -38,6 +38,13 @@ O fluxo de dados é **unidirecional** e **autoritativo no servidor**.
 
 ## 3. Guia de Manutenção e Evolução
 
+### Otimizações de Performance (UI)
+
+Para garantir fluidez, especialmente em dispositivos móveis, foram implementadas as seguintes otimizações:
+
+*   **Renderização de Jogos (Melds):** Utilizamos o componente `MeldDisplay.tsx` que é memoizado (`React.memo`). Ele garante que a lógica pesada de ordenação visual (`organize_meld`) e recálculo de DOM só ocorra quando as cartas daquele jogo específico mudarem, e não a cada render da tela principal.
+*   **Listeners de Eventos:** Listeners globais (como `resize` para detectar mobile) são centralizados no componente pai (`GameScreen.tsx`) e passados via props para componentes filhos (`HandCard.tsx`), evitando a criação de dezenas de listeners duplicados.
+
 ### Como Alterar uma Regra do Jogo?
 
 Toda a lógica de regras reside em `common/`. **Nunca altere regras no Frontend (`src/`) ou diretamente dentro dos handlers do Backend (`server/`) se for lógica de validação de cartas.**
@@ -81,7 +88,8 @@ Toda a lógica de regras reside em `common/`. **Nunca altere regras no Frontend 
 | **`common/utils/scoring.ts`** | **PONTUAÇÃO.** Calcula o placar final e parcial. |
 | **`server/index.ts`** | **ORQUESTRADOR.** Recebe eventos, chama `common/` e guarda o estado. |
 | **`src/store/useGameStore.ts`** | **CLIENTE.** Recebe dados do servidor e disponibiliza para o React. |
-| **`src/components/online/GameScreen.tsx`** | **INTERFACE.** Renderiza o jogo. |
+| **`src/components/online/GameScreen.tsx`** | **INTERFACE.** Renderiza o jogo. Centraliza estado de UI. |
+| **`src/components/game-ui/MeldDisplay.tsx`** | **COMPONENTE.** Renderiza um jogo na mesa de forma otimizada (memoizada). |
 
 ## 5. Dicas de Debugging
 

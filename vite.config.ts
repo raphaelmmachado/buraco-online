@@ -18,11 +18,11 @@ export default defineConfig({
       manifest: {
         name: "Baralho Resenha",
         short_name: "Baralho",
-        description: "Buraco da resenha",
+        description: "Baralho da resenha.",
         theme_color: "#0f2e1a",
         background_color: "#0f2e1a",
-        display: "standalone",
-        orientation: "landscape",
+        display: "fullscreen",
+        orientation: "portrait",
         icons: [
           {
             src: "icon192.png",

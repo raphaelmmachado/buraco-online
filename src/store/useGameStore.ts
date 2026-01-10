@@ -73,6 +73,7 @@ interface GameActions {
   addBot: () => void;
   startGame: () => void;
   leaveGame: () => void;
+  closeRoom: () => void;
   sort_hand: () => void;
 
   set_server_state: (server_data: IncomingServerState) => void;
@@ -113,9 +114,18 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     socket.emit("action_sort_hand", { roomId });
   },
 
+  closeRoom: () => {
+    const { roomId } = get();
+    socket.emit("action_close_room", { roomId });
+    // The server will send 'game_closed' event, which we handle below.
+  },
+
   leaveGame: () => {
     const { roomId } = get();
+    // Emite evento para o servidor (fire-and-forget)
     socket.emit("leave_game", { roomId });
+    
+    // Limpa estado local IMEDIATAMENTE
     localStorage.removeItem("baralho_active_room");
     set({
       status: "IDLE",
@@ -127,6 +137,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       discard_pile: [],
       deck: [],
       final_score: null,
+      last_error: null
     });
   },
 
@@ -147,18 +158,48 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       set({ rooms });
     });
 
+    socket.on("game_closed", (reason: string) => {
+      alert(reason); // Simple alert for now
+      localStorage.removeItem("baralho_active_room");
+      set({
+        status: "IDLE",
+        roomId: "",
+        my_player_number: null,
+        my_player_name: null,
+        hands: {},
+        team_melds: { 1: [], 2: [] },
+        discard_pile: [],
+        deck: [],
+        final_score: null,
+      });
+    });
+
+    socket.on("rejoin_failed", () => {
+        console.log("Tentativa de reconexão falhou: Sala não existe mais.");
+        localStorage.removeItem("baralho_active_room");
+        // Não removemos o ID do jogador (baralho_player_id) para manter a identidade
+        set({ status: "IDLE", roomId: "", my_player_number: null, my_player_name: null });
+    });
+
     socket.on("error_msg", (msg: string) => {
       set({ last_error: msg });
       // Se o erro for crítico de sessão, limpa tudo e volta pro inicio
       if (msg.includes("não encontrada") || msg.includes("não encontrado")) {
+          alert(`Erro de conexão: ${msg}`);
           localStorage.removeItem("baralho_active_room");
           localStorage.removeItem("baralho_player_id");
           set({ status: "IDLE", roomId: "", my_player_number: null, my_player_name: null });
       }
     });
 
+    socket.on("connect_error", (err) => {
+        console.error("Socket connection error:", err);
+        set({ last_error: `Erro de conexão: ${err.message}` });
+    });
+
     socket.on("connect", () => {
-        console.log("Socket conectado!");
+        console.log("Socket conectado!", socket.id);
+        set({ last_error: null });
         // RECONNECTION LOGIC
         const savedRoom = localStorage.getItem("baralho_active_room");
         const savedPlayerId = localStorage.getItem("baralho_player_id");

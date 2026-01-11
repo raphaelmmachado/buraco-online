@@ -12,9 +12,9 @@ export const MeldCard = ({ card, highlight = false }: MeldCardProps) => {
   return (
     <div
       className={`
-        relative rounded-bl-none rounded-br-none rounded-md shadow-md border bg-white select-none transition-all duration-300
+        relative rounded-bl-none rounded-br-none rounded-md shadow-lg border bg-white select-none transition-all duration-300
         flex flex-col items-center justify-between p-0.5
-        w-12 h-16 md:w-16 md:h-24
+        w-12 h-12 md:w-16 md:h-20
         ${
           highlight
             ? "border-yellow-400 ring-2 ring-yellow-400/50 z-50 shadow-yellow-500/30"

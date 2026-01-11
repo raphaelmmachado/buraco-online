@@ -33,7 +33,7 @@ export const MeldDisplay = memo(
         onClick={onClick}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
-        className={`relative group flex items-center ${
+        className={`relative group flex flex-col  ${
           interactive
             ? "cursor-pointer origin-top-left transition-transform"
             : "origin-left"

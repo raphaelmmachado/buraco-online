@@ -31,9 +31,9 @@ export const MeldBadge = ({ meld }: { meld: CardType[] }) => {
   }
 
   return (
-    <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center z-20 min-w-max">
+    <div className="flex flex-col items-center z-20">
       <span
-        className={`${color} text-[8px] md:text-[10px] text-white font-black px-2.5 py-0.5 rounded-full shadow-lg uppercase tracking-widest border border-white/10`}
+        className={`w-full ${color} text-center text-xs md:text-sm text-white font-black px-2.5 py-0.5 rounded-md rounded-tl-none rounded-tr-none shadow-lg uppercase tracking-widest border border-white/10`}
       >
         {label}
       </span>

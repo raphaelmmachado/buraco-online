@@ -19,7 +19,7 @@ const HAND_CONFIG = {
 
   // Espaçamento entre as cartas (px)
   spacing: {
-    mobile: 25,
+    mobile: 30,
     desktop: 50,
     minMobile: 15,
     minDesktop: 25,
@@ -28,15 +28,15 @@ const HAND_CONFIG = {
   // Rotação (Leque)
   rotation: {
     enabled: true,
-    maxTotalAngle: 10,
+    maxTotalAngle: 12,
     maxPerCardAngle: 5,
   },
 
   // Arco (Curva vertical)
   arch: {
     enabled: true,
-    heightMobile: 12,
-    heightDesktop: 15,
+    heightMobile: 10,
+    heightDesktop: 10,
   },
 
   // Interações

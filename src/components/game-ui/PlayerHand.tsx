@@ -11,6 +11,52 @@ interface PlayerHandProps {
   isMobile: boolean;
 }
 
+// --- CONFIGURAÇÃO FÁCIL DE EDITAR ---
+const HAND_CONFIG = {
+  // COMENTE DEFAULT SETTINGS
+  // Tamanho visual reservado para a carta
+  cardWidth: { mobile: 56, desktop: 80 },
+
+  // Espaçamento entre as cartas (px)
+  spacing: {
+    mobile: 25,
+    desktop: 50,
+    minMobile: 15,
+    minDesktop: 25,
+  },
+
+  // Rotação (Leque)
+  rotation: {
+    enabled: true,
+    maxTotalAngle: 10,
+    maxPerCardAngle: 5,
+  },
+
+  // Arco (Curva vertical)
+  arch: {
+    enabled: true,
+    heightMobile: 12,
+    heightDesktop: 15,
+  },
+
+  // Interações
+  interaction: {
+    selectedLiftMobile: 30,
+    selectedLiftDesktop: 50,
+    hoverLift: 20, //30
+    hoverScale: 1.05, //1.15
+  },
+
+  // Posicionamento
+  position: {
+    // Distância do fundo do componente (que é o fundo da tela)
+    bottomOffsetMobile: 10,
+    bottomOffsetDesktop: 15,
+  },
+  //sobreposicao
+  hover_zIndex: false,
+};
+
 export const PlayerHand = ({
   cards,
   selectedCardIds,
@@ -23,7 +69,6 @@ export const PlayerHand = ({
   const [containerWidth, setContainerWidth] = useState(1000);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
-  // Update container width on resize
   useEffect(() => {
     const updateWidth = () => {
       if (containerRef.current) {
@@ -37,48 +82,56 @@ export const PlayerHand = ({
   }, []);
 
   const totalCards = cards.length;
-  if (totalCards === 0) return <div className="flex-1" />;
+  // Mantemos o espaço mesmo sem cartas
+  if (totalCards === 0) return <div className="flex-1 h-full" />;
 
-  // --- LAYOUT CONFIGURATION ---
-  const CARD_WIDTH = isMobile ? 56 : 80; // w-14 vs w-20
-  const MIN_SPACING = isMobile ? 18 : 25; // Encurtamento limite para acessibilidade
+  // --- LÓGICA DE CÁLCULO ---
 
-  // Maximum rotation spread for the entire hand (degrees)
-  const MAX_FAN_ANGLE = 60;
-  // Maximum rotation per card
-  const MAX_CARD_ANGLE = 5;
+  const cardWidth = isMobile
+    ? HAND_CONFIG.cardWidth.mobile
+    : HAND_CONFIG.cardWidth.desktop;
+  const idealSpacing = isMobile
+    ? HAND_CONFIG.spacing.mobile
+    : HAND_CONFIG.spacing.desktop;
+  const minSpacing = isMobile
+    ? HAND_CONFIG.spacing.minMobile
+    : HAND_CONFIG.spacing.minDesktop;
 
-  // Calculate fan geometry
   const availableWidth = Math.min(containerWidth, 1200);
-  const safePadding = isMobile ? 20 : 100; // Reduzido padding no mobile para ganhar espaço
-  const usableWidth = availableWidth - safePadding;
+  const padding = isMobile ? 20 : 100;
+  const usableWidth = availableWidth - padding;
 
-  const idealSpacing = isMobile ? 28 : 42;
+  const totalWidthIdeal = (totalCards - 1) * idealSpacing + cardWidth;
 
-  // Calculate spacing dynamically to fit container, but respect MIN_SPACING
-  let spacing = idealSpacing;
-  if (totalCards > 1) {
-    const calculatedSpacing = (usableWidth - CARD_WIDTH) / (totalCards - 1);
-    spacing = Math.max(Math.min(calculatedSpacing, idealSpacing), MIN_SPACING);
+  let currentSpacing = idealSpacing;
+
+  if (totalWidthIdeal > usableWidth && totalCards > 1) {
+    const squeezedSpacing = (usableWidth - cardWidth) / (totalCards - 1);
+    currentSpacing = Math.max(squeezedSpacing, minSpacing);
   }
 
-  // Calculate total width of the hand stage
-  const totalHandWidth = (totalCards - 1) * spacing + CARD_WIDTH;
-  const isOverflowing = totalHandWidth > usableWidth;
+  const finalHandWidth = (totalCards - 1) * currentSpacing + cardWidth;
+  const isOverflowing = finalHandWidth > usableWidth;
 
-  // Calculate rotation steps
-  let angleStep = MAX_FAN_ANGLE / (totalCards - 1 || 1);
-  if (angleStep > MAX_CARD_ANGLE) angleStep = MAX_CARD_ANGLE;
+  let angleStep = 0;
+  let startAngle = 0;
 
-  const totalAngle = angleStep * (totalCards - 1);
-  const startAngle = -totalAngle / 2;
+  if (HAND_CONFIG.rotation.enabled && totalCards > 1) {
+    const calculatedStep =
+      HAND_CONFIG.rotation.maxTotalAngle / (totalCards - 1);
+    angleStep = Math.min(calculatedStep, HAND_CONFIG.rotation.maxPerCardAngle);
+    const totalAngle = angleStep * (totalCards - 1);
+    startAngle = -totalAngle / 2;
+  }
 
-  // Center offset for positioning inside the stage
   const getArchOffset = (index: number) => {
+    if (!HAND_CONFIG.arch.enabled || totalCards <= 2) return 0;
     const center = (totalCards - 1) / 2;
     const distance = Math.abs(index - center);
-    const norm = distance / (center || 1);
-    const maxDrop = isMobile ? 10 : 20;
+    const norm = distance / center;
+    const maxDrop = isMobile
+      ? HAND_CONFIG.arch.heightMobile
+      : HAND_CONFIG.arch.heightDesktop;
     return Math.pow(norm, 2) * maxDrop;
   };
 
@@ -87,20 +140,20 @@ export const PlayerHand = ({
       onContextMenu={(e) => e.preventDefault()}
       id="player-hand-container"
       ref={containerRef}
-      className="flex-1 h-full relative touch-manipulation group/hand select-none flex flex-col justify-end pb-2 md:pb-6"
+      className="flex-1 h-full relative touch-manipulation group/hand select-none pointer-events-none flex flex-col justify-end items-center"
     >
-      {/* Scrollable Area for Cards */}
+      {/* Container das Cartas */}
       <div
-        className={`w-full overflow-y-hidden ${
+        className={`relative w-full h-full flex items-end justify-center pb-4 ${
           isOverflowing
             ? "overflow-x-auto scrollbar-hide pointer-events-auto"
-            : "pointer-events-none"
+            : ""
         }`}
       >
         <div
-          className="relative h-32 md:h-48 flex shrink-0 items-end"
+          className="relative h-full flex shrink-0 items-end"
           style={{
-            width: `${totalHandWidth}px`,
+            width: `${finalHandWidth}px`,
             margin: isOverflowing ? "0 40px" : "0 auto",
           }}
         >
@@ -108,35 +161,41 @@ export const PlayerHand = ({
             const isSelected = selectedCardIds.includes(card.id);
             const isHovered = hoveredIndex === i;
 
-            const x = i * spacing;
+            const x = i * currentSpacing;
             const rotation = startAngle + i * angleStep;
-            const yOffset = getArchOffset(i);
+            const archY = getArchOffset(i);
 
-            let yTrans = yOffset;
+            let translateY = archY;
             let scale = 1;
-            let z = i;
 
             if (isSelected) {
-              yTrans -= isMobile ? 20 : 40;
-              // z-index remains 'i' to avoid blocking neighbors
+              translateY -= isMobile
+                ? HAND_CONFIG.interaction.selectedLiftMobile
+                : HAND_CONFIG.interaction.selectedLiftDesktop;
             }
 
             if (isHovered && !isMobile) {
-              yTrans -= 20;
-              scale = 1.15;
-              z = 200;
+              translateY -= HAND_CONFIG.interaction.hoverLift;
+              scale = HAND_CONFIG.interaction.hoverScale;
             }
+
+            const bottomPos = isMobile
+              ? HAND_CONFIG.position.bottomOffsetMobile
+              : HAND_CONFIG.position.bottomOffsetDesktop;
 
             return (
               <div
                 key={card.id}
                 className="absolute origin-bottom transition-all duration-300 ease-out pointer-events-auto will-change-transform"
                 style={{
-                  transform: `translateX(${x}px) translateY(${yTrans}px) rotate(${rotation}deg) scale(${scale})`,
-                  zIndex: z,
-                  bottom: 0,
+                  transform: `translateX(${x}px) translateY(${translateY}px) rotate(${rotation}deg) scale(${scale})`,
+                  bottom: `${bottomPos}px`,
                   left: 0,
-                  width: `${CARD_WIDTH}px`,
+                  width: `${cardWidth}px`,
+                  zIndex:
+                    isHovered && HAND_CONFIG.hover_zIndex && !isMobile
+                      ? 100
+                      : "auto",
                 }}
                 onMouseEnter={() => setHoveredIndex(i)}
                 onMouseLeave={() => setHoveredIndex(null)}
@@ -153,10 +212,10 @@ export const PlayerHand = ({
         </div>
       </div>
 
-      {/* ORGANIZAR CARTAS - Fixed at bottom center of the container */}
+      {/* Botão de Organizar */}
       <div
         id="player-controls"
-        className="absolute bottom-1 left-1/2 -translate-x-1/2 z-50 pointer-events-auto"
+        className="absolute bottom-8 z-50 pointer-events-auto"
       >
         <button
           onClick={onSortHand}

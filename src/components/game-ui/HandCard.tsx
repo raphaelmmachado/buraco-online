@@ -43,7 +43,7 @@ export const HandCard = ({
       : `translateY(${translateYDesktop}px) rotate(${rotateDesktop}deg)`,
   };
 
-  const { color, name, icon } = card.suit;
+  const { name } = card.suit;
   return (
     <div
       onClick={onClick}

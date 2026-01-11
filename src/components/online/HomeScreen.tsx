@@ -10,6 +10,14 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
   const initializeSocket = useGameStore((state) => state.initializeSocket);
   const rooms = useGameStore((state) => state.rooms);
   const fetchRooms = useGameStore((state) => state.fetchRooms);
+  const rejoinGame = useGameStore((state) => state.rejoinGame);
+
+  // Check for active session on mount
+  const [activeSession, setActiveSession] = useState<string | null>(null);
+  useEffect(() => {
+      const savedRoom = localStorage.getItem("baralho_active_room");
+      if (savedRoom) setActiveSession(savedRoom);
+  }, []);
 
   // Inicializa o socket e busca as salas ao montar o componente
   useEffect(() => {
@@ -60,6 +68,23 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
       <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
         {/* LADO ESQUERDO: PERFIL E CRIAÇÃO */}
         <div className="flex flex-col gap-6">
+          
+          {/* REJOIN ALERT */}
+          {activeSession && (
+            <div className="bg-yellow-500/20 border border-yellow-500/50 p-4 rounded-xl flex items-center justify-between animate-pulse shadow-[0_0_20px_rgba(234,179,8,0.2)]">
+                <div>
+                    <p className="text-[10px] font-black text-yellow-500 uppercase tracking-widest">Sessão Encontrada</p>
+                    <p className="text-sm font-bold text-white">Você estava na sala: {activeSession}</p>
+                </div>
+                <button 
+                    onClick={() => rejoinGame()}
+                    className="bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all"
+                >
+                    Voltar
+                </button>
+            </div>
+          )}
+
           {/* USERNAME PANEL */}
           <div className="bg-black/40 backdrop-blur-md p-1 rounded-2xl shadow-2xl border border-white/10 group hover:border-yellow-500/30 transition-colors">
             <div className="bg-slate-900/50 p-6 rounded-xl">

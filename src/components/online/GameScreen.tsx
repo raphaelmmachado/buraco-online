@@ -466,7 +466,6 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           onCardClick={toggleSelect}
           onSortHand={game.sort_hand}
           isMobile={isMobile}
-          windowWidth={windowWidth}
         />
 
         {/* RIGHT: DISCARD PILE */}

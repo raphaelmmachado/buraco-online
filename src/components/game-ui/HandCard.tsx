@@ -5,10 +5,11 @@ interface HandCardProps {
   card: CardType;
   isSelected: boolean;
   isLastDrawn?: boolean;
-  onClick: () => void;
-  index: number;
-  totalCards: number;
-  isMobile: boolean;
+  onClick?: () => void;
+  style?: React.CSSProperties;
+  className?: string;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
 export const HandCard = ({
@@ -16,51 +17,34 @@ export const HandCard = ({
   isSelected,
   isLastDrawn,
   onClick,
-  index,
-  totalCards,
-  isMobile,
+  style,
+  className = "",
+  onMouseEnter,
+  onMouseLeave,
 }: HandCardProps) => {
   const isRed = card.color === "red";
-  const center = (totalCards - 1) / 2;
-
-  // Desktop values
-  const rotateDesktop = (index - center) * 2;
-  const translateYDesktop = Math.abs(index - center) * 1;
-
-  // Mobile values (More subtle fan)
-  const rotateMobile = (index - center) * 1; // curvatura do leque
-  const translateYMobile = Math.abs(index - center) * 1; // arco
-  const dynamicStyle = {
-    zIndex: index,
-    transform: isSelected
-      ? isMobile
-        ? `translateY(${translateYMobile - 15}px) rotate(${rotateMobile}deg)`
-        : `translateY(${
-            translateYDesktop - 24
-          }px) rotate(${rotateDesktop}deg) scale(1.05)`
-      : isMobile
-      ? `translateY(${translateYMobile}px) rotate(${rotateMobile}deg)`
-      : `translateY(${translateYDesktop}px) rotate(${rotateDesktop}deg)`,
-  };
-
   const { name } = card.suit;
+
   return (
     <div
       onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       className={`
-        relative rounded-md shadow-lg border bg-white select-none transition-all duration-300
+        relative rounded-md shadow-lg border bg-white select-none transition-all duration-200
         flex flex-col items-center justify-between md:p-1 cursor-pointer
-        w-14 h-20 md:w-20 md:h-32 transform origin-bottom mb-5
+        w-14 h-20 md:w-20 md:h-32 transform origin-bottom
         ${
           isSelected
             ? "border-yellow-400 ring-4 ring-yellow-400/30 shadow-yellow-500/50 shadow-2xl"
             : isLastDrawn
             ? "border-blue-400 ring-2 ring-blue-400/50 shadow-blue-500/30"
-            : "border-slate-300 hover:-translate-y-2 md:hover:-translate-y-4"
+            : "border-slate-300"
         }
         ${isRed ? "text-red-600" : "text-slate-900"}
+        ${className}
       `}
-      style={dynamicStyle}
+      style={style}
     >
       <div className="self-start flex flex-col gap-y-1 items-center leading-none">
         <span className="font-black md:text-2xl">{card.value}</span>

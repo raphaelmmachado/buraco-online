@@ -1,4 +1,4 @@
-import { type Card, CARD_VALUE_WEIGHTS, SUITS } from "../types/card";
+import { type Card, SUITS } from "../types/card";
 import { validate_sequence } from "./rules_logic";
 import { sort_cards, organize_meld } from "./sort_cards";
 
@@ -44,7 +44,10 @@ export const find_meld_in_hand = (hand: Card[]): Card[] | null => {
     for (let len = cards.length; len >= 3; len--) {
         for (let i = 0; i <= cards.length - len; i++) {
             const sub = cards.slice(i, i + len);
-            if (validate_sequence(sub).is_valid) return sub;
+            if (validate_sequence(sub).is_valid) {
+                console.log(`[BOT LOGIC] Found CLEAN meld: ${sub.map(c => c.value + c.suit.icon).join("-")}`);
+                return sub;
+            }
         }
     }
   }
@@ -64,6 +67,7 @@ export const find_meld_in_hand = (hand: Card[]): Card[] | null => {
                   for (let j = i + 1; j < cards.length; j++) {
                       const attempt = [cards[i], cards[j], wc];
                       if (validate_sequence(attempt).is_valid) {
+                          console.log(`[BOT LOGIC] Found DIRTY meld with 2: ${attempt.map(c => c.value + c.suit.icon).join("-")}`);
                           return organize_meld(attempt);
                       }
                   }
@@ -104,6 +108,10 @@ export const find_card_to_add = (
       return 0;
   });
 
+  if (candidates.length > 0) {
+      console.log(`[BOT LOGIC] Checking ${candidates.length} candidates for meld (${meld.length} cards, clean=${is_currently_clean})`);
+  }
+
   for (const card of candidates) {
     const attempt = [...meld, card];
     const validation = validate_sequence(attempt);
@@ -115,19 +123,23 @@ export const find_card_to_add = (
             
             // Regra 1: Se ainda não peguei o morto, PODE SUJAR! (Prioridade é pegar o morto)
             if (!has_taken_dead_pile) {
+                console.log(`[BOT LOGIC] Dirtying clean meld with ${card.value} because need Dead Pile.`);
                 return card;
             }
 
             // Regra 2: Se estou desesperado para bater o jogo final, PODE SUJAR!
             if (is_desperate_to_close) {
+                console.log(`[BOT LOGIC] Dirtying clean meld with ${card.value} to CLOSE GAME.`);
                 return card; 
             }
 
             // Se já peguei o morto e não estou batendo, NÃO SUJA.
             // Protege pontos de canastra limpa.
+            console.log(`[BOT LOGIC] REJECTED ${card.value} to protect Clean Canastra (Taken Dead Pile = true).`);
             continue; 
         }
 
+        console.log(`[BOT LOGIC] Adding ${card.value} to meld.`);
         return card;
     }
   }
@@ -138,25 +150,88 @@ export const find_card_to_add = (
 // 2. INTELIGÊNCIA DE DESCARTE E COMPRA (REGRAS DE SEQUÊNCIA)
 // =============================================================================
 
+export type PickupAction = 
+  | { type: 'NEW_MELD'; cards: Card[] }
+  | { type: 'ADD_TO_MELD'; meld_index: number; cards: Card[] };
+
 export const analyze_discard_pickup = (
   hand: Card[],
   top_discard: Card,
-  pile_size: number = 1 
-): Card[] | null => {
+  team_melds: Card[][] = [],
+  has_taken_dead_pile: boolean = false
+): PickupAction | null => {
+  
+  // 1. TENTA ADICIONAR DIRETO EM UM JOGO EXISTENTE
+  for (let i = 0; i < team_melds.length; i++) {
+    const meld = team_melds[i];
+    const target_suit = meld.find(c => c.value !== "2")?.suit.name;
+    
+    // Se a carta do lixo não é curinga e nem do naipe do jogo, ignora (otimização)
+    if (top_discard.value !== "2" && top_discard.suit.name !== target_suit) continue;
+
+    const attempt = [...meld, top_discard];
+    const validation = validate_sequence(attempt);
+    
+    if (validation.is_valid) {
+       // Proteção de Canastra Limpa
+       const meld_val = validate_sequence(meld);
+       const was_clean = meld_val.is_valid && meld_val.is_clean;
+       
+       if (was_clean && !validation.is_clean && has_taken_dead_pile) {
+           console.log(`[BOT LOGIC] Pickup Rejected: Would dirty clean meld ${i} with ${top_discard.value}`);
+           continue; 
+       }
+       
+       console.log(`[BOT LOGIC] Pickup Discard: Direct add to meld ${i} (${top_discard.value})`);
+       return { type: 'ADD_TO_MELD', meld_index: i, cards: [] }; // Nenhuma carta da mão necessária
+    }
+  }
+
+  // 2. TENTA "PONTE" (Lixo + 1 da mão -> Jogo Existente)
+  for (let i = 0; i < team_melds.length; i++) {
+      const meld = team_melds[i];
+      const target_suit = meld.find(c => c.value !== "2")?.suit.name;
+
+      // Filtra candidatos da mão que podem ajudar
+      const candidates = hand.filter(c => c.suit.name === target_suit || c.value === "2");
+      
+      for (const card of candidates) {
+          const attempt = [...meld, card, top_discard];
+          const validation = validate_sequence(attempt);
+
+          if (validation.is_valid) {
+              const meld_val = validate_sequence(meld);
+              const was_clean = meld_val.is_valid && meld_val.is_clean;
+
+              if (was_clean && !validation.is_clean && has_taken_dead_pile) {
+                  continue;
+              }
+
+              console.log(`[BOT LOGIC] Pickup Discard: Bridge add to meld ${i} using ${card.value} + ${top_discard.value}`);
+              return { type: 'ADD_TO_MELD', meld_index: i, cards: [card] };
+          }
+      }
+  }
+
+  // 3. TENTA CRIAR NOVO JOGO (NEW MELD)
   const same_suit = hand.filter((c) => c.suit.name === top_discard.suit.name && c.value !== "2");
   
-  if (same_suit.length < 2) return null;
-
-  for (let i = 0; i < same_suit.length; i++) {
-    for (let j = i + 1; j < same_suit.length; j++) {
-      const attempt = [top_discard, same_suit[i], same_suit[j]];
-      const validation = validate_sequence(attempt);
-      
-      if (validation.is_valid && validation.is_clean) {
-        return [same_suit[i], same_suit[j]]; 
+  if (same_suit.length >= 2) {
+    for (let i = 0; i < same_suit.length; i++) {
+      for (let j = i + 1; j < same_suit.length; j++) {
+        const attempt = [top_discard, same_suit[i], same_suit[j]];
+        const validation = validate_sequence(attempt);
+        
+        // Regra: Pegar lixo para novo jogo exige jogo LIMPO (sem curinga)
+        // A validação 'is_clean' já garante isso, mas reforçando:
+        if (validation.is_valid && validation.is_clean) {
+          console.log(`[BOT LOGIC] Pickup Discard: Found new clean sequence ${top_discard.value}-${same_suit[i].value}-${same_suit[j].value}`);
+          return { type: 'NEW_MELD', cards: [same_suit[i], same_suit[j]] }; 
+        }
       }
     }
   }
+
   return null;
 };
 
@@ -223,7 +298,7 @@ export const choose_discard = (
   const candidates = hand.length > 1 ? hand.filter(c => c.value !== "2") : hand;
   const pool = candidates.length > 0 ? candidates : hand;
 
-  pool.forEach(card => {
+  pool.forEach((card: Card) => {
       const utility = calculate_hand_utility(card, hand, has_taken_dead_pile);
       const risk = calculate_discard_risk(card, opponent_melds);
       
@@ -241,6 +316,11 @@ export const choose_discard = (
           best_card = card;
       }
   });
+  
+  const chosen: Card | null = best_card;
+  if (chosen) {
+      console.log(`[BOT LOGIC] Discard choice: ${(chosen as any).value}${(chosen as any).suit.icon} (Score: ${min_score.toFixed(1)})`);
+  }
 
-  return best_card || pool[0]; 
+  return chosen || pool[0]; 
 };

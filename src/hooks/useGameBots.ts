@@ -26,11 +26,18 @@ export const useGameBots = () => {
         // Tenta pegar do lixo
         if (store.discard_pile.length > 0) {
             const top_discard = store.discard_pile[0];
-            const pickup_cards = analyze_discard_pickup(my_hand, top_discard);
+            const has_taken = store.has_taken_dead_pile[team_id];
             
-            if (pickup_cards) {
-                console.log(`🤖 Bot ${store.current_player} pegou do lixo!`);
-                store.pick_up_discard_new_meld(pickup_cards.map(c => c.id));
+            const action = analyze_discard_pickup(my_hand, top_discard, team_melds, has_taken);
+            
+            if (action) {
+                if (action.type === 'NEW_MELD') {
+                    console.log(`🤖 Bot ${store.current_player} pegou do lixo (Novo Jogo)!`);
+                    store.pick_up_discard_new_meld(action.cards.map(c => c.id));
+                } else if (action.type === 'ADD_TO_MELD') {
+                    console.log(`🤖 Bot ${store.current_player} pegou do lixo (Add ao Jogo ${action.meld_index})!`);
+                    store.pick_up_discard_add_to_meld(action.meld_index, action.cards.map(c => c.id));
+                }
                 return;
             }
         }
@@ -52,8 +59,9 @@ export const useGameBots = () => {
         }
 
         // B. Tenta adicionar a jogos existentes
+        const has_taken = store.has_taken_dead_pile[team_id];
         for (let i = 0; i < team_melds.length; i++) {
-            const card_to_add = find_card_to_add(my_hand, team_melds[i]);
+            const card_to_add = find_card_to_add(my_hand, team_melds[i], has_taken);
             if (card_to_add) {
                 console.log(`🤖 Bot ${store.current_player} adicionou ao jogo ${i}.`);
                 store.add_card_to_meld([card_to_add.id], i);

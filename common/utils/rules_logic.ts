@@ -150,6 +150,7 @@ export const get_sequence_details = (cards: Card[]): SequenceDetails => {
   const best_solution = solve_recursive(card_options, {}, 0, target_suit);
 
   if (best_solution) {
+    console.log(`[VALIDATION SUCCESS] Cards: ${cards.map(c => c.value).join('-')} | Suit: ${target_suit}`);
     return build_valid_sequence(cards, best_solution, target_suit);
   }
 

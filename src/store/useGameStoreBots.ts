@@ -148,7 +148,10 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const selected_cards = my_hand.filter((c) => hand_card_ids.includes(c.id));
 
     const potential_meld = [top_card, ...selected_cards];
+    console.log(`[LOCAL PICKUP] Player ${current_player} attempt with:`, potential_meld.map(c => `${c.value}${c.suit.icon}`));
+    
     const validation = validate_sequence(potential_meld);
+    console.log(`[LOCAL PICKUP RESULT] Valid: ${validation.is_valid}, Clean: ${validation.is_valid ? validation.is_clean : 'N/A'}`);
 
     if (!validation.is_valid || !validation.is_clean) {
       set({
@@ -195,7 +198,10 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const bridge_cards = my_hand.filter((c) => bridge_card_ids.includes(c.id));
 
     const proposed_meld = [...target_meld, ...bridge_cards, top_card];
+    console.log(`[LOCAL PICKUP ADD] Player ${current_player} adding to meld ${meld_index}:`, proposed_meld.map(c => `${c.value}${c.suit.icon}`));
+    
     const validation = validate_sequence(proposed_meld);
+    console.log(`[LOCAL PICKUP ADD RESULT] Valid: ${validation.is_valid}`);
 
     if (!validation.is_valid) {
       set({ last_error: validation.error });
@@ -233,6 +239,16 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
     if (!target_meld || cards_to_add.length === 0) return;
     const proposed_meld = [...target_meld, ...cards_to_add];
+    
+    console.log(`[LOCAL ADD] Player ${current_player} adding to meld ${meld_index}:`, proposed_meld.map(c => `${c.value}${c.suit.icon}`));
+    const validation = validate_sequence(proposed_meld);
+    console.log(`[LOCAL ADD RESULT] Valid: ${validation.is_valid}`);
+
+    if (!validation.is_valid) {
+        set({ last_error: validation.error });
+        return;
+    }
+
     const new_hand = sort_cards(my_hand.filter((c) => !card_ids.includes(c.id)));
     if (new_hand.length === 0 && !get().internal_can_beat()) {
       set({ last_error: "É necessário ter uma canastra limpa para bater." });
@@ -256,7 +272,10 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const my_hand = hands[current_player];
     const cards = my_hand.filter((c) => card_ids.includes(c.id));
 
+    console.log(`[LOCAL MELD] Player ${current_player} attempt with:`, cards.map(c => `${c.value}${c.suit.icon}`));
     const validation = validate_sequence(cards);
+    console.log(`[LOCAL MELD RESULT] Valid: ${validation.is_valid}`);
+
     if (!validation.is_valid) {
       set({ last_error: validation.error });
       return;

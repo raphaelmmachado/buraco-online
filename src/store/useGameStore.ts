@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { io, Socket } from "socket.io-client";
 import type { Card } from "../../common/types/card";
-import { SERVER_ADDRESS } from "../../common/const/server-adress";
+import { SERVER_ADDRESS } from "../../common/const/server-address";
 
 import { type ScoreResult } from "../../common/utils/scoring";
 
@@ -16,7 +16,7 @@ interface IncomingServerState {
   dead_piles: Card[][];
   turn_phase: "DRAW" | "ACTION" | "DISCARD";
   current_player: number;
-  players_data: Record<number, { socketId: string; userName: string }>;
+  players_data: Record<number, { socketId: string; userName: string; isBot?: boolean }>;
   last_drawn_card_id: string | null;
   final_score: {
     team_1: number;
@@ -41,7 +41,7 @@ interface GameState {
   status: "IDLE" | "LOBBY" | "PLAYING" | "FINISHED";
   rooms: RoomInfo[];
   last_error: string | null;
-  players_data: Record<number, { socketId: string; userName: string }>;
+  players_data: Record<number, { socketId: string; userName: string; isBot?: boolean }>;
   mode: "1v1" | "2v2";
 
   deck: Card[];
@@ -63,6 +63,7 @@ interface GameState {
 interface GameActions {
   initializeSocket: () => void;
   connect: (roomId: string, mode: "1v1" | "2v2", userName: string) => void;
+  rejoinGame: () => void;
   fetchRooms: () => void;
   clear_error: () => void;
 
@@ -125,11 +126,16 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
   leaveGame: () => {
     const { roomId } = get();
-    // Emite evento para o servidor (fire-and-forget)
-    socket.emit("leave_game", { roomId });
+    if (roomId) {
+        socket.emit("leave_game", { roomId });
+    }
+    
+    // Força desconexão para garantir limpeza de estado
+    socket.disconnect();
     
     // Limpa estado local IMEDIATAMENTE
     localStorage.removeItem("baralho_active_room");
+    
     set({
       status: "IDLE",
       roomId: "",
@@ -139,6 +145,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       team_melds: { 1: [], 2: [] },
       discard_pile: [],
       deck: [],
+      dead_piles: [],
+      players_data: {},
       final_score: null,
       last_error: null
     });
@@ -220,7 +228,27 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     socket.emit("request_rooms");
   },
 
+  rejoinGame: () => {
+    if (!socket.connected) socket.connect();
+    const savedRoom = localStorage.getItem("baralho_active_room");
+    const savedPlayerId = localStorage.getItem("baralho_player_id");
+    
+    if (savedRoom && savedPlayerId) {
+        console.log("Tentando reconectar manualmente...", savedRoom);
+        socket.emit("rejoin_game", { roomId: savedRoom, playerId: savedPlayerId });
+    }
+  },
+
   connect: (roomId, mode, userName) => {
+    // CLEAN SLATE: Garante que não há conexões antigas ativas
+    if (socket.connected) {
+        socket.disconnect();
+    }
+    // Limpa a sala anterior do storage para evitar auto-rejoin
+    localStorage.removeItem("baralho_active_room");
+    
+    socket.connect();
+
     set({ status: "LOBBY", roomId, last_error: null });
     
     // Persistent Identity

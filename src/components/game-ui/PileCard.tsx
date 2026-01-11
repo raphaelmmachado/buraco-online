@@ -2,12 +2,14 @@ interface PileCardProps {
   onClick?: () => void;
   active?: boolean;
   mini?: boolean;
+  quantity: number;
 }
 
 export const PileCard = ({
   onClick,
   active = false,
   mini = false,
+  quantity,
 }: PileCardProps) => {
   return (
     <div
@@ -31,7 +33,7 @@ export const PileCard = ({
           backgroundSize: "10px 10px",
         }}
       ></div>
-      <div className="text-white/20 text-4xl">🃏</div>
+      <div className="text-white rounded-xl">{quantity}</div>
       {active && onClick && (
         <div className="absolute inset-0 border-4 border-yellow-400 rounded-md animate-pulse shadow-[0_0_15px_rgba(234,179,8,0.5)]"></div>
       )}

@@ -13,7 +13,7 @@ export const MeldCard = ({ card, highlight = false }: MeldCardProps) => {
     <div
       className={`
         relative rounded shadow-md border bg-white select-none transition-all duration-300
-        flex flex-col items-center justify-between p-1
+        flex flex-col items-center justify-between p-0.5
         w-12 h-16 md:w-16 md:h-24
         ${
           highlight
@@ -24,17 +24,12 @@ export const MeldCard = ({ card, highlight = false }: MeldCardProps) => {
       `}
     >
       <div className="self-start flex flex-col items-center leading-none">
-        <span className="font-black text-sm md:text-xl">{card.value}</span>
+        <span className="font-black text-base md:text-2xl">{card.value}</span>
         <SuitIcon suit={card.suit.name} className="w-3 h-3 md:w-4 md:h-4" />
       </div>
 
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-10">
-        <SuitIcon suit={card.suit.name} className="w-6 h-6 md:w-12 md:h-12" />
-      </div>
-
-      <div className="self-end flex flex-col items-center leading-none rotate-180">
-        <span className="font-black text-[10px] md:text-xl">{card.value}</span>
-        <SuitIcon suit={card.suit.name} className="w-3 h-3 md:w-4 md:h-4" />
+        <SuitIcon suit={card.suit.name} className="w-8 h-8 md:w-12 md:h-12" />
       </div>
     </div>
   );

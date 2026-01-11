@@ -34,12 +34,12 @@ export const MeldDisplay = memo(
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         className={`relative group flex items-center ${
-          interactive ? "cursor-pointer origin-top-left transition-transform" : "origin-left"
-        } ${scale} ${
-          interactive && isHovered ? "scale-95 md:scale-105" : ""
-        }`}
+          interactive
+            ? "cursor-pointer origin-top-left transition-transform"
+            : "origin-left"
+        } ${scale} ${interactive && isHovered ? "scale-95 md:scale-105" : ""}`}
       >
-        <div className="flex -space-x-8 md:-space-x-10 transition-all">
+        <div className="flex -space-x-7.5 md:-space-x-10 transition-all">
           {organizedCards.map((card) => (
             <MeldCard key={card.id} card={card} highlight={isHovered} />
           ))}

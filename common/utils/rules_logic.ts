@@ -221,12 +221,20 @@ const validate_assignment = (
 
   if (min === undefined || max === undefined) return false;
 
+  // 0. Integridade: Todas as cartas devem ter peso atribuído
+  if (Object.keys(assigned).length !== cards.length) return false;
+
   // 1. Deve ser consecutivo
   if (max - min + 1 !== weights.length) return false;
 
   // 2. Máximo 1 curinga
   let wildcard_count = 0;
   for (const card of cards) {
+    // Verificação de segurança extra: Naipe Incorreto
+    if (card.value !== "2" && card.suit.name !== target_suit) {
+        return false;
+    }
+
     const w = assigned[card.id];
     if (w !== undefined && is_wildcard_usage(card, w, target_suit)) {
       wildcard_count++;

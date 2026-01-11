@@ -28,15 +28,16 @@ export const HandCard = ({
   const translateYDesktop = Math.abs(index - center) * 1;
 
   // Mobile values (More subtle fan)
-  const rotateMobile = (index - center) * 2; // curvatura do leque
+  const rotateMobile = (index - center) * 1; // curvatura do leque
   const translateYMobile = Math.abs(index - center) * 1; // arco
-
   const dynamicStyle = {
     zIndex: index,
     transform: isSelected
       ? isMobile
         ? `translateY(${translateYMobile - 15}px) rotate(${rotateMobile}deg)`
-        : `translateY(${translateYDesktop - 24}px) rotate(${rotateDesktop}deg) scale(1.05)`
+        : `translateY(${
+            translateYDesktop - 24
+          }px) rotate(${rotateDesktop}deg) scale(1.05)`
       : isMobile
       ? `translateY(${translateYMobile}px) rotate(${rotateMobile}deg)`
       : `translateY(${translateYDesktop}px) rotate(${rotateDesktop}deg)`,

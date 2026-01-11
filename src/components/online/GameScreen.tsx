@@ -26,7 +26,6 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     teamId: number;
     index: number;
   } | null>(null);
-  const [isTouched, setIsTouched] = useState(false);
 
   // Computed Values
   const my_player_id = game.my_player_number ?? 1;
@@ -40,7 +39,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
 
   // Hooks Integration
   useWakeLock();
-  const isMobile = useMobileCheck();
+  const { isMobile, width: windowWidth } = useMobileCheck();
   const { opponentHeight, startDrag } = useScreenDrag(35);
   useGameAudio(game, isMyTurn);
 
@@ -133,7 +132,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
             <MeldDisplay key={idx} meld={meld} scale="scale-90 md:scale-100" />
           ))}
           {
-            <div className="absolute text-center w-full h-full flex items-center justify-center">
+            <div className="absolute text-center w-full h-full flex items-center justify-center pointer-events-none">
               <span className="text-white/5 text-xl md:text-3xl font-black uppercase tracking-[0.5em]">
                 ELES
               </span>
@@ -161,13 +160,13 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
         onTouchStart={startDrag}
         className="md:h-[5%] bg-white/5 backdrop-blur-md
          px-2 md:px-8 border-y border-white/5 shadow-2xl z-30 shrink-0
-          cursor-row-resize select-none active:bg-white/10 transition-colors group overflow-hidden"
+          cursor-grab active:cursor-grabbing select-none active:bg-white/10 transition-colors group overflow-hidden"
       >
         <div className="flex h-full items-center justify-between">
           {isMobile ? (
             <>
               {/* MOBILE: DECK ON LEFT */}
-              <div className="relative h-full py-1 flex items-center">
+              <div className="relative h-full py-1 flex items-center shrink-0">
                 <PileCard
                   onClick={handleDeckClick}
                   active={canDraw}
@@ -175,50 +174,114 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                   quantity={game.deck.length}
                 />
                 <div
-                  className={`absolute ${
-                    !isMobile ? "-top-1 -right-1" : "top-1 -right-1"
-                  } bg-red-900 text-white text-[8px]
-                   font-black w-4 h-4 flex items-center justify-center rounded-full border border-white/20`}
+                  className="absolute top-1 -right-1 bg-red-900 text-white text-[8px]
+                   font-black w-4 h-4 flex items-center justify-center rounded-full border border-white/20"
                 >
                   {game.dead_piles.length}
                 </div>
               </div>
 
+              {/* MEU TIME (NÓS) */}
+
+              <div className="flex flex-col items-center leading-none px-1 gap-0.5">
+                <div className="flex gap-1">
+                  {Object.entries(game.players_data)
+
+                    .filter(([id]) => Number(id) % 2 === my_player_id % 2)
+
+                    .map(([id, p]) => (
+                      <div
+                        key={id}
+                        className={`flex items-center rounded px-1.5 py-0.5 shadow-sm transition-all ${
+                          Number(id) === game.current_player
+                            ? "bg-yellow-500/20 border border-yellow-400 ring-1 ring-yellow-400/50 animate-pulse"
+                            : "bg-blue-900/40 border border-blue-500/30"
+                        }`}
+                      >
+                        <span
+                          className={`text-[9px] font-bold mr-1 opacity-80 ${
+                            Number(id) === game.current_player
+                              ? "text-yellow-100"
+                              : "text-blue-100"
+                          }`}
+                        >
+                          {p.userName.substring(0, 3).toUpperCase()}
+                        </span>
+
+                        <span className="text-[9px] font-black text-white">
+                          {game.hands[Number(id)]?.length || 0}
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+
               {/* CENTER: TURN INFO */}
-              <div className="flex flex-col items-center">
+
+              <div className="flex flex-col items-center bg-black/40 backdrop-blur-sm px-3 py-1 rounded-lg border border-white/10 shadow-lg mx-1">
                 <span
-                  className={`text-[10px] font-bold ${
-                    isMyTurn ? "text-blue-400" : "text-white/50"
-                  } uppercase tracking-tight`}
+                  className={`text-[8px] font-black ${
+                    isMyTurn ? "text-yellow-400 animate-pulse" : "text-white/40"
+                  } uppercase tracking-widest`}
                 >
-                  {isMyTurn
-                    ? "Sua Vez"
-                    : `Vez de ${game.players_data[
-                        game.current_player
-                      ]?.userName.substring(0, 8)}`}
+                  {isMyTurn ? "SUA VEZ" : "VEZ DELES"}
                 </span>
-                <span className="text-[8px] text-gray-400 uppercase font-black">
-                  {game.turn_phase === "DRAW" ? "Compre" : "Jogue"}
+
+                <span className="text-[6px] text-gray-400 uppercase font-bold tracking-tight mt-0.5">
+                  {game.turn_phase === "DRAW" ? "COMPRAR" : "JOGAR"}
                 </span>
               </div>
 
-              {/* MOBILE: DISCARD ON RIGHT */}
-              {
-                <div className="relative h-full py-1 flex items-center">
-                  <DiscardCard
-                    card={game.discard_pile[0]}
-                    onClick={handleDiscardClick}
-                    mini={true}
-                    isActionable={
-                      canDraw || (canAction && selectedCards.length === 1)
-                    }
-                    highlight={
-                      (canDraw && selectedCards.length >= 2) ||
-                      hoveredMeld !== null
-                    }
-                  />
+              {/* TIME DELES (ELES) */}
+
+              <div className="flex flex-col items-center leading-none px-1 gap-0.5">
+                <div className="flex gap-1">
+                  {Object.entries(game.players_data)
+
+                    .filter(([id]) => Number(id) % 2 !== my_player_id % 2)
+
+                    .map(([id, p]) => (
+                      <div
+                        key={id}
+                        className={`flex items-center rounded px-1.5 py-0.5 shadow-sm transition-all ${
+                          Number(id) === game.current_player
+                            ? "bg-yellow-500/20 border border-yellow-400 ring-1 ring-yellow-400/50 animate-pulse"
+                            : "bg-red-900/40 border border-red-500/30"
+                        }`}
+                      >
+                        <span
+                          className={`text-[9px] font-bold mr-1 opacity-80 ${
+                            Number(id) === game.current_player
+                              ? "text-yellow-100"
+                              : "text-red-100"
+                          }`}
+                        >
+                          {p.userName.substring(0, 3).toUpperCase()}
+                        </span>
+
+                        <span className="text-[9px] font-black text-white">
+                          {game.hands[Number(id)]?.length || 0}
+                        </span>
+                      </div>
+                    ))}
                 </div>
-              }
+              </div>
+
+              {/* MOBILE: DISCARD ON RIGHT */}
+              <div className="relative h-full py-1 flex items-center shrink-0">
+                <DiscardCard
+                  card={game.discard_pile[0]}
+                  onClick={handleDiscardClick}
+                  mini={true}
+                  isActionable={
+                    canDraw || (canAction && selectedCards.length === 1)
+                  }
+                  highlight={
+                    (canDraw && selectedCards.length >= 2) ||
+                    hoveredMeld !== null
+                  }
+                />
+              </div>
             </>
           ) : (
             /* DESKTOP: JOGADORES */
@@ -228,7 +291,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                   key={id}
                   className={`relative shrink-0 flex items-center justify-center px-3 py-1 md:px-2 md:py-0.5 rounded-lg border transition-all ${
                     Number(id) === game.current_player
-                      ? "border-yellow-500 bg-yellow-500/20"
+                      ? "border-yellow-400/80 bg-yellow-500/20 ring-1 ring-yellow-400/50 animate-pulse shadow-[0_0_10px_rgba(250,204,21,0.3)]"
                       : "border-white/5 bg-black/20"
                   }`}
                 >
@@ -262,9 +325,15 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
          gap-y-2 md:gap-y-8 overflow-y-auto scrollbar-hide pt-2 pb-20"
         >
           {game.team_melds[my_team].map((meld, idx) => {
+            // Logic: Can interact if (Draw Phase & Discard Avail) OR (Action Phase & Hand Cards Selected)
+            const canInteractWithMeld =
+              (canDraw && game.discard_pile.length > 0) ||
+              (canAction && selectedCards.length > 0);
+
             const isHovered =
-              hoveredMeld?.teamId === my_team && hoveredMeld?.index === idx;
-            const canHighlight = canDraw && game.discard_pile.length > 0;
+              hoveredMeld?.teamId === my_team &&
+              hoveredMeld?.index === idx &&
+              canInteractWithMeld;
 
             return (
               <MeldDisplay
@@ -274,7 +343,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                 interactive={true}
                 onClick={() => handleMeldClick(my_team, idx)}
                 onMouseEnter={() =>
-                  canHighlight &&
+                  canInteractWithMeld &&
                   setHoveredMeld({ teamId: my_team, index: idx })
                 }
                 onMouseLeave={() => setHoveredMeld(null)}
@@ -283,7 +352,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
             );
           })}
           {
-            <div className="absolute w-full h-full flex items-center justify-center">
+            <div className="absolute w-full h-full flex items-center justify-center pointer-events-none">
               <span className="text-white/5 text-xl md:text-3xl font-black uppercase tracking-[0.5em]">
                 NÓS
               </span>
@@ -328,10 +397,10 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
       <footer
         id="game-footer"
         className="h-28 md:h-[20%] bg-linear-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md px-2 pb-2 z-40
-         relative w-full flex items-end justify-between gap-2 md:gap-6"
+         relative w-full flex items-end justify-between gap-2 md:gap-6 pointer-events-none"
       >
         {!isMobile && (
-          <div className="absolute top-1 md:-top-10 flex items-center gap-2 md:gap-4 shrink-0">
+          <div className="absolute top-1 md:-top-10 flex items-center gap-2 md:gap-4 shrink-0 pointer-events-auto">
             {/* DESKTOP: Layout Original */}
             <div className="flex items-center gap-x-1">
               <span
@@ -359,7 +428,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
         )}
         {/* LEFT: DECK PILE */}
         {!isMobile && (
-          <div className="shrink-0 pb-1 relative">
+          <div className="shrink-0 pb-1 relative pointer-events-auto">
             <PileCard
               onClick={handleDeckClick}
               active={canDraw}
@@ -392,37 +461,85 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
         {/* CENTER: PLAYER HAND */}
         <div
           onContextMenu={(e) => e.preventDefault()}
-          onTouchMove={() => {
-            setIsTouched((prev) => (prev ? false : true));
-          }}
           id="player-hand"
           className="flex-1 h-full flex items-end justify-center touch-manipulation
-          group/hand px-2 pt-8 relative scrollbar-hide"
+          group/hand px-2 relative scrollbar-hide pointer-events-none"
         >
           <div
-            className={`flex md:-space-x-14 ${
-              isTouched ? "-space-x-8" : "-space-x-11"
-            }
-            transition-all duration-500 items-end origin-bottom md:pb-2`}
+            className={`flex transition-all duration-500 items-end origin-bottom md:pb-2`}
           >
-            {(game.hands[my_player_id] || []).map((card, i, arr) => (
-              <HandCard
-                key={card.id}
-                card={card}
-                isSelected={selectedCards.includes(card.id)}
-                isLastDrawn={card.id === game.last_drawn_card_id}
-                onClick={() => toggleSelect(card.id)}
-                index={i}
-                totalCards={arr.length}
-                isMobile={isMobile.isMobile}
-              />
-            ))}
+            {(game.hands[my_player_id] || []).map((card, i, arr) => {
+              // --- LÓGICA DE ESPAÇAMENTO DINÂMICO (TODO.md) ---
+              const totalCards = arr.length;
+              let spacing = -45; // Padrão Desktop (apertado)
+
+              if (isMobile) {
+                // Largura base da carta (w-14 = 56px)
+                const cardWidth = 56;
+                // Espaço disponível na tela (menos margens laterais ~40px)
+                const availableWidth = windowWidth - 40;
+
+                // Espaçamento inicial confortável (-25px)
+                const comfortableSpacing = -25;
+
+                // Quanto espaço a mão ocuparia no modo confortável?
+                const widthIfComfortable =
+                  cardWidth +
+                  (totalCards - 1) * (cardWidth + comfortableSpacing);
+
+                if (widthIfComfortable > availableWidth && totalCards > 1) {
+                  // Se estourar a tela, calcula o aperto necessário
+                  // Fórmula: (LarguraDisponivel - LarguraUltimaCarta) / (RestoDasCartas) - LarguraCarta
+                  const neededOverlap =
+                    (availableWidth - cardWidth) / (totalCards - 1) - cardWidth;
+                  spacing = neededOverlap;
+                } else {
+                  spacing = comfortableSpacing;
+                }
+              } else {
+                // Desktop: Lógica similar, mas mais suave
+                const cardWidth = 80; // w-20
+                const availableWidth = windowWidth * 0.6; // ~60% da tela para a mão
+                const widthIfComfortable =
+                  cardWidth + (totalCards - 1) * (cardWidth - 55);
+
+                if (widthIfComfortable > availableWidth && totalCards > 1) {
+                  const neededOverlap =
+                    (availableWidth - cardWidth) / (totalCards - 1) - cardWidth;
+                  spacing = neededOverlap;
+                } else {
+                  spacing = -55;
+                }
+              }
+
+              return (
+                <div
+                  key={card.id}
+                  style={{
+                    marginLeft: i === 0 ? 0 : `${spacing}px`,
+                    transition: "margin 0.3s ease-out",
+                    zIndex: i, // Garante ordem de empilhamento
+                  }}
+                  className="pointer-events-auto"
+                >
+                  <HandCard
+                    card={card}
+                    isSelected={selectedCards.includes(card.id)}
+                    isLastDrawn={card.id === game.last_drawn_card_id}
+                    onClick={() => toggleSelect(card.id)}
+                    index={i}
+                    totalCards={arr.length}
+                    isMobile={isMobile}
+                  />
+                </div>
+              );
+            })}
           </div>
 
           {/* ORGANIZAR CARTAS (Centered below hand) */}
           <div
             id="player-controls"
-            className="absolute bottom-4 left-1/2 -translate-x-1/2 translate-y-full z-50 mb-1"
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 translate-y-full z-50 mb-1 pointer-events-auto"
           >
             <button
               onClick={game.sort_hand}
@@ -436,7 +553,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
 
         {/* RIGHT: DISCARD PILE */}
         {!isMobile && (
-          <div className="shrink-0 pb-1 relative">
+          <div className="shrink-0 pb-1 relative pointer-events-auto">
             <DiscardCard
               card={game.discard_pile[0]}
               onClick={handleDiscardClick}

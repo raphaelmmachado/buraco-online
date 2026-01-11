@@ -20,7 +20,7 @@ _PORCENTAGEM DE OCUPAÇÃO DA TELA_
 :--------------------------------------------------:
 | AREA DO ADVERSARIO(37.5%) |
 :--------------------------------------------------:
-| [MONTE] SEPARADOR [LIXO](5%)
+| [MONTE] [MEU TIME (PRIMEIRAS 3 LETRAS) E NUM CARTAS NA MAO] SEPARADOR [JOGADORES DELES (PRIMEIRAS 3 LETRAS) E NUM DE CARTAS NA MAO] [LIXO](5%)
 :--------------------------------------------------:
 | AREA DO SEU JOGO(37.5%) |
 :--------------------------------------------------:

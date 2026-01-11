@@ -242,7 +242,8 @@ const execute_bot_move = (roomId: string) => {
         if (game.discard_pile.length > 0) {
             const top_discard = game.discard_pile[0];
             if (top_discard) {
-                const pickup_cards = analyze_discard_pickup(my_hand, top_discard);
+                // Pass pile size to analyze_discard_pickup
+                const pickup_cards = analyze_discard_pickup(my_hand, top_discard, game.discard_pile.length);
                 
                 if (pickup_cards) {
                     console.log(`[BOT] Pickup from discard`);
@@ -295,7 +296,6 @@ const execute_bot_move = (roomId: string) => {
         if (card) {
             const current_h = game.hands[game.current_player];
             if (current_h) {
-                console.log(`[BOT DEBUG] ${pData.userName} drew ${card.value} of ${card.suit.name}`);
                 current_h.unshift(card);
                 game.turn_phase = "ACTION";
                 io.to(roomId).emit("game_update", game);
@@ -310,7 +310,6 @@ const execute_bot_move = (roomId: string) => {
         // A. Meld
         const new_meld_cards = find_meld_in_hand(my_hand);
         if (new_meld_cards) {
-             console.log(`[BOT DEBUG] ${pData.userName} found new meld: ${new_meld_cards.map(c => c.value + c.suit.icon).join(', ')}`);
              const card_ids = new_meld_cards.map(c => c.id);
              
              game.hands[game.current_player] = my_hand.filter(c => !card_ids.includes(c.id));
@@ -329,9 +328,11 @@ const execute_bot_move = (roomId: string) => {
             const meld = team_melds[i];
             if (!meld) continue;
 
-            const card_to_add = find_card_to_add(my_hand, meld);
+            const my_team_idx = team_id - 1;
+            const has_taken = game.has_taken_dead_pile[my_team_idx as 0 | 1];
+
+            const card_to_add = find_card_to_add(my_hand, meld, has_taken);
             if (card_to_add) {
-                console.log(`[BOT DEBUG] ${pData.userName} adding ${card_to_add.value}${card_to_add.suit.icon} to existing meld index ${i}`);
                 game.hands[game.current_player] = my_hand.filter(c => c.id !== card_to_add.id);
                 team_melds[i] = organize_meld([...meld, card_to_add]);
                 
@@ -345,9 +346,19 @@ const execute_bot_move = (roomId: string) => {
         }
 
         // C. Discard
-        const discard_card = choose_discard(my_hand);
+        const opponent_team = team_id === 1 ? 2 : 1;
+        const opponent_melds = game.team_melds[opponent_team] || [];
+        // Determine if my team has taken dead pile
+        const my_team_idx = team_id - 1;
+        const my_team_has_taken = game.has_taken_dead_pile[my_team_idx as 0 | 1];
+
+        const discard_card = choose_discard(
+            my_hand, 
+            opponent_melds, 
+            game.discard_pile[0], 
+            my_team_has_taken
+        );
         if (discard_card) {
-            console.log(`[BOT DEBUG] ${pData.userName} discarding ${discard_card.value}${discard_card.suit.icon}`);
             game.hands[game.current_player] = my_hand.filter(c => c.id !== discard_card.id);
             game.discard_pile.unshift(discard_card);
             

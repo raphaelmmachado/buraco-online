@@ -13,34 +13,53 @@ export const LocalGame = ({ onBack }: { onBack?: () => void }) => {
   // If in Lobby, show the local lobby (similar to what DebugGame had)
   if (store.status === "LOBBY") {
     return (
-      <div className="min-h-screen bg-green-800 flex flex-col gap-8 items-center justify-center text-white font-sans">
-        <h1 className="text-4xl font-black text-transparent bg-clip-text bg-linear-to-r from-yellow-400 to-orange-600">
-          BURACO OFFLINE
-        </h1>
-        <p className="text-slate-300 -mt-6">Modo vs Computador</p>
+      <div className="min-h-screen bg-[#0f2e1a] flex flex-col gap-8 items-center justify-center text-white font-sans relative overflow-hidden">
+        {/* Background Texture */}
+        <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "30px 30px" }}></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/50 pointer-events-none"></div>
 
-        <div className="flex gap-4">
-          <button
-            className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-6 rounded-xl text-xl font-bold shadow-xl transition-transform active:scale-95"
-            onClick={() => store.start_game("1v1")}
-          >
-            👤 1 vs 1
-          </button>
-          <button
-            className="bg-purple-600 hover:bg-purple-500 text-white px-8 py-6 rounded-xl text-xl font-bold shadow-xl transition-transform active:scale-95"
-            onClick={() => store.start_game("2v2")}
-          >
-            👥 2 vs 2
-          </button>
+        <div className="text-center relative z-10 animate-fade-in">
+          <h1 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-yellow-300 via-yellow-500 to-orange-600 mb-2 drop-shadow-2xl">
+            BURACO
+          </h1>
+          <div className="flex items-center justify-center gap-3">
+            <div className="h-[1px] w-8 bg-white/20"></div>
+            <p className="text-sm text-slate-300 tracking-[0.5em] uppercase font-bold text-shadow-sm">
+              Offline Mode
+            </p>
+            <div className="h-[1px] w-8 bg-white/20"></div>
+          </div>
         </div>
-        {onBack && (
-          <button
-            onClick={onBack}
-            className="mt-8 text-white/50 hover:text-white underline"
-          >
-            Voltar ao Menu Principal
-          </button>
-        )}
+
+        <div className="bg-black/40 backdrop-blur-md p-8 rounded-2xl shadow-2xl border border-white/10 relative z-10 w-full max-w-md group hover:border-purple-500/20 transition-colors">
+          <div className="flex flex-col gap-4">
+            <button
+              className="bg-blue-600/80 hover:bg-blue-500 text-white py-6 rounded-xl font-black shadow-lg shadow-blue-900/20 transition-all active:scale-95 border border-white/10 flex items-center justify-center gap-4 group/btn"
+              onClick={() => store.start_game("1v1")}
+            >
+              <span className="text-3xl group-hover/btn:scale-110 transition-transform">👤</span>
+              <span className="text-lg uppercase tracking-widest">1 vs 1</span>
+            </button>
+            <button
+              className="bg-purple-600/80 hover:bg-purple-500 text-white py-6 rounded-xl font-black shadow-lg shadow-purple-900/20 transition-all active:scale-95 border border-white/10 flex items-center justify-center gap-4 group/btn"
+              onClick={() => store.start_game("2v2")}
+            >
+              <span className="text-3xl group-hover/btn:scale-110 transition-transform">👥</span>
+              <span className="text-lg uppercase tracking-widest">2 vs 2</span>
+            </button>
+          </div>
+          
+          {onBack && (
+            <div className="mt-8 pt-6 border-t border-white/5 text-center">
+              <button
+                onClick={onBack}
+                className="text-[10px] font-bold text-slate-500 hover:text-white uppercase tracking-[0.2em] transition-colors hover:underline decoration-white/20 underline-offset-4"
+              >
+                ← Voltar ao Menu Principal
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     );
   }

@@ -215,7 +215,7 @@ export const PlayerHand = ({
       {/* Botão de Organizar */}
       <div
         id="player-controls"
-        className="absolute bottom-8 z-50 pointer-events-auto"
+        className="absolute bottom-1 z-50 pointer-events-auto"
       >
         <button
           onClick={onSortHand}

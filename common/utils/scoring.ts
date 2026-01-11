@@ -18,6 +18,8 @@ export interface ScoreResult {
   bonus_points: number; // Bônus de batida e canastras
   penalty_points: number; // Pontos das cartas na mão + morto não pego
   details: Record<keyof typeof MELD_POINTS, number>;
+  has_taken_dead_pile: boolean;
+  did_beat: boolean;
 }
 /**
  * Calcula a pontuação final de uma equipe.
@@ -91,6 +93,8 @@ export const calculate_score = (
     bonus_points,
     penalty_points,
     details,
+    has_taken_dead_pile: !did_not_take_dead_pile,
+    did_beat,
   };
 };
 

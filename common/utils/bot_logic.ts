@@ -1,143 +1,246 @@
-import { type Card } from "../../common/types/card";
-import { validate_sequence } from "../../common/utils/rules_logic";
-import { sort_cards } from "../../common/utils/sort_cards";
+import { type Card, CARD_VALUE_WEIGHTS, SUITS } from "../types/card";
+import { validate_sequence } from "./rules_logic";
+import { sort_cards, organize_meld } from "./sort_cards";
 
-// --- HELPERS ---
+// =============================================================================
+// HELPER TYPES & CONSTANTS
+// =============================================================================
 
-// Agrupa cartas por naipe
+const RANK_MAP: Record<string, number> = {
+  "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10,
+  "J": 11, "Q": 12, "K": 13, "A": 14 
+};
+
+const CARD_POINTS: Record<string, number> = {
+  "A": 15, "2": 20, "3": 5, "4": 5, "5": 5, "6": 5, "7": 5,
+  "8": 10, "9": 10, "10": 10, "J": 10, "Q": 10, "K": 10
+};
+
+// =============================================================================
+// 1. ANÁLISE DE OFENSIVA (SEQUÊNCIAS)
+// =============================================================================
+
 const group_by_suit = (hand: Card[]) => {
-  const suits: Record<string, Card[]> = {
-    hearts: [],
-    diamonds: [],
-    clubs: [],
-    spades: [],
-  };
+  const suits: Record<string, Card[]> = {};
+  SUITS.forEach(s => suits[s.name] = []);
   hand.forEach((c) => {
-    if (c.suit.name in suits) suits[c.suit.name].push(c);
+    if (suits[c.suit.name]) suits[c.suit.name].push(c);
   });
   return suits;
 };
 
-// Encontra todas as sequências possíveis de 3+ cartas em uma lista de cartas (já filtradas por naipe)
-const find_sequences_in_suit = (cards: Card[]): Card[][] => {
-  if (cards.length < 3) return [];
-  // Ordena por rank (considerando Ás como 1 ou 14? O sort_cards já lida com visual, mas aqui precisamos de lógica numérica)
-  // Assumindo que sort_cards organiza 2, 3, 4 ...
-  // Precisamos de uma lógica mais bruta de 'consecutividade'.
-  // Vamos usar a validate_sequence para testar subconjuntos? Não, muito caro.
-  // Vamos fazer uma varredura linear.
+/**
+ * Procura por sequências (mínimo 3 cartas do mesmo naipe).
+ */
+export const find_meld_in_hand = (hand: Card[]): Card[] | null => {
+  const suits = group_by_suit(hand);
+  const wildcards = hand.filter(c => c.value === "2");
+  
+  // 1. Tenta sequências LIMPAS
+  for (const suitName in suits) {
+    const cards = sort_cards(suits[suitName]); 
+    if (cards.length < 3) continue;
 
-  const sorted = sort_cards(cards); // Helper do projeto
-  const sequences: Card[][] = [];
-  let current_seq: Card[] = [sorted[0]];
-
-  for (let i = 1; i < sorted.length; i++) {
-    const prev = current_seq[current_seq.length - 1];
-    const curr = sorted[i];
-
-    // Checa se é consecutivo (rank + 1)
-    // Precisamos de um mapa de valores para inteiros.
-    const rank_map: Record<string, number> = {
-      "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "J": 11, "Q": 12, "K": 13, "A": 14, "2": 2 // 2 é curinga mas também valor baixo
-    };
-
-    // Obs: A lógica de buraco é complexa com o 2 curinga. 
-    // Para um bot MVP, vamos ignorar o uso de curingas deslocados por enquanto,
-    // e focar em sequências naturais ou 2 na posição correta.
-
-    const v_prev = rank_map[prev.value];
-    const v_curr = rank_map[curr.value];
-
-    // Se forem iguais (duplicata), ignora mas não quebra sequencia? No buraco fechado não pode duplicata no mesmo jogo.
-    if (v_prev === v_curr) continue;
-
-    if (v_curr === v_prev + 1) {
-      current_seq.push(curr);
-    } else {
-      if (current_seq.length >= 3) sequences.push([...current_seq]);
-      current_seq = [curr];
+    for (let len = cards.length; len >= 3; len--) {
+        for (let i = 0; i <= cards.length - len; i++) {
+            const sub = cards.slice(i, i + len);
+            if (validate_sequence(sub).is_valid) return sub;
+        }
     }
   }
-  if (current_seq.length >= 3) sequences.push([...current_seq]);
 
-  return sequences;
+  // 2. Tenta sequências COM CURINGA (mesmo naipe)
+  // Só cria suja se não tiver opção limpa.
+  if (wildcards.length > 0) {
+      for (const wc of wildcards) {
+          const hand_without_wc = hand.filter(c => c.id !== wc.id);
+          const suits_clean = group_by_suit(hand_without_wc);
+
+          for (const suitName in suits_clean) {
+              const cards = sort_cards(suits_clean[suitName]);
+              if (cards.length < 2) continue; 
+
+              for (let i = 0; i < cards.length - 1; i++) {
+                  for (let j = i + 1; j < cards.length; j++) {
+                      const attempt = [cards[i], cards[j], wc];
+                      if (validate_sequence(attempt).is_valid) {
+                          return organize_meld(attempt);
+                      }
+                  }
+              }
+          }
+      }
+  }
+
+  return null;
 };
 
-// --- AI FUNCTIONS ---
+/**
+ * Tenta adicionar carta a um jogo existente.
+ * LÓGICA ATUALIZADA:
+ * - Se NÃO pegou o morto: Vale tudo. Suja limpa, usa curinga, o importante é descer carta.
+ * - Se JÁ pegou o morto: Protege a pureza (Clean), a menos que seja pra bater final.
+ */
+export const find_card_to_add = (
+    hand: Card[], 
+    meld: Card[], 
+    has_taken_dead_pile: boolean, // Novo parametro crucial
+    is_desperate_to_close: boolean = false
+): Card | null => {
+  const target_suit = meld.find(c => c.value !== "2")?.suit.name;
+  if (!target_suit) return null;
+
+  // Verifica o estado atual do meld
+  const current_validation = validate_sequence(meld);
+  const is_currently_clean = current_validation.is_valid && current_validation.is_clean;
+
+  // Candidatos: Cartas do mesmo naipe ou Curingas (2)
+  const candidates = hand.filter(c => c.suit.name === target_suit || c.value === "2");
+
+  // Ordena candidatos: Naturais primeiro, Curingas depois.
+  candidates.sort((a, b) => {
+      if (a.value === "2" && b.value !== "2") return 1;
+      if (a.value !== "2" && b.value === "2") return -1;
+      return 0;
+  });
+
+  for (const card of candidates) {
+    const attempt = [...meld, card];
+    const validation = validate_sequence(attempt);
+
+    if (validation.is_valid) {
+        // LÓGICA DE PROTEÇÃO DE LIMPEZA
+        // Se o jogo era limpo, e vai ficar sujo com essa carta...
+        if (is_currently_clean && !validation.is_clean) {
+            
+            // Regra 1: Se ainda não peguei o morto, PODE SUJAR! (Prioridade é pegar o morto)
+            if (!has_taken_dead_pile) {
+                return card;
+            }
+
+            // Regra 2: Se estou desesperado para bater o jogo final, PODE SUJAR!
+            if (is_desperate_to_close) {
+                return card; 
+            }
+
+            // Se já peguei o morto e não estou batendo, NÃO SUJA.
+            // Protege pontos de canastra limpa.
+            continue; 
+        }
+
+        return card;
+    }
+  }
+  return null;
+};
+
+// =============================================================================
+// 2. INTELIGÊNCIA DE DESCARTE E COMPRA (REGRAS DE SEQUÊNCIA)
+// =============================================================================
 
 export const analyze_discard_pickup = (
   hand: Card[],
-  top_discard: Card
+  top_discard: Card,
+  pile_size: number = 1 
 ): Card[] | null => {
-  // Tenta achar 2 cartas na mão que, com o lixo, formam uma trinca limpa do mesmo naipe.
-  const same_suit = hand.filter((c) => c.suit.name === top_discard.suit.name);
+  const same_suit = hand.filter((c) => c.suit.name === top_discard.suit.name && c.value !== "2");
+  
   if (same_suit.length < 2) return null;
 
-  // Tenta combinações de 2 cartas
   for (let i = 0; i < same_suit.length; i++) {
     for (let j = i + 1; j < same_suit.length; j++) {
       const attempt = [top_discard, same_suit[i], same_suit[j]];
       const validation = validate_sequence(attempt);
       
-      // Regra: Deve ser limpo para pegar (is_clean check)
       if (validation.is_valid && validation.is_clean) {
-        return [same_suit[i], same_suit[j]]; // Retorna as cartas da mão para usar
+        return [same_suit[i], same_suit[j]]; 
       }
     }
   }
   return null;
 };
 
-export const find_meld_in_hand = (hand: Card[]): Card[] | null => {
-  const suits = group_by_suit(hand);
-  
-  for (const suit in suits) {
-    const cards = suits[suit];
-    const seqs = find_sequences_in_suit(cards);
-    
-    // Retorna a primeira válida encontrada
-    for (const seq of seqs) {
-      if (validate_sequence(seq).is_valid) return seq;
+const calculate_discard_risk = (card: Card, opponent_melds: Card[][]): number => {
+    let risk = 0;
+    if (card.value === "2") return 95; 
+
+    for (const meld of opponent_melds) {
+        const meld_suit = meld.find(c => c.value !== "2")?.suit.name;
+        if (meld_suit !== card.suit.name) continue;
+
+        const attempt = [...meld, card];
+        if (validate_sequence(attempt).is_valid) {
+            risk = 100; 
+            break;
+        }
     }
-  }
-  return null;
+    return risk;
 };
 
-export const find_card_to_add = (hand: Card[], meld: Card[]): Card | null => {
-  // Tenta adicionar cada carta da mão ao jogo
-  for (const card of hand) {
-    const attempt = [...meld, card];
-    // Otimização: Só tenta se for mesmo naipe
-    if (meld[0] && card.suit.name !== meld[0].suit.name) continue;
+const calculate_hand_utility = (card: Card, hand: Card[], has_taken_dead_pile: boolean): number => {
+    if (card.value === "2") return 100;
+
+    const my_suit_cards = hand.filter(c => c.suit.name === card.suit.name && c.id !== card.id);
     
-    if (validate_sequence(attempt).is_valid) {
-      return card;
+    if (my_suit_cards.length === 0) return 0; 
+
+    let score = 0;
+    const my_val = RANK_MAP[card.value] || 0;
+
+    for (const other of my_suit_cards) {
+        const other_val = RANK_MAP[other.value];
+        if (!other_val) continue;
+
+        const diff = Math.abs(my_val - other_val);
+        
+        if (diff === 1) {
+            score += 50; 
+        }
+        else if (diff === 2) {
+            score += 25; 
+        }
+        else if (diff === 0) {
+            score += 15; 
+        }
     }
-  }
-  return null;
+
+    if (!has_taken_dead_pile && score > 30) {
+        score += 10; 
+    }
+
+    return Math.min(score, 100);
 };
 
-export const choose_discard = (hand: Card[]): Card => {
-  // Estratégia simples:
-  // 1. Evita descartar curingas (2)
-  // 2. Prefere descartar cartas isoladas (sem vizinhos de naipe)
+export const choose_discard = (
+    hand: Card[], 
+    opponent_melds: Card[][] = [],
+    discard_pile_top: Card | null = null,
+    has_taken_dead_pile: boolean = false
+): Card => {
+  let best_card: Card | null = null;
+  let min_score = Infinity; 
   
-  const candidates = hand.filter(c => c.value !== "2");
-  const pool = candidates.length > 0 ? candidates : hand; // Se só tiver 2, descarta 2
+  const candidates = hand.length > 1 ? hand.filter(c => c.value !== "2") : hand;
+  const pool = candidates.length > 0 ? candidates : hand;
 
-  // Se tiver alguma carta duplicada (inútil em jogo sem trinca), descarta
-  const value_counts: Record<string, number> = {};
-  pool.forEach(c => {
-      const key = `${c.value}-${c.suit.name}`;
-      value_counts[key] = (value_counts[key] || 0) + 1;
+  pool.forEach(card => {
+      const utility = calculate_hand_utility(card, hand, has_taken_dead_pile);
+      const risk = calculate_discard_risk(card, opponent_melds);
+      
+      let penalty = 0;
+      if (discard_pile_top && card.value === discard_pile_top.value && card.suit.name === discard_pile_top.suit.name) {
+          penalty = 40; 
+      }
+
+      const card_val_points = CARD_POINTS[card.value] || 0;
+
+      const score = (utility * 3) + (risk * 25) + penalty - (card_val_points / 20);
+
+      if (score < min_score) {
+          min_score = score;
+          best_card = card;
+      }
   });
-  
-  const duplicate = pool.find(c => value_counts[`${c.value}-${c.suit.name}`] > 1);
-  if (duplicate) return duplicate;
 
-  // Aleatório entre os candidatos por enquanto, ou maior valor?
-  // Vamos descartar a de maior valor (para não dar ponto pro oponente?)
-  // Ou menor valor?
-  // Vamos pegar aleatório do pool para não ficar travado
-  return pool[Math.floor(Math.random() * pool.length)];
+  return best_card || pool[0]; 
 };

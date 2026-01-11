@@ -1,4 +1,5 @@
 import { type ScoreResult } from "../../../common/utils/scoring";
+import { MELD_POINTS, BONUS_POINTS } from "../../../common/types/card";
 
 interface FinishScreenProps {
   finalScore: {
@@ -36,49 +37,57 @@ export const FinishScreen = ({ finalScore, myTeam, onPlayAgain, onLeave }: Finis
         {/* TEAM 1 */}
         <div className={`flex flex-col gap-6 p-8 rounded-3xl border-2 transition-all shadow-xl ${myTeam === 1 ? 'border-blue-500/50 bg-blue-900/20' : 'border-white/10 bg-black/20'}`}>
           <div className="flex justify-between items-center pb-4 border-b border-white/10">
-            <span className={`text-sm font-black uppercase tracking-widest ${myTeam === 1 ? 'text-blue-400' : 'text-slate-500'}`}>
-              NÓS (TIME 1)
-            </span>
+            <div className="flex flex-col">
+              <span className={`text-sm font-black uppercase tracking-widest ${myTeam === 1 ? 'text-blue-400' : 'text-slate-500'}`}>
+                NÓS (TIME 1)
+              </span>
+              <div className="flex gap-2 mt-1">
+                {finalScore.details_t1.has_taken_dead_pile && (
+                  <span className="text-[10px] bg-red-900/50 text-red-200 px-1.5 py-0.5 rounded border border-red-500/20">
+                    PEGOU MORTO
+                  </span>
+                )}
+                {finalScore.details_t1.did_beat && (
+                  <span className="text-[10px] bg-yellow-900/50 text-yellow-200 px-1.5 py-0.5 rounded border border-yellow-500/20">
+                    BATEU
+                  </span>
+                )}
+              </div>
+            </div>
             {isT1Winner && <span className="text-3xl animate-bounce">🏆</span>}
           </div>
           
           <div className="text-7xl font-black text-white text-center py-4">{finalScore.team_1}</div>
           
-          <div className="space-y-4">
-            <ScoreDetail label="Cartas na Mesa" value={finalScore.details_t1.base_points} />
-            <ScoreDetail label="Bônus Canastras" value={finalScore.details_t1.bonus_points} color="text-green-400" />
-            <ScoreDetail label="Penalidades" value={`-${finalScore.details_t1.penalty_points}`} color="text-red-400" />
-            
-            <div className="pt-6 border-t border-white/10 grid grid-cols-3 gap-2">
-                <MiniStat label="Limpa" val={finalScore.details_t1.details.CLEAN} color="text-blue-400" />
-                <MiniStat label="Suja" val={finalScore.details_t1.details.DIRTY} color="text-yellow-400" />
-                <MiniStat label="Real" val={finalScore.details_t1.details.ACE + finalScore.details_t1.details.KING} color="text-purple-400" />
-            </div>
-          </div>
+          <ScoreBreakdown result={finalScore.details_t1} />
         </div>
 
         {/* TEAM 2 */}
         <div className={`flex flex-col gap-6 p-8 rounded-3xl border-2 transition-all shadow-xl ${myTeam === 2 ? 'border-blue-500/50 bg-blue-900/20' : 'border-white/10 bg-black/20'}`}>
           <div className="flex justify-between items-center pb-4 border-b border-white/10">
-            <span className={`text-sm font-black uppercase tracking-widest ${myTeam === 2 ? 'text-blue-400' : 'text-slate-500'}`}>
-              ELES (TIME 2)
-            </span>
+            <div className="flex flex-col">
+              <span className={`text-sm font-black uppercase tracking-widest ${myTeam === 2 ? 'text-blue-400' : 'text-slate-500'}`}>
+                ELES (TIME 2)
+              </span>
+              <div className="flex gap-2 mt-1">
+                {finalScore.details_t2.has_taken_dead_pile && (
+                  <span className="text-[10px] bg-red-900/50 text-red-200 px-1.5 py-0.5 rounded border border-red-500/20">
+                    PEGOU MORTO
+                  </span>
+                )}
+                {finalScore.details_t2.did_beat && (
+                  <span className="text-[10px] bg-yellow-900/50 text-yellow-200 px-1.5 py-0.5 rounded border border-yellow-500/20">
+                    BATEU
+                  </span>
+                )}
+              </div>
+            </div>
             {isT2Winner && <span className="text-3xl animate-bounce">🏆</span>}
           </div>
           
           <div className="text-7xl font-black text-white text-center py-4">{finalScore.team_2}</div>
           
-          <div className="space-y-4">
-            <ScoreDetail label="Cartas na Mesa" value={finalScore.details_t2.base_points} />
-            <ScoreDetail label="Bônus Canastras" value={finalScore.details_t2.bonus_points} color="text-green-400" />
-            <ScoreDetail label="Penalidades" value={`-${finalScore.details_t2.penalty_points}`} color="text-red-400" />
-
-            <div className="pt-6 border-t border-white/10 grid grid-cols-3 gap-2">
-                <MiniStat label="Limpa" val={finalScore.details_t2.details.CLEAN} color="text-blue-400" />
-                <MiniStat label="Suja" val={finalScore.details_t2.details.DIRTY} color="text-yellow-400" />
-                <MiniStat label="Real" val={finalScore.details_t2.details.ACE + finalScore.details_t2.details.KING} color="text-purple-400" />
-            </div>
-          </div>
+          <ScoreBreakdown result={finalScore.details_t2} />
         </div>
 
       </div>
@@ -104,16 +113,111 @@ export const FinishScreen = ({ finalScore, myTeam, onPlayAgain, onLeave }: Finis
   );
 };
 
-const ScoreDetail = ({ label, value, color = "text-slate-300" }: { label: string, value: string | number, color?: string }) => (
-  <div className="flex justify-between items-center text-base">
-    <span className="text-slate-400 font-medium">{label}</span>
-    <span className={`font-black text-xl ${color}`}>{value}</span>
-  </div>
-);
+const ScoreBreakdown = ({ result }: { result: ScoreResult }) => {
+  // Positive Points Logic
+  const cleanPoints = result.details.CLEAN * MELD_POINTS.CLEAN;
+  const dirtyPoints = result.details.DIRTY * MELD_POINTS.DIRTY;
+  const realPoints = result.details.ACE * MELD_POINTS.ACE + result.details.KING * MELD_POINTS.KING;
+  const beatBonus = result.did_beat ? BONUS_POINTS.BEAT : 0;
+  
+  // Penalty Logic
+  const deadPilePenalty = !result.has_taken_dead_pile ? Math.abs(BONUS_POINTS.DID_NOT_TAKE_DEAD_PILE) : 0;
+  const handPenalty = result.penalty_points - deadPilePenalty;
 
-const MiniStat = ({ label, val, color }: { label: string, val: number, color: string }) => (
-  <div className="bg-black/30 px-3 py-3 rounded-xl flex flex-col items-center justify-center border border-white/5">
-    <span className={`text-2xl font-black ${color} mb-1`}>{val}</span>
-    <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">{label}</span>
+  return (
+    <div className="space-y-4 text-sm md:text-base w-full">
+      
+      {/* SECTION: GANHOS (HUD STYLE) */}
+      <div className="bg-black/40 border border-white/10 rounded-xl overflow-hidden shadow-lg backdrop-blur-sm group hover:border-green-500/30 transition-colors">
+        <div className="bg-green-900/20 border-b border-white/5 p-3 flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)] animate-pulse"></div>
+          <h4 className="text-[10px] md:text-xs font-black uppercase text-green-400 tracking-[0.2em]">
+            Bônus & Pontos
+          </h4>
+        </div>
+        
+        <div className="p-2 space-y-1">
+          {/* Canastras */}
+          {result.details.CLEAN > 0 && (
+            <DetailRow label="Canastra Limpa" count={result.details.CLEAN} multiplier={MELD_POINTS.CLEAN} value={cleanPoints} color="text-green-300" icon="✨" />
+          )}
+          {result.details.DIRTY > 0 && (
+            <DetailRow label="Canastra Suja" count={result.details.DIRTY} multiplier={MELD_POINTS.DIRTY} value={dirtyPoints} color="text-green-200/70" icon="🃏" />
+          )}
+          {(result.details.ACE + result.details.KING) > 0 && (
+            <DetailRow label="Canastra Real/500" value={realPoints} color="text-purple-300" icon="👑" />
+          )}
+
+          {/* Batida */}
+          {beatBonus > 0 && (
+            <DetailRow label="Vitória (Batida)" value={beatBonus} color="text-yellow-300" icon="🚩" isBold />
+          )}
+
+          {/* Cartas na Mesa */}
+          <DetailRow label="Cartas na Mesa" value={result.base_points} color="text-white" icon="🎴" />
+        </div>
+      </div>
+
+      {/* SECTION: PERDAS (HUD STYLE) */}
+      <div className="bg-black/40 border border-white/10 rounded-xl overflow-hidden shadow-lg backdrop-blur-sm group hover:border-red-500/30 transition-colors">
+        <div className="bg-red-900/20 border-b border-white/5 p-3 flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"></div>
+          <h4 className="text-[10px] md:text-xs font-black uppercase text-red-400 tracking-[0.2em]">
+            Penalidades
+          </h4>
+        </div>
+        
+        <div className="p-2 space-y-1">
+          {/* Morto */}
+          {deadPilePenalty > 0 && (
+            <DetailRow label="Não pegou o Morto" value={`-${deadPilePenalty}`} color="text-red-400" icon="💀" isBold />
+          )}
+
+          {/* Mão */}
+          <DetailRow label="Sobra na Mão" value={`-${handPenalty}`} color="text-red-300" icon="✋" />
+          
+          <div className="border-t border-white/10 mt-2 pt-2 px-2 flex justify-between items-center bg-red-950/10 -mx-2 -mb-2 pb-2">
+             <span className="text-[10px] text-red-400/70 font-bold uppercase tracking-wider">Total Descontado</span>
+             <span className="text-red-500 font-mono font-black text-lg">-{result.penalty_points}</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  );
+};
+
+const DetailRow = ({ 
+  label, 
+  count, 
+  multiplier, 
+  value, 
+  color = "text-white", 
+  icon,
+  isBold = false
+}: { 
+  label: string, 
+  count?: number, 
+  multiplier?: number, 
+  value: string | number, 
+  color?: string,
+  icon?: string,
+  isBold?: boolean
+}) => (
+  <div className="flex justify-between items-center p-2 rounded hover:bg-white/5 transition-colors group/row">
+    <div className="flex items-center gap-3">
+        {icon && <span className="text-sm opacity-50 grayscale group-hover/row:grayscale-0 transition-all">{icon}</span>}
+        <div className="flex flex-col">
+            <span className={`text-slate-300 text-xs md:text-sm ${isBold ? 'font-bold' : 'font-medium'}`}>{label}</span>
+            {count !== undefined && multiplier !== undefined && (
+                <span className="text-[9px] text-slate-500 font-mono tracking-tighter">
+                    {count} <span className="text-slate-600">x</span> {multiplier}
+                </span>
+            )}
+        </div>
+    </div>
+    <span className={`font-mono text-base md:text-lg ${isBold ? 'font-black' : 'font-bold'} ${color} tabular-nums`}>
+        {value}
+    </span>
   </div>
 );

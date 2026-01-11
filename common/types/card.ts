@@ -121,7 +121,7 @@ export const BONUS_POINTS = {
 export const MELD_POINTS = {
   INSUFFICIENT: 0,
   DIRTY: 100,
-  CLEAN: 300, // quero que valha 200
+  CLEAN: 200, // quero que valha 200
   KING: 500,
   ACE: 1000,
 } as const;

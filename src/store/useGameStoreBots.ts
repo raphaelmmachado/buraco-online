@@ -25,6 +25,7 @@ interface GameState {
   has_taken_dead_pile: Record<TeamID, boolean>;
   turn_phase: "DRAW" | "ACTION" | "DISCARD";
   current_player: PlayerID;
+  last_drawn_card_id: string | null;
   final_score: { team_1: ScoreResult; team_2: ScoreResult } | null;
   last_error: string | null;
 }
@@ -63,6 +64,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   has_taken_dead_pile: { 1: false, 2: false },
   turn_phase: "DRAW",
   current_player: 1,
+  last_drawn_card_id: null,
   final_score: null,
   last_error: null,
 
@@ -89,6 +91,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       team_melds: { 1: [], 2: [] },
       turn_phase: "DRAW",
       current_player: 1,
+      last_drawn_card_id: null,
       final_score: null,
       last_error: null,
     });
@@ -125,11 +128,12 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const [new_card, ...remaining_deck] = deck;
     const updated_hands = {
       ...hands,
-      [current_player]: [...hands[current_player], new_card],
+      [current_player]: sort_cards([...hands[current_player], new_card]),
     };
     set({
       deck: remaining_deck,
       hands: updated_hands,
+      last_drawn_card_id: new_card.id,
       turn_phase: "ACTION",
       last_error: null,
     });
@@ -161,7 +165,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const remaining_hand = my_hand.filter(
       (c) => !hand_cards_for_meld_ids.includes(c.id)
     );
-    const new_hand = [...remaining_hand, ...pile_to_take];
+    const new_hand = sort_cards([...remaining_hand, ...pile_to_take]);
 
     const team_id = get_team(current_player);
     const new_melds = [...team_melds[team_id], organize_meld(potential_meld)];
@@ -204,7 +208,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const remaining_hand = my_hand.filter(
       (c) => !hand_cards_for_meld_ids.includes(c.id)
     );
-    const new_hand = [...remaining_hand, ...pile_to_take];
+    const new_hand = sort_cards([...remaining_hand, ...pile_to_take]);
 
     const new_melds = [...team_melds[team_id]];
     new_melds[meld_index] = organize_meld(proposed_meld);
@@ -229,14 +233,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
     if (!target_meld || cards_to_add.length === 0) return;
     const proposed_meld = [...target_meld, ...cards_to_add];
-    const validation = validate_sequence(proposed_meld);
-
-    if (!validation.is_valid) {
-      set({ last_error: validation.error });
-      return;
-    }
-
-    const new_hand = my_hand.filter((c) => !card_ids.includes(c.id));
+    const new_hand = sort_cards(my_hand.filter((c) => !card_ids.includes(c.id)));
     if (new_hand.length === 0 && !get().internal_can_beat()) {
       set({ last_error: "É necessário ter uma canastra limpa para bater." });
       return;
@@ -265,7 +262,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       return;
     }
 
-    const new_hand = my_hand.filter((c) => !card_ids.includes(c.id));
+    const new_hand = sort_cards(my_hand.filter((c) => !card_ids.includes(c.id)));
     if (new_hand.length === 0 && !get().internal_can_beat()) {
       set({ last_error: "É necessário ter uma canastra limpa para bater." });
       return;
@@ -302,10 +299,11 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       return;
     }
 
-    const new_hand = my_hand.filter((c) => c.id !== card.id);
+    const new_hand = sort_cards(my_hand.filter((c) => c.id !== card.id));
     set({
       hands: { ...hands, [current_player]: new_hand },
       discard_pile: [card, ...discard_pile],
+      last_drawn_card_id: null,
       last_error: null,
     });
 

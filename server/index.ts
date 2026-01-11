@@ -2,14 +2,14 @@ console.log("--- SCRIPT START ---");
 import { Server, Socket } from "socket.io";
 import { createServer } from "http";
 
-import { create_deck, distribute_cards } from "../common/utils/game_logic.ts";
+import { create_deck, distribute_cards } from "../common/utils/game_logic";
 import {
   validate_sequence,
   validate_discard_pickup,
-} from "../common/utils/rules_logic.ts";
-import { sort_cards, organize_meld } from "../common/utils/sort_cards.ts";
-import { calculate_score, type ScoreResult } from "../common/utils/scoring.ts";
-import { type Card } from "../common/types/card.ts";
+} from "../common/utils/rules_logic";
+import { sort_cards, organize_meld } from "../common/utils/sort_cards";
+import { calculate_score, type ScoreResult } from "../common/utils/scoring";
+import { type Card } from "../common/types/card";
 
 // AI Logic Import
 import {
@@ -17,7 +17,7 @@ import {
   choose_discard,
   find_card_to_add,
   find_meld_in_hand,
-} from "../common/utils/bot_logic.ts";
+} from "../common/utils/bot_logic";
 
 type PlayerID = 1 | 2 | 3 | 4;
 type TeamID = 1 | 2;
@@ -43,6 +43,7 @@ interface ServerGameState {
   current_player: number;
   players_connected: string[];
   players_data: Record<PlayerID, PlayerData>;
+  last_drawn_card_id: string | null;
   final_score: {
     team_1: number;
     team_2: number;
@@ -54,7 +55,7 @@ interface ServerGameState {
 const games: Record<string, ServerGameState> = {};
 
 const get_team = (player_id: number): TeamID => {
-  return player_id % 2 !== 0 ? 1 : 2;
+  return (player_id % 2 !== 0 ? 1 : 2) as TeamID;
 };
 
 const get_next_player = (current: number, mode: GameMode): number => {
@@ -71,11 +72,11 @@ const has_clean_canastra = (
   
   return melds.some((meld) => {
     const val = validate_sequence(meld);
+    if (!val.is_valid) return false;
     return (
-      val.is_valid &&
-      (val.canastra_type === "CLEAN" ||
-        val.canastra_type === "KING" ||
-        val.canastra_type === "ACE")
+      val.canastra_type === "CLEAN" ||
+      val.canastra_type === "KING" ||
+      val.canastra_type === "ACE"
     );
   });
 };
@@ -99,9 +100,9 @@ const handle_empty_hand = (
   type: "DIRECT" | "INDIRECT"
 ) => {
   const team_id = get_team(player_id);
-  const team_idx = team_id - 1;
+  const team_idx = (team_id - 1) as 0 | 1;
   
-  const has_taken = game.has_taken_dead_pile[team_idx as 0 | 1];
+  const has_taken = game.has_taken_dead_pile[team_idx];
 
   if (has_taken) {
     console.log(`Fim de Jogo! Time ${team_id} bateu final.`);
@@ -142,7 +143,7 @@ const handle_empty_hand = (
   if (game.dead_piles.length > 0) {
     const my_dead_pile = game.dead_piles.shift();
     if (my_dead_pile) {
-      game.has_taken_dead_pile[team_idx as 0 | 1] = true;
+      game.has_taken_dead_pile[team_idx] = true;
       game.hands[player_id] = sort_cards(my_dead_pile);
     }
     game.turn_phase = type === "DIRECT" ? "ACTION" : "DRAW";
@@ -174,6 +175,14 @@ const handle_empty_hand = (
   }
 };
 
+// --- HELPER TO FIND PLAYER ID BY SOCKET ---
+const get_player_id_by_socket = (game: ServerGameState, socketId: string): PlayerID | null => {
+  for (const [id, data] of Object.entries(game.players_data)) {
+    if (data.socketId === socketId) return Number(id) as PlayerID;
+  }
+  return null;
+};
+
 const validateTurn = (
   roomId: string,
   socketId: string
@@ -190,11 +199,8 @@ const validateTurn = (
       return null;
   }
 
-  const playerIndex = game.players_connected.indexOf(socketId);
-  if (playerIndex === -1) return null;
-
-  const player_id = (playerIndex + 1) as PlayerID;
-  if (game.current_player !== player_id) {
+  const player_id = get_player_id_by_socket(game, socketId);
+  if (!player_id || game.current_player !== player_id) {
     return null;
   }
   return { game, player_id };
@@ -380,6 +386,20 @@ const io = new Server(httpServer, {
 io.on("connection", (socket: Socket) => {
   console.log("Conectado:", socket.id);
 
+  socket.on("disconnect", () => {
+    console.log("Desconectado:", socket.id);
+    // Remove o socket de todas as salas em que ele estava
+    for (const roomId in games) {
+      const game = games[roomId];
+      const idx = game.players_connected.indexOf(socket.id);
+      if (idx !== -1) {
+        game.players_connected.splice(idx, 1);
+        console.log(`Socket ${socket.id} removido da sala ${roomId}`);
+        io.to(roomId).emit("game_update", game);
+      }
+    }
+  });
+
   socket.on("request_rooms", () => {
     const room_list = Object.entries(games).map(([roomId, game]) => {
          const filledSlots = Object.keys(game.players_data).length;
@@ -454,6 +474,7 @@ io.on("connection", (socket: Socket) => {
                 current_player: 1,
                 players_connected: [],
                 players_data: {} as Record<PlayerID, PlayerData>,
+                last_drawn_card_id: null,
                 final_score: null,
               };
       }
@@ -469,9 +490,16 @@ io.on("connection", (socket: Socket) => {
         // É o mesmo jogador tentando entrar de novo. Redireciona para lógica de rejoin.
         const [pNum, pData] = existingPlayerEntry;
 
+        // Limpa socket antigo da lista de conectados
+        const oldSocketId = pData.socketId;
+        const oldIdx = game.players_connected.indexOf(oldSocketId);
+        if (oldIdx !== -1) {
+          game.players_connected.splice(oldIdx, 1);
+        }
+
         // Atualiza socket
         pData.socketId = socket.id;
-        // Atualiza lista de conectados (remove antigo se houver, adiciona novo)
+        // Adiciona novo socket
         if (!game.players_connected.includes(socket.id)) {
           game.players_connected.push(socket.id);
         }
@@ -533,6 +561,13 @@ io.on("connection", (socket: Socket) => {
         `Player ${pData.userName} (${pNum}) reconnecting to ${roomId}`
       );
 
+      // Limpa socket antigo da lista de conectados
+      const oldSocketId = pData.socketId;
+      const oldIdx = game.players_connected.indexOf(oldSocketId);
+      if (oldIdx !== -1) {
+        game.players_connected.splice(oldIdx, 1);
+      }
+
       // Atualiza o socket ID
       pData.socketId = socket.id;
 
@@ -551,9 +586,8 @@ io.on("connection", (socket: Socket) => {
       const game = games[roomId];
       if (!game) return;
 
-      const playerIndex = game.players_connected.indexOf(socket.id);
-      if (playerIndex === -1) return;
-      const player_id = (playerIndex + 1) as PlayerID;
+      const player_id = get_player_id_by_socket(game, socket.id);
+      if (!player_id) return;
 
       if (player_id !== 1) {
         socket.emit("error_msg", "Apenas o dono da sala pode iniciar o jogo.");
@@ -626,6 +660,9 @@ io.on("connection", (socket: Socket) => {
 
       if (card && player_hand) {
         player_hand.unshift(card);
+        // Ordena automaticamente após a compra (sem randomizar naipes)
+        game.hands[player_id] = sort_cards(player_hand);
+        game.last_drawn_card_id = card.id;
         game.turn_phase = "ACTION";
         io.to(roomId).emit("game_update", game);
       }
@@ -695,7 +732,7 @@ io.on("connection", (socket: Socket) => {
         const team_id = get_team(player_id);
         const team_melds = game.team_melds[team_id];
         if (team_melds) {
-            team_melds.push(sort_cards(combined));
+            team_melds.push(organize_meld(combined));
         }
 
         game.turn_phase = "ACTION";
@@ -786,7 +823,7 @@ io.on("connection", (socket: Socket) => {
         }
 
         if (team_melds) {
-            team_melds[meld_index] = sort_cards(new_meld);
+            team_melds[meld_index] = organize_meld(new_meld);
         }
 
         game.turn_phase = "ACTION";
@@ -858,12 +895,12 @@ io.on("connection", (socket: Socket) => {
           }
         }
 
-        game.hands[player_id] = current_hand.filter(
+        game.hands[player_id] = sort_cards(current_hand.filter(
           (c) => !card_ids.includes(c.id)
-        );
+        ));
         const team_melds = game.team_melds[team_id];
         if (team_melds) {
-            team_melds.push(sort_cards(cards_to_meld));
+            team_melds.push(organize_meld(cards_to_meld));
         }
 
         const updated_hand = game.hands[player_id];
@@ -941,10 +978,10 @@ io.on("connection", (socket: Socket) => {
           }
         }
 
-        game.hands[player_id] = current_hand.filter(
+        game.hands[player_id] = sort_cards(current_hand.filter(
           (c) => !card_ids.includes(c.id)
-        );
-        team_melds[meld_index] = sort_cards(new_meld);
+        ));
+        team_melds[meld_index] = organize_meld(new_meld);
 
         const updated_hand = game.hands[player_id];
         if (updated_hand && updated_hand.length === 0) {
@@ -994,11 +1031,15 @@ io.on("connection", (socket: Socket) => {
         const updated_hand = game.hands[player_id];
         if (updated_hand && updated_hand.length === 0) {
           handle_empty_hand(game, player_id, "INDIRECT");
+        } else if (updated_hand) {
+          // Ordena automaticamente após descarte
+          game.hands[player_id] = sort_cards(updated_hand);
         }
 
         if (game.status !== "FINISHED") {
           game.turn_phase = "DRAW";
           game.current_player = get_next_player(game.current_player, game.mode);
+          game.last_drawn_card_id = null; // Limpa o destaque da carta comprada
           
           const nextPData = game.players_data[game.current_player as PlayerID];
           if (nextPData && nextPData.isBot) {
@@ -1014,9 +1055,8 @@ io.on("connection", (socket: Socket) => {
       const game = games[roomId];
       if (!game) return;
 
-      const playerIndex = game.players_connected.indexOf(socket.id);
-      if (playerIndex === -1) return;
-      const player_id = (playerIndex + 1) as PlayerID;
+      const player_id = get_player_id_by_socket(game, socket.id);
+      if (!player_id) return;
 
       const current_hand = game.hands[player_id];
 
@@ -1031,9 +1071,8 @@ io.on("connection", (socket: Socket) => {
       const game = games[roomId];
       if (!game) return;
 
-      const playerIndex = game.players_connected.indexOf(socket.id);
-      if (playerIndex === -1) return;
-      const player_id = (playerIndex + 1) as PlayerID;
+      const player_id = get_player_id_by_socket(game, socket.id);
+      if (!player_id) return;
 
       if (player_id !== 1) {
         socket.emit("error_msg", "Apenas o dono da sala pode encerrar a sala.");

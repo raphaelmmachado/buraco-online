@@ -17,6 +17,7 @@ interface IncomingServerState {
   turn_phase: "DRAW" | "ACTION" | "DISCARD";
   current_player: number;
   players_data: Record<number, { socketId: string; userName: string }>;
+  last_drawn_card_id: string | null;
   final_score: {
     team_1: number;
     team_2: number;
@@ -50,6 +51,7 @@ interface GameState {
   dead_piles: Card[][];
   turn_phase: "DRAW" | "ACTION" | "DISCARD";
   current_player: number;
+  last_drawn_card_id: string | null;
   final_score: {
     team_1: number;
     team_2: number;
@@ -100,6 +102,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   dead_piles: [],
   turn_phase: "DRAW",
   current_player: 1,
+  last_drawn_card_id: null,
   final_score: null,
 
   clear_error: () => set({ last_error: null }),
@@ -246,6 +249,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       },
       hands: server_data.hands,
       players_data: server_data.players_data,
+      last_drawn_card_id: server_data.last_drawn_card_id,
       final_score: server_data.final_score,
       last_error: null,
     });

@@ -22,6 +22,7 @@ export interface GameAdapterInterface {
   dead_piles: Card[][];
   turn_phase: "DRAW" | "ACTION" | "DISCARD";
   current_player: number;
+  last_drawn_card_id: string | null;
   final_score: {
     team_1: number;
     team_2: number;
@@ -74,6 +75,7 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       dead_piles: local.dead_piles,
       turn_phase: local.turn_phase,
       current_player: local.current_player,
+      last_drawn_card_id: local.last_drawn_card_id,
       final_score: local.final_score ? {
         team_1: local.final_score.team_1.total_score,
         team_2: local.final_score.team_2.total_score,

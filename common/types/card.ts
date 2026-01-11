@@ -12,6 +12,7 @@ export type Suit = {
   icon: "♠" | "♣" | "♥" | "♦";
   name: "espadas" | "paus" | "copas" | "ouro";
   color: "red" | "black";
+  emoji?: string;
 };
 
 export type CardValue =
@@ -42,17 +43,17 @@ export interface Card {
 // -----------------------------------------------------------------------------
 
 export const SUITS: Suit[] = [
-  { icon: "♠", name: "espadas", color: "black" },
-  { icon: "♣", name: "paus", color: "black" },
-  { icon: "♥", name: "copas", color: "red" },
-  { icon: "♦", name: "ouro", color: "red" },
+  { icon: "♠", name: "espadas", color: "black", emoji: "♠️" },
+  { icon: "♣", name: "paus", color: "black", emoji: "♣️" },
+  { icon: "♥", name: "copas", color: "red", emoji: "♥️" },
+  { icon: "♦", name: "ouro", color: "red", emoji: "♦️" },
 ];
 
 const CARD_DEFINITIONS = [
   { val: "A", weight: [1, 14], points: 15 },
   {
     val: "2",
-    weight: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+    weight: [2, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
     points: 20,
   }, // Curinga
   { val: "3", weight: [3], points: 5 },
@@ -84,12 +85,22 @@ export const CARD_VALUE_WEIGHTS: Record<CardValue, readonly number[]> =
     {} as Record<CardValue, readonly number[]>
   );
 
-// Usado para ordenação simples (Sort) - Prioriza o primeiro peso (índice 0)
-export const PRIMARY_CARD_WEIGHTS: Record<CardValue, number> =
-  CARD_DEFINITIONS.reduce(
-    (acc, curr) => ({ ...acc, [curr.val]: curr.weight[0] }),
-    {} as Record<CardValue, number>
-  );
+// Usado para ordenação simples (Sort) - Prioriza o peso natural ou o primeiro peso
+export const PRIMARY_CARD_WEIGHTS: Record<CardValue, number> = {
+  A: 1,
+  "2": 2, // Antes estava pegando o primeiro do array [1, 2, ...], que era 1.
+  "3": 3,
+  "4": 4,
+  "5": 5,
+  "6": 6,
+  "7": 7,
+  "8": 8,
+  "9": 9,
+  "10": 10,
+  J: 11,
+  Q: 12,
+  K: 13,
+};
 
 // Usado para calcular a pontuação (Scoring)
 export const CARD_POINTS: Record<CardValue, number> = CARD_DEFINITIONS.reduce(

@@ -2,6 +2,7 @@
 
 @layer base {
   body {
+    overscroll-behavior: none;
     /* @apply bg-green-900 h-screen overflow-hidden; */
   }
 

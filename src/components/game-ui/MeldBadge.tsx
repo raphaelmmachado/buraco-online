@@ -19,11 +19,11 @@ export const MeldBadge = ({ meld }: { meld: CardType[] }) => {
       break;
     case "KING":
       color = "bg-green-600";
-      label = "EXCELENTE";
+      label = "Excelente!";
       break;
     case "ACE":
       color = "bg-purple-600";
-      label = "PERFEITA";
+      label = "Perfeita!";
       break;
     default:
       label = `Faltam ${Math.abs(length - 7)}`;
@@ -33,11 +33,12 @@ export const MeldBadge = ({ meld }: { meld: CardType[] }) => {
   return (
     <div className="flex flex-col items-center z-20">
       <span
-        className={`w-full ${color} text-center text-xs md:text-sm text-white font-black px-2.5 py-0.5 rounded-md rounded-tl-none rounded-tr-none shadow-lg uppercase tracking-widest border border-white/10`}
+        className={`w-full ${color} text-center text-xs md:text-sm
+         text-white font-black p-1 rounded-md rounded-tl-none rounded-tr-none shadow-lg uppercase tracking-widest border border-white/10`}
       >
         {label}
       </span>
-      <span className="text-[10px] text-white font-black drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] mt-0.5">
+      <span className="text-xs text-white font-black drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] mt-0.5">
         {score} pts
       </span>
     </div>

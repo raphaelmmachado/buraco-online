@@ -39,7 +39,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
 
   // Hooks Integration
   useWakeLock();
-  const { isMobile, width: windowWidth } = useMobileCheck();
+  const { isMobile } = useMobileCheck();
   const { opponentHeight, startDrag } = useScreenDrag(35);
   useGameAudio(game, isMyTurn);
 

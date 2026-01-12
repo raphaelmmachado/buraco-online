@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef } from "react";
 import { type Card as CardType } from "../../../common/types/card";
 import { HandCard } from "./HandCard";
 

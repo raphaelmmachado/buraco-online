@@ -56,7 +56,7 @@ export const DiscardCard = ({
         ${isRed ? "text-red-600" : "text-slate-900"}
       `}
     >
-      <div className="self-start flex flex-col items-center leading-none">
+      <div className="flex flex-col items-center leading-none">
         <span className={`${mini ? "text-sm" : "md:text-2xl"}`}>
           {card.value}
         </span>

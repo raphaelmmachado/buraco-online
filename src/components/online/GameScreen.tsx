@@ -6,6 +6,7 @@ import { GameMenu } from "../game-ui/GameMenu";
 import { RulesModal } from "../game-ui/RulesModal";
 import { FinishScreen } from "./FinishScreen";
 import { PlayerHand } from "../game-ui/PlayerHand";
+import { MobilePlayerHand } from "../game-ui/MobilePlayerHand";
 import { PileCard } from "../game-ui/PileCard";
 import { DiscardCard } from "../game-ui/DiscardCard";
 import { type GameAdapterInterface } from "../game-ui/useLocalGameAdapter";
@@ -227,8 +228,8 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                   {isMyTurn ? "SUA VEZ" : "VEZ DELES"}
                 </span>
 
-                <span className="text-[6px] text-gray-400 uppercase font-bold tracking-tight mt-0.5">
-                  {game.turn_phase === "DRAW" ? "COMPRAR" : "JOGAR"}
+                <span className="text-[9px] text-gray-400 uppercase font-bold tracking-tight mt-0.5">
+                  {game.turn_phase === "DRAW" ? "COMPRA" : "JOGA"}
                 </span>
               </div>
 
@@ -280,6 +281,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                     (canDraw && selectedCards.length >= 2) ||
                     hoveredMeld !== null
                   }
+                  subtleHighlight={canAction && selectedCards.length === 1}
                 />
               </div>
             </>
@@ -365,14 +367,14 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                 game.meld_cards(selectedCards);
                 setSelectedCards([]);
               }}
-              className="w-24 h-16 md:w-44 md:h-24 border-2 border-dashed border-yellow-500/40 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-yellow-500/10 transition-all group animate-pulse"
+              className="shrink-0 w-32 h-20 md:w-48 md:h-32 border-2 border-dotted border-yellow-600/40 bg-yellow-600/5 cursor-pointer hover:bg-yellow-600/10 shadow-sm rounded-xl flex flex-col items-center justify-center transition-all duration-300"
             >
-              <div className="flex items-center gap-2">
-                <span className="text-yellow-500 text-xl font-light group-hover:scale-125 transition-transform">
-                  +
-                </span>
-                <span className="text-[10px] font-black text-yellow-500/60 uppercase tracking-widest">
-                  Novo Jogo
+              <div className="flex items-center gap-3 text-yellow-600/60">
+                <span className="text-3xl md:text-5xl font-light">+</span>
+                <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-left leading-tight">
+                  Novo
+                  <br />
+                  Jogo
                 </span>
               </div>
             </div>
@@ -396,7 +398,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
       {/* FOOTER: [MONTE] [MÃO] [LIXO] */}
       <footer
         id="game-footer"
-        className="h-28 md:h-[20%] bg-linear-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md px-2 pb-2 z-40
+        className="h-36 md:h-[20%] bg-linear-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md px-2 pb-2 z-40
          relative w-full flex items-end justify-between gap-2 md:gap-6 pointer-events-none"
       >
         {!isMobile && (
@@ -459,15 +461,24 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
         )}
 
         {/* CENTER: PLAYER HAND */}
-        <PlayerHand
-          cards={game.hands[my_player_id] || []}
-          selectedCardIds={selectedCards}
-          lastDrawnCardId={game.last_drawn_card_id}
-          onCardClick={toggleSelect}
-          onSortHand={game.sort_hand}
-          isMobile={isMobile}
-        />
-
+        {isMobile ? (
+          <MobilePlayerHand
+            cards={game.hands[my_player_id] || []}
+            selectedCardIds={selectedCards}
+            lastDrawnCardId={game.last_drawn_card_id}
+            onCardClick={toggleSelect}
+            onSortHand={game.sort_hand}
+          />
+        ) : (
+          <PlayerHand
+            cards={game.hands[my_player_id] || []}
+            selectedCardIds={selectedCards}
+            lastDrawnCardId={game.last_drawn_card_id}
+            onCardClick={toggleSelect}
+            onSortHand={game.sort_hand}
+            isMobile={false}
+          />
+        )}
         {/* RIGHT: DISCARD PILE */}
         {!isMobile && (
           <div className="shrink-0 pb-1 relative pointer-events-auto">
@@ -480,6 +491,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               highlight={
                 (canDraw && selectedCards.length >= 2) || hoveredMeld !== null
               }
+              subtleHighlight={canAction && selectedCards.length === 1}
               mini={isMobile}
             />
             {/* Morto Contador */}

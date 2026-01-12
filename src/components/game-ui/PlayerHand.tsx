@@ -140,14 +140,14 @@ export const PlayerHand = ({
       onContextMenu={(e) => e.preventDefault()}
       id="player-hand-container"
       ref={containerRef}
-      className="flex-1 h-full relative touch-manipulation group/hand select-none pointer-events-none flex flex-col justify-end items-center"
+      className="flex-1 h-full relative group/hand select-none pointer-events-none flex flex-col justify-end items-center"
     >
       {/* Container das Cartas */}
       <div
-        className={`relative w-full h-full flex items-end justify-center pb-4 ${
+        className={`relative w-full h-full flex items-end pb-4 touch-pan-x ${
           isOverflowing
-            ? "overflow-x-auto scrollbar-hide pointer-events-auto"
-            : ""
+            ? "justify-start overflow-x-auto scrollbar-hide pointer-events-auto"
+            : "justify-center"
         }`}
       >
         <div

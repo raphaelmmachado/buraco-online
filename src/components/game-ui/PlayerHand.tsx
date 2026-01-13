@@ -22,7 +22,7 @@ const HAND_CONFIG = {
     mobile: 30,
     desktop: 50,
     minMobile: 15,
-    minDesktop: 25,
+    minDesktop: 30,
   },
 
   // Rotação (Leque)

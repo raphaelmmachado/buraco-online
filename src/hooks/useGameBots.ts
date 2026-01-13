@@ -20,15 +20,24 @@ export const useGameBots = () => {
     const team_melds = store.team_melds[team_id];
 
     const playBotTurn = () => {
+      const has_taken = store.has_taken_dead_pile[team_id];
+      const has_clean = store.internal_can_beat();
+
       // 1. FASE DE COMPRA (DRAW)
       if (store.turn_phase === "DRAW") {
         
         // Tenta pegar do lixo
         if (store.discard_pile.length > 0) {
             const top_discard = store.discard_pile[0];
-            const has_taken = store.has_taken_dead_pile[team_id];
             
-            const action = analyze_discard_pickup(my_hand, top_discard, team_melds, has_taken);
+            const action = analyze_discard_pickup(
+              my_hand, 
+              top_discard, 
+              team_melds, 
+              has_taken, 
+              has_clean, 
+              store.discard_pile.length
+            );
             
             if (action) {
                 if (action.type === 'NEW_MELD') {
@@ -50,8 +59,11 @@ export const useGameBots = () => {
       // 2. FASE DE AÇÃO (ACTION)
       else if (store.turn_phase === "ACTION") {
         
+        const has_taken = store.has_taken_dead_pile[team_id];
+        const has_clean = store.internal_can_beat();
+
         // A. Tenta baixar novo jogo
-        const new_meld = find_meld_in_hand(my_hand);
+        const new_meld = find_meld_in_hand(my_hand, has_taken, has_clean);
         if (new_meld) {
             console.log(`🤖 Bot ${store.current_player} baixou jogo.`);
             store.meld_cards(new_meld.map(c => c.id));
@@ -59,9 +71,8 @@ export const useGameBots = () => {
         }
 
         // B. Tenta adicionar a jogos existentes
-        const has_taken = store.has_taken_dead_pile[team_id];
         for (let i = 0; i < team_melds.length; i++) {
-            const card_to_add = find_card_to_add(my_hand, team_melds[i], has_taken);
+            const card_to_add = find_card_to_add(my_hand, team_melds[i], has_taken, has_clean);
             if (card_to_add) {
                 console.log(`🤖 Bot ${store.current_player} adicionou ao jogo ${i}.`);
                 store.add_card_to_meld([card_to_add.id], i);

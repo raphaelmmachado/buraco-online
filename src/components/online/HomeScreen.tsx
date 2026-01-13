@@ -3,7 +3,6 @@ import { useGameStore } from "../../store/useGameStore";
 
 export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
   const [newRoomId, setNewRoomId] = useState("");
-  const [userName, setUserName] = useState("");
   const [activeTab, setActiveTab] = useState<"ONLINE" | "OFFLINE">("ONLINE");
 
   const connect = useGameStore((state) => state.connect);
@@ -11,20 +10,28 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
   const rooms = useGameStore((state) => state.rooms);
   const fetchRooms = useGameStore((state) => state.fetchRooms);
   const rejoinGame = useGameStore((state) => state.rejoinGame);
+  const totalOnline = useGameStore((state) => state.totalOnline);
+  const onlineNames = useGameStore((state) => state.onlineNames);
 
   // Check for active session on mount
-  const [activeSession, setActiveSession] = useState<string | null>(null);
-  useEffect(() => {
-      const savedRoom = localStorage.getItem("baralho_active_room");
-      if (savedRoom) setActiveSession(savedRoom);
-  }, []);
+  const [activeSession] = useState<string | null>(() =>
+    localStorage.getItem("baralho_active_room")
+  );
 
+  const [userName, setUserName] = useState(
+    () => localStorage.getItem("baralho_user_name") || ""
+  );
   // Inicializa o socket e busca as salas ao montar o componente
   useEffect(() => {
     initializeSocket();
     const interval = setInterval(fetchRooms, 5000); // Atualiza a cada 5s
     return () => clearInterval(interval);
   }, [initializeSocket, fetchRooms]);
+
+  // check username
+  useEffect(() => {
+    if (userName) localStorage.setItem("baralho_user_name", userName);
+  }, [userName]);
 
   const handleCreate = (mode: "1v1" | "2v2") => {
     if (userName.trim() === "") {
@@ -49,7 +56,13 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
   return (
     <div className="min-h-screen bg-[#0f2e1a] flex flex-col items-center justify-center text-white p-6 font-sans relative overflow-hidden">
       {/* Background Texture */}
-      <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "30px 30px" }}></div>
+      <div
+        className="absolute inset-0 opacity-10 pointer-events-none"
+        style={{
+          backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)",
+          backgroundSize: "30px 30px",
+        }}
+      ></div>
       <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/50 pointer-events-none"></div>
 
       <div className="text-center mb-12 animate-fade-in relative z-10">
@@ -68,23 +81,6 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
       <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
         {/* LADO ESQUERDO: PERFIL E CRIAÇÃO */}
         <div className="flex flex-col gap-6">
-          
-          {/* REJOIN ALERT */}
-          {activeSession && (
-            <div className="bg-yellow-500/20 border border-yellow-500/50 p-4 rounded-xl flex items-center justify-between animate-pulse shadow-[0_0_20px_rgba(234,179,8,0.2)]">
-                <div>
-                    <p className="text-[10px] font-black text-yellow-500 uppercase tracking-widest">Sessão Encontrada</p>
-                    <p className="text-sm font-bold text-white">Você estava na sala: {activeSession}</p>
-                </div>
-                <button 
-                    onClick={() => rejoinGame()}
-                    className="bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all"
-                >
-                    Voltar
-                </button>
-            </div>
-          )}
-
           {/* USERNAME PANEL */}
           <div className="bg-black/40 backdrop-blur-md p-1 rounded-2xl shadow-2xl border border-white/10 group hover:border-yellow-500/30 transition-colors">
             <div className="bg-slate-900/50 p-6 rounded-xl">
@@ -95,7 +91,9 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
               <input
                 type="text"
                 value={userName}
-                onChange={(e) => setUserName(e.target.value)}
+                onChange={(e) => {
+                  setUserName(e.target.value);
+                }}
                 maxLength={8}
                 placeholder="SEU NICKNAME"
                 className="w-full px-4 py-4 rounded-lg bg-black/50 text-white border border-white/10 focus:outline-none focus:border-yellow-500/50 focus:bg-black/70 transition-all text-xl font-black placeholder:text-white/10 font-mono tracking-wider uppercase text-center"
@@ -115,7 +113,9 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
                     : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
                 }`}
               >
-                {activeTab === "ONLINE" && <div className="absolute bottom-0 left-0 w-full h-[2px] bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>}
+                {activeTab === "ONLINE" && (
+                  <div className="absolute bottom-0 left-0 w-full h-[2px] bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>
+                )}
                 🌐 Criar Sala
               </button>
               <button
@@ -126,7 +126,9 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
                     : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
                 }`}
               >
-                {activeTab === "OFFLINE" && <div className="absolute bottom-0 left-0 w-full h-[2px] bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.8)]"></div>}
+                {activeTab === "OFFLINE" && (
+                  <div className="absolute bottom-0 left-0 w-full h-[2px] bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.8)]"></div>
+                )}
                 🤖 Vs Bot
               </button>
             </div>
@@ -151,15 +153,23 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
                       onClick={() => handleCreate("1v1")}
                       className="bg-blue-600/80 hover:bg-blue-500 text-white py-4 rounded-xl font-black shadow-lg shadow-blue-900/20 transition-all active:scale-95 border border-white/10 flex flex-col items-center justify-center gap-1 group/btn"
                     >
-                      <span className="text-2xl group-hover/btn:scale-110 transition-transform">👤</span>
-                      <span className="text-xs uppercase tracking-widest">1 vs 1</span>
+                      <span className="text-2xl group-hover/btn:scale-110 transition-transform">
+                        👤
+                      </span>
+                      <span className="text-xs uppercase tracking-widest">
+                        1 vs 1
+                      </span>
                     </button>
                     <button
                       onClick={() => handleCreate("2v2")}
                       className="bg-purple-600/80 hover:bg-purple-500 text-white py-4 rounded-xl font-black shadow-lg shadow-purple-900/20 transition-all active:scale-95 border border-white/10 flex flex-col items-center justify-center gap-1 group/btn"
                     >
-                      <span className="text-2xl group-hover/btn:scale-110 transition-transform">👥</span>
-                      <span className="text-xs uppercase tracking-widest">2 vs 2</span>
+                      <span className="text-2xl group-hover/btn:scale-110 transition-transform">
+                        👥
+                      </span>
+                      <span className="text-xs uppercase tracking-widest">
+                        2 vs 2
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -190,10 +200,25 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
         <div className="bg-black/40 backdrop-blur-md p-1 rounded-2xl shadow-2xl border border-white/10 flex flex-col min-h-100 hover:border-white/20 transition-colors">
           <div className="bg-slate-900/50 flex-1 rounded-xl p-6 flex flex-col">
             <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/5">
-              <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                <span className="text-lg">📡</span>
-                Salas Disponíveis
-              </h2>
+              <div className="flex flex-col gap-1">
+                <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                  <span className="text-lg">📡</span>
+                  Salas Disponíveis
+                </h2>
+                {totalOnline > 0 && (
+                  <p className="text-[10px] text-slate-500 font-medium">
+                    <span className="text-yellow-500/80">
+                      {onlineNames.slice(0, 3).join(", ")}
+                    </span>
+                    {totalOnline > 3
+                      ? ` e mais ${totalOnline - 3}`
+                      : totalOnline === 1
+                      ? ""
+                      : ""}
+                    {totalOnline > 1 ? " estão " : " está "} online
+                  </p>
+                )}
+              </div>
               <div className="flex items-center gap-2 bg-black/40 px-2 py-1 rounded border border-white/5">
                 <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_5px_rgba(34,197,94,0.8)]"></span>
                 <span className="text-[10px] text-green-400 font-mono font-bold">
@@ -208,23 +233,36 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
                   <div className="w-20 h-20 border-2 border-dashed border-white/20 rounded-full flex items-center justify-center">
                     <span className="text-2xl">⚡</span>
                   </div>
-                  <p className="text-xs font-mono uppercase tracking-widest">Nenhum sinal detectado</p>
+                  <p className="text-xs font-mono uppercase tracking-widest">
+                    Nenhum sinal detectado
+                  </p>
                 </div>
               ) : (
                 rooms.map((room) => {
                   const isFull = room.playerCount >= room.maxPlayers;
+                  const isPlaying = room.status !== "LOBBY";
+                  const canJoin = !isFull && !isPlaying;
+
                   return (
                     <div
                       key={room.roomId}
                       className={`group p-4 rounded-xl border transition-all flex justify-between items-center relative overflow-hidden ${
-                        isFull
+                        !canJoin
                           ? "bg-white/5 border-white/5 opacity-60"
                           : "bg-white/5 border-white/10 hover:border-yellow-500/50 hover:bg-white/10 hover:shadow-[0_0_15px_rgba(234,179,8,0.1)]"
                       }`}
                     >
                       <div className="relative z-10">
                         <div className="flex items-center gap-3">
-                          <span className={`w-1 h-8 rounded-full ${isFull ? 'bg-red-500/50' : 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]'}`}></span>
+                          <span
+                            className={`w-1 h-8 rounded-full ${
+                              isPlaying
+                                ? "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"
+                                : isFull
+                                ? "bg-red-500/50"
+                                : "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"
+                            }`}
+                          ></span>
                           <div>
                             <div className="flex items-center gap-2">
                               <p className="font-bold text-white text-sm tracking-wide uppercase">
@@ -233,6 +271,11 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
                               <span className="text-[9px] px-1.5 py-0.5 rounded bg-black/40 text-slate-400 font-mono border border-white/5">
                                 {room.mode}
                               </span>
+                              {isPlaying && (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-900/50 text-blue-200 font-black border border-blue-500/30 uppercase tracking-wider animate-pulse">
+                                  EM JOGO
+                                </span>
+                              )}
                             </div>
                             <div className="flex items-center gap-1 mt-1.5">
                               <div className="flex gap-1">
@@ -241,7 +284,9 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
                                     key={i}
                                     className={`w-1 h-3 rounded-sm ${
                                       i < room.playerCount
-                                        ? "bg-yellow-500 shadow-[0_0_5px_rgba(234,179,8,0.5)]"
+                                        ? isPlaying
+                                          ? "bg-blue-500"
+                                          : "bg-yellow-500 shadow-[0_0_5px_rgba(234,179,8,0.5)]"
                                         : "bg-white/10"
                                     }`}
                                   />
@@ -254,18 +299,31 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
                           </div>
                         </div>
                       </div>
-                      
-                      <button
-                        disabled={isFull}
-                        onClick={() => handleJoinExisting(room.roomId, room.mode)}
-                        className={`relative z-10 px-5 py-2 rounded text-[10px] font-black uppercase tracking-widest transition-all border ${
-                          isFull
-                            ? "bg-transparent border-white/10 text-white/20 cursor-not-allowed"
-                            : "bg-yellow-500/10 border-yellow-500/50 text-yellow-400 hover:bg-yellow-500 hover:text-black shadow-[0_0_10px_rgba(234,179,8,0.2)] active:scale-95"
-                        }`}
-                      >
-                        {isFull ? "FULL" : "JOIN"}
-                      </button>
+
+                      <div className="relative z-10">
+                        {activeSession === room.roomId ? (
+                          <button
+                            onClick={() => rejoinGame()}
+                            className="bg-green-500 hover:bg-green-400 text-black px-5 py-2 rounded text-[10px] font-black uppercase tracking-widest shadow-[0_0_15px_rgba(34,197,94,0.4)] active:scale-95 transition-all animate-pulse"
+                          >
+                            Voltar
+                          </button>
+                        ) : (
+                          <button
+                            disabled={!canJoin}
+                            onClick={() =>
+                              handleJoinExisting(room.roomId, room.mode)
+                            }
+                            className={`px-5 py-2 rounded text-[10px] font-black uppercase tracking-widest transition-all border ${
+                              !canJoin
+                                ? "bg-transparent border-white/10 text-white/20 cursor-not-allowed"
+                                : "bg-yellow-500/10 border-yellow-500/50 text-yellow-400 hover:bg-yellow-500 hover:text-black shadow-[0_0_10px_rgba(234,179,8,0.2)] active:scale-95"
+                            }`}
+                          >
+                            {isPlaying ? "RODANDO" : isFull ? "FULL" : "JOIN"}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })
@@ -276,7 +334,9 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
               onClick={fetchRooms}
               className="mt-6 w-full py-3 text-[10px] font-bold text-slate-500 hover:text-white transition-colors uppercase tracking-[0.2em] border-t border-white/5 pt-4 flex items-center justify-center gap-2 group/refresh"
             >
-              <span className="group-hover/refresh:rotate-180 transition-transform duration-500">↻</span> 
+              <span className="group-hover/refresh:rotate-180 transition-transform duration-500">
+                ↻
+              </span>
               Atualizar Feed
             </button>
           </div>

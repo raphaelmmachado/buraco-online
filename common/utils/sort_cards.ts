@@ -114,5 +114,13 @@ export const organize_meld = (cards: Card[]): Card[] => {
   // Se houver "buracos" (null), o filter(Boolean) vai colapsar a sequência.
   // Em um jogo válido isso NÃO deve acontecer, mas se acontecer, mantemos
   // a integridade do array resultante.
-  return final_meld.filter((c): c is Card => c !== null);
+  const result = final_meld.filter((c): c is Card => c !== null);
+
+  // SANITY CHECK: Ensure we didn't lose cards or create ghosts
+  if (result.length !== cards.length) {
+      console.warn(`[ORGANIZE MELD] Integrity check failed! In: ${cards.length}, Out: ${result.length}. Fallback to sort.`);
+      return sort_cards(cards);
+  }
+
+  return result;
 };

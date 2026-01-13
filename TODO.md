@@ -1,11 +1,11 @@
 # TODO
 
-### DESIGN MOBILE
+## BUG
 
-- [x] FAÇA UM COMPONENTE NOVO E EXCLUSIVO PARA MÃO DOS JOGADORES MOBILE.
+- [x] IMPEDIR SOFT LOCK COM BOTS QUANDO ELES SÃO BLOQUEADOS DE BATER POR NÃO TER CANASTRA LIMPA. ELES DEVEM JOGAR MENOS CARTAS OU JOGAR UMA CARTA FORA SEM JOGAR NADA
 
-### MECANICAS
+## Backlog
 
-### WEB SOCKET - CONEXÕES COM SERVIDOR [OK]
-
-### PWA [OK]
+- Refinar a Interface (Animações, Feedback Visual)
+- Melhorar a IA dos Bots (Estratégias além de aleatório)
+- Testar Modo Multiplayer em ambiente real

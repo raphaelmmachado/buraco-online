@@ -600,9 +600,11 @@ io.on("connection", (socket: Socket) => {
   socket.on(
     "rejoin_game",
     ({ roomId, playerId }: { roomId: string; playerId: string }) => {
+      console.log(`[REJOIN] Request from socket ${socket.id} for room ${roomId}, player ${playerId}`);
       const game = games[roomId];
       if (!game) {
         // Sala não existe mais. Avisa o cliente para parar de tentar.
+        console.log(`[REJOIN] Failed: Room ${roomId} not found.`);
         socket.emit("rejoin_failed");
         return;
       }
@@ -612,6 +614,7 @@ io.on("connection", (socket: Socket) => {
       );
 
       if (!playerEntry) {
+        console.log(`[REJOIN] Failed: Player ${playerId} not found in room.`);
         socket.emit("error_msg", "Jogador não encontrado nesta sala.");
         return;
       }

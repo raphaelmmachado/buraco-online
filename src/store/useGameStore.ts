@@ -86,6 +86,8 @@ const socket: Socket = io(SERVER_ADDRESS, {
   autoConnect: false,
 });
 
+let listeners_setup = false;
+
 export const useGameStore = create<GameState & GameActions>((set, get) => ({
   roomId: "",
   my_player_number: null,
@@ -153,74 +155,92 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   },
 
   initializeSocket: () => {
-    if (socket.connected) return;
-
-    socket.connect();
-
-    socket.on("player_assignment", (num: number, userName: string) => {
-      set({ my_player_number: num, my_player_name: userName });
-    });
-
-    socket.on("game_update", (serverState: IncomingServerState) => {
-      get().set_server_state(serverState);
-    });
-
-    socket.on("rooms_list", (rooms: RoomInfo[]) => {
-      set({ rooms });
-    });
-
-    socket.on("game_closed", (reason: string) => {
-      alert(reason); // Simple alert for now
-      localStorage.removeItem("baralho_active_room");
-      set({
-        status: "IDLE",
-        roomId: "",
-        my_player_number: null,
-        my_player_name: null,
-        hands: {},
-        team_melds: { 1: [], 2: [] },
-        discard_pile: [],
-        deck: [],
-        final_score: null,
+    if (!listeners_setup) {
+      socket.on("player_assignment", (num: number, userName: string) => {
+        set({ my_player_number: num, my_player_name: userName });
       });
-    });
 
-    socket.on("rejoin_failed", () => {
+      socket.on("game_update", (serverState: IncomingServerState) => {
+        get().set_server_state(serverState);
+      });
+
+      socket.on("rooms_list", (rooms: RoomInfo[]) => {
+        set({ rooms });
+      });
+
+      socket.on("game_closed", (reason: string) => {
+        alert(reason); // Simple alert for now
+        localStorage.removeItem("baralho_active_room");
+        set({
+          status: "IDLE",
+          roomId: "",
+          my_player_number: null,
+          my_player_name: null,
+          hands: {},
+          team_melds: { 1: [], 2: [] },
+          discard_pile: [],
+          deck: [],
+          final_score: null,
+        });
+      });
+
+      socket.on("rejoin_failed", () => {
         console.log("Tentativa de reconexão falhou: Sala não existe mais.");
         localStorage.removeItem("baralho_active_room");
         // Não removemos o ID do jogador (baralho_player_id) para manter a identidade
-        set({ status: "IDLE", roomId: "", my_player_number: null, my_player_name: null });
-    });
+        set({
+          status: "IDLE",
+          roomId: "",
+          my_player_number: null,
+          my_player_name: null,
+        });
+      });
 
-    socket.on("error_msg", (msg: string) => {
-      set({ last_error: msg });
-      // Se o erro for crítico de sessão, limpa tudo e volta pro inicio
-      if (msg.includes("não encontrada") || msg.includes("não encontrado")) {
+      socket.on("error_msg", (msg: string) => {
+        set({ last_error: msg });
+        // Se o erro for crítico de sessão, limpa tudo e volta pro inicio
+        if (msg.includes("não encontrada") || msg.includes("não encontrado")) {
           alert(`Erro de conexão: ${msg}`);
           localStorage.removeItem("baralho_active_room");
           localStorage.removeItem("baralho_player_id");
-          set({ status: "IDLE", roomId: "", my_player_number: null, my_player_name: null });
-      }
-    });
+          set({
+            status: "IDLE",
+            roomId: "",
+            my_player_number: null,
+            my_player_name: null,
+          });
+        }
+      });
 
-    socket.on("connect_error", (err) => {
+      socket.on("connect_error", (err) => {
         console.error("Socket connection error:", err);
         set({ last_error: `Erro de conexão: ${err.message}` });
-    });
+      });
 
-    socket.on("connect", () => {
+      socket.on("connect", () => {
         console.log("Socket conectado!", socket.id);
         set({ last_error: null });
         // RECONNECTION LOGIC
         const savedRoom = localStorage.getItem("baralho_active_room");
         const savedPlayerId = localStorage.getItem("baralho_player_id");
-        
-        if (savedRoom && savedPlayerId) {
-            console.log("Tentando reconectar...", savedRoom);
-            socket.emit("rejoin_game", { roomId: savedRoom, playerId: savedPlayerId });
-        }
-    });
 
+        if (savedRoom && savedPlayerId) {
+          console.log("Tentando reconectar...", savedRoom);
+          socket.emit("rejoin_game", {
+            roomId: savedRoom,
+            playerId: savedPlayerId,
+          });
+        }
+      });
+
+      listeners_setup = true;
+    }
+
+    if (!socket.connected) {
+      socket.connect();
+    }
+    
+    // Always fetch rooms when initializing
     get().fetchRooms();
   },
 

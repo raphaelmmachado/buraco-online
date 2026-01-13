@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Dot, Hand, ShoppingCart, Skull, Trash } from "lucide-react";
 import { calculate_score } from "../../../common/utils/scoring";
 // UI Components
 import { MeldDisplay } from "../game-ui/MeldDisplay";
@@ -16,6 +17,7 @@ import { useWakeLock } from "../../hooks/useWakeLock";
 import { useScreenDrag } from "../../hooks/useScreenDrag";
 import { useGameAudio } from "../../hooks/useGameAudio";
 import { useMobileCheck } from "../../hooks/useMobileCheck";
+import CurrentGamePoints from "../game-ui/CurrentGamePoints";
 
 // --- TELA PRINCIPAL ---
 
@@ -141,17 +143,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           }
         </div>
         {/* PLACAR */}
-        <div
-          className="absolute bottom-1 right-1 bg-black/40 px-2 md:px-4 py-1 md:py-2 rounded-lg
-         border border-white/10 shadow-inner flex items-center"
-        >
-          <span className="text-[10px] md:text-sm font-black text-white leading-none">
-            {oppScore}{" "}
-            <span className="text-[8px] md:text-[10px] text-gray-400 uppercase ml-1">
-              pts
-            </span>
-          </span>
-        </div>
+        <CurrentGamePoints points={oppScore} position="right-1 bottom-1" />
       </section>
 
       {/* SEPARATOR / INFO BAR (Draggable) */}
@@ -167,7 +159,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           {isMobile ? (
             <>
               {/* MOBILE: DECK ON LEFT */}
-              <div className="relative h-full py-1 flex items-center shrink-0">
+              <div className="relative h-full py-1 flex flex-col-reverse gap-y-1 items-center shrink-0">
                 <PileCard
                   onClick={handleDeckClick}
                   active={canDraw}
@@ -175,17 +167,17 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                   quantity={game.deck.length}
                 />
                 <div
-                  className="absolute top-1 -right-1 bg-red-900 text-white text-[8px]
-                   font-black w-4 h-4 flex items-center justify-center rounded-full border border-white/20"
+                  className="bg-red-900 text-white text-xs font-black
+                  px-0.5 flex items-center justify-center rounded-md border border-white/20"
                 >
-                  {game.dead_piles.length}
+                  <Skull size={14} /> : {game.dead_piles.length}
                 </div>
               </div>
 
               {/* MEU TIME (NÓS) */}
 
               <div className="flex flex-col items-center leading-none px-1 gap-0.5">
-                <div className="flex gap-1">
+                <div className="flex flex-col md:flex-row  gap-1">
                   {Object.entries(game.players_data)
 
                     .filter(([id]) => Number(id) % 2 === my_player_id % 2)
@@ -206,10 +198,11 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                               : "text-blue-100"
                           }`}
                         >
-                          {p.userName.substring(0, 3).toUpperCase()}
+                          {p.userName.substring(0, 8).toUpperCase()}
                         </span>
 
-                        <span className="text-[9px] font-black text-white">
+                        <span className="text-[9px] flex gap-x-1 items-center font-black text-white">
+                          <Hand size={12} />{" "}
                           {game.hands[Number(id)]?.length || 0}
                         </span>
                       </div>
@@ -236,7 +229,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               {/* TIME DELES (ELES) */}
 
               <div className="flex flex-col items-center leading-none px-1 gap-0.5">
-                <div className="flex gap-1">
+                <div className="flex flex-col md:flex-row gap-1">
                   {Object.entries(game.players_data)
 
                     .filter(([id]) => Number(id) % 2 !== my_player_id % 2)
@@ -257,10 +250,11 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                               : "text-red-100"
                           }`}
                         >
-                          {p.userName.substring(0, 3).toUpperCase()}
+                          {p.userName.substring(0, 8).toUpperCase()}
                         </span>
 
-                        <span className="text-[9px] font-black text-white">
+                        <span className="text-[9px] flex gap-x-1 items-center font-black text-white">
+                          <Hand size={12} />{" "}
                           {game.hands[Number(id)]?.length || 0}
                         </span>
                       </div>
@@ -289,28 +283,52 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
             /* DESKTOP: JOGADORES */
             <div className="flex h-full gap-2 items-center w-full justify-between overflow-x-auto scrollbar-hide">
               {Object.entries(game.players_data).map(([id, p]) => (
-                <div
-                  key={id}
-                  className={`relative shrink-0 flex items-center justify-center px-3 py-1 md:px-2 md:py-0.5 rounded-lg border transition-all ${
-                    Number(id) === game.current_player
-                      ? "border-yellow-400/80 bg-yellow-500/20 ring-1 ring-yellow-400/50 animate-pulse shadow-[0_0_10px_rgba(250,204,21,0.3)]"
-                      : "border-white/5 bg-black/20"
-                  }`}
-                >
-                  <span
-                    className={`text-[10px] md:text-sm font-black uppercase ${
-                      Number(id) % 2 === my_player_id % 2
-                        ? "text-blue-300"
-                        : "text-red-300"
+                <>
+                  {" "}
+                  <div
+                    key={id}
+                    className={`relative shrink-0 flex items-center justify-center px-3 py-1 
+                    md:px-2 md:py-0.5 rounded-lg border transition-all ${
+                      Number(id) === game.current_player
+                        ? "border-yellow-400/80 bg-yellow-500/20 ring-1 ring-yellow-400/50 animate-pulse shadow-[0_0_10px_rgba(250,204,21,0.3)]"
+                        : "border-white/5 bg-black/20"
                     }`}
                   >
-                    {p.userName.substring(0, 8)}
-                    <span className="text-gray-500 mx-1">:</span>
-                  </span>
-                  <span className="text-[10px] md:text-sm font-mono font-bold text-white">
-                    {game.hands[Number(id)]?.length || 0}
-                  </span>
-                </div>
+                    <span
+                      className={`flex text-[10px] md:text-sm font-black uppercase ${
+                        Number(id) % 2 === my_player_id % 2
+                          ? "text-blue-300"
+                          : "text-red-300"
+                      }`}
+                    >
+                      {p.userName.substring(0, 8)}
+                      <span className="text-gray-500 mx-1">
+                        <Hand size={16} />{" "}
+                      </span>
+                    </span>
+                    <span className="text-[10px] md:text-sm font-mono font-bold text-white">
+                      {game.hands[Number(id)]?.length || 0}
+                    </span>
+                    <span className="flex items-center">
+                      <>
+                        {" "}
+                        {game.turn_phase === "DRAW" &&
+                          Number(id) === game.current_player && (
+                            <>
+                              <Dot size={16} />{" "}
+                              <ShoppingCart size={16} fill="white" />
+                            </>
+                          )}
+                        {game.turn_phase === "ACTION" &&
+                          Number(id) === game.current_player && (
+                            <>
+                              <Dot size={16} /> <Trash size={16} fill="white" />
+                            </>
+                          )}
+                      </>
+                    </span>
+                  </div>
+                </>
               ))}
             </div>
           )}
@@ -382,17 +400,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
         </div>
 
         {/* PLACAR */}
-        <div
-          className="absolute top-1 right-1 bg-black/40 px-2 md:px-4 py-1 md:py-2 rounded-lg
-         border border-white/10 shadow-inner flex items-center"
-        >
-          <span className="text-[10px] md:text-sm font-black text-white leading-none">
-            {myScore}{" "}
-            <span className="text-[8px] md:text-[10px] text-gray-400 uppercase ml-1">
-              pts
-            </span>
-          </span>
-        </div>
+        <CurrentGamePoints points={myScore} position="right-1 top-1" />
       </section>
 
       {/* FOOTER: [MONTE] [MÃO] [LIXO] */}
@@ -401,36 +409,9 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
         className="h-36 md:h-[20%] bg-linear-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md px-2 pb-2 z-40
          relative w-full flex items-end justify-between gap-2 md:gap-6 pointer-events-none"
       >
+        {/*  DESKTOP LEFT: DECK PILE */}
         {!isMobile && (
-          <div className="absolute top-1 md:-top-10 flex items-center gap-2 md:gap-4 shrink-0 pointer-events-auto">
-            {/* DESKTOP: Layout Original */}
-            <div className="flex items-center gap-x-1">
-              <span
-                className={`w-2 h-2 ${
-                  isMyTurn ? "bg-blue-400 animate-pulse" : "bg-white/40"
-                } rounded-full`}
-              ></span>
-
-              <span
-                className={`text-[8px] sm:text-xs font-bold ${
-                  isMyTurn ? "text-blue-400" : "text-white/50"
-                } uppercase tracking-[0.2em]`}
-              >
-                <>
-                  {isMyTurn ? "Você" : "Alguém"}{" "}
-                  {game.turn_phase === "DRAW"
-                    ? "COMPRA"
-                    : game.turn_phase === "ACTION"
-                    ? "JOGA"
-                    : "..."}
-                </>
-              </span>
-            </div>
-          </div>
-        )}
-        {/* LEFT: DECK PILE */}
-        {!isMobile && (
-          <div className="shrink-0 pb-1 relative pointer-events-auto">
+          <div className="flex flex-col items-center gap-2 shrink-0 pb-1 relative pointer-events-auto">
             <PileCard
               onClick={handleDeckClick}
               active={canDraw}
@@ -439,23 +420,14 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
             />
 
             {/* Contadores */}
-            {/* contador de deck */}
-            <div
-              title="Cartas no monte"
-              className={`absolute ${
-                isMobile ? "w-4 h-4 text-[8px]" : "w-6 h-6 text-xs"
-              } -top-2 -right-2 bg-slate-800 text-white font-black flex items-center justify-center rounded-full shadow-lg border border-white/20 z-50`}
-            >
-              {game.deck.length}
-            </div>
             {/* contador de mortos */}
             <div
               title="Quantidade de mortos"
-              className={`absolute ${
-                isMobile ? " w-4 h-4 text-[8px]" : "w-6 h-6 text-xs"
-              } -bottom-2 -right-2 bg-red-600 text-white font-black flex items-center justify-center rounded-full shadow-lg border border-white/20 z-50`}
+              className={`z-50 w-fit px-2 py-1 text-xs bg-red-600 text-white font-black 
+              flex items-center justify-center rounded-full shadow-lg border border-white/20`}
             >
-              {game.dead_piles.length}
+              <Skull size={16} />: {game.dead_piles.length}{" "}
+              <span className="font-light">{"/2"}</span>
             </div>
           </div>
         )}

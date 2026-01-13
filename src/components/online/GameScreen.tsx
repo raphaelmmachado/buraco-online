@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Dot, Hand, ShoppingCart, Skull, Trash } from "lucide-react";
 import { calculate_score } from "../../../common/utils/scoring";
+import { type Card } from "../../../common/types/card";
 // UI Components
 import { MeldDisplay } from "../game-ui/MeldDisplay";
 import { GameMenu } from "../game-ui/GameMenu";
@@ -18,6 +19,7 @@ import { useScreenDrag } from "../../hooks/useScreenDrag";
 import { useGameAudio } from "../../hooks/useGameAudio";
 import { useMobileCheck } from "../../hooks/useMobileCheck";
 import CurrentGamePoints from "../game-ui/CurrentGamePoints";
+import TookDeadPile from "../game-ui/TookDeadPile";
 
 // --- TELA PRINCIPAL ---
 
@@ -39,6 +41,9 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   const canAction = isMyTurn && game.turn_phase === "ACTION";
   const myScore = calculate_score(game.team_melds[my_team]).total_score;
   const oppScore = calculate_score(game.team_melds[opponent_team]).total_score;
+  const myTeamHasTaken = game.has_taken_dead_pile?.[my_team - 1] ?? false;
+  const oppTeamHasTaken =
+    game.has_taken_dead_pile?.[opponent_team - 1] ?? false;
 
   // Hooks Integration
   useWakeLock();
@@ -111,7 +116,10 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
 
       {/* Menu Dropdown */}
       <div className="absolute top-4 right-4 z-100">
-        <GameMenu onOpenRules={() => setShowRules(true)} />
+        <GameMenu
+          onOpenRules={() => setShowRules(true)}
+          onLeave={game.leaveGame}
+        />
       </div>
 
       {/* TEXTURA DA MESA */}
@@ -134,15 +142,14 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           {game.team_melds[opponent_team].map((meld, idx) => (
             <MeldDisplay key={idx} meld={meld} scale="scale-90 md:scale-100" />
           ))}
-          {
-            <div className="absolute text-center w-full h-full flex items-center justify-center pointer-events-none">
-              <span className="text-white/5 text-xl md:text-3xl font-black uppercase tracking-[0.5em]">
-                ELES
-              </span>
-            </div>
-          }
+          <div className="absolute text-center w-full h-full flex items-center justify-center pointer-events-none">
+            <span className="text-white/5 text-xl md:text-3xl font-black uppercase tracking-[0.5em]">
+              ELES
+            </span>
+          </div>
         </div>
         {/* PLACAR */}
+        <TookDeadPile took={oppTeamHasTaken} position="right-1 bottom-10" />
         <CurrentGamePoints points={oppScore} position="right-1 bottom-1" />
       </section>
 
@@ -164,13 +171,13 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                   onClick={handleDeckClick}
                   active={canDraw}
                   mini={true}
-                  quantity={game.deck.length}
+                  quantity={game.deck_count}
                 />
                 <div
                   className="bg-red-900 text-white text-xs font-black
                   px-0.5 flex items-center justify-center rounded-md border border-white/20"
                 >
-                  <Skull size={14} /> : {game.dead_piles.length}
+                  <Skull size={14} /> : {game.dead_piles_count}
                 </div>
               </div>
 
@@ -203,7 +210,9 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
 
                         <span className="text-[9px] flex gap-x-1 items-center font-black text-white">
                           <Hand size={12} />{" "}
-                          {game.hands[Number(id)]?.length || 0}
+                          {typeof game.hands[Number(id)] === "number"
+                            ? (game.hands[Number(id)] as number)
+                            : (game.hands[Number(id)] as Card[])?.length || 0}
                         </span>
                       </div>
                     ))}
@@ -225,7 +234,6 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                   {game.turn_phase === "DRAW" ? "COMPRA" : "JOGA"}
                 </span>
               </div>
-
               {/* TIME DELES (ELES) */}
 
               <div className="flex flex-col items-center leading-none px-1 gap-0.5">
@@ -255,7 +263,9 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
 
                         <span className="text-[9px] flex gap-x-1 items-center font-black text-white">
                           <Hand size={12} />{" "}
-                          {game.hands[Number(id)]?.length || 0}
+                          {typeof game.hands[Number(id)] === "number"
+                            ? (game.hands[Number(id)] as number)
+                            : (game.hands[Number(id)] as Card[])?.length || 0}
                         </span>
                       </div>
                     ))}
@@ -286,7 +296,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                 <>
                   {" "}
                   <div
-                    key={id}
+                    key={`${id}_${p.userName}`}
                     className={`relative shrink-0 flex items-center justify-center px-3 py-1 
                     md:px-2 md:py-0.5 rounded-lg border transition-all ${
                       Number(id) === game.current_player
@@ -307,7 +317,9 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                       </span>
                     </span>
                     <span className="text-[10px] md:text-sm font-mono font-bold text-white">
-                      {game.hands[Number(id)]?.length || 0}
+                      {typeof game.hands[Number(id)] === "number"
+                        ? (game.hands[Number(id)] as number)
+                        : (game.hands[Number(id)] as Card[])?.length || 0}
                     </span>
                     <span className="flex items-center">
                       <>
@@ -385,14 +397,12 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                 game.meld_cards(selectedCards);
                 setSelectedCards([]);
               }}
-              className="shrink-0 w-32 h-20 md:w-48 md:h-32 border-2 border-dotted border-yellow-600/40 bg-yellow-600/5 cursor-pointer hover:bg-yellow-600/10 shadow-sm rounded-xl flex flex-col items-center justify-center transition-all duration-300"
+              className="shrink-0 w-32 h-20 md:w-48 md:h-28 border-2 border-dotted border-yellow-600/40 bg-yellow-600/5 cursor-pointer hover:bg-yellow-600/10 shadow-sm rounded-xl flex flex-col items-center justify-center transition-all duration-300"
             >
               <div className="flex items-center gap-3 text-yellow-600/60">
-                <span className="text-3xl md:text-5xl font-light">+</span>
+                <span className="text-3xl md:text-5xl font-light"></span>
                 <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-left leading-tight">
-                  Novo
-                  <br />
-                  Jogo
+                  + Abaixar novo
                 </span>
               </div>
             </div>
@@ -400,6 +410,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
         </div>
 
         {/* PLACAR */}
+        <TookDeadPile took={myTeamHasTaken} position="right-1 top-10" />
         <CurrentGamePoints points={myScore} position="right-1 top-1" />
       </section>
 
@@ -416,7 +427,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               onClick={handleDeckClick}
               active={canDraw}
               mini={isMobile}
-              quantity={game.deck.length}
+              quantity={game.deck_count}
             />
 
             {/* Contadores */}
@@ -426,7 +437,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               className={`z-50 w-fit px-2 py-1 text-xs bg-red-600 text-white font-black 
               flex items-center justify-center rounded-full shadow-lg border border-white/20`}
             >
-              <Skull size={16} />: {game.dead_piles.length}{" "}
+              <Skull size={16} />: {game.dead_piles_count}{" "}
               <span className="font-light">{"/2"}</span>
             </div>
           </div>
@@ -435,7 +446,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
         {/* CENTER: PLAYER HAND */}
         {isMobile ? (
           <MobilePlayerHand
-            cards={game.hands[my_player_id] || []}
+            cards={(game.hands[my_player_id] as Card[]) || []}
             selectedCardIds={selectedCards}
             lastDrawnCardId={game.last_drawn_card_id}
             onCardClick={toggleSelect}
@@ -443,7 +454,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           />
         ) : (
           <PlayerHand
-            cards={game.hands[my_player_id] || []}
+            cards={(game.hands[my_player_id] as Card[]) || []}
             selectedCardIds={selectedCards}
             lastDrawnCardId={game.last_drawn_card_id}
             onCardClick={toggleSelect}

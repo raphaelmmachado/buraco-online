@@ -80,8 +80,9 @@ export const calculate_score = (
 
   // b. Morto não pego
   if (did_not_take_dead_pile) {
-    // A constante é -100, então somamos para subtrair do total.
-    penalty_points -= BONUS_POINTS.DID_NOT_TAKE_DEAD_PILE;
+    // A constante é -100, mas aqui calculamos PONTOS DE PENALIDADE (positivo)
+    // para subtrair depois.
+    penalty_points += Math.abs(BONUS_POINTS.DID_NOT_TAKE_DEAD_PILE);
   }
 
   // 5. Calcula o placar final

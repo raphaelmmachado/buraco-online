@@ -15,11 +15,12 @@ export interface GameAdapterInterface {
   my_player_name: string | null;
   players_data: Record<number, { socketId: string; userName: string }>;
   
-  deck: Card[];
+  deck_count: number;
   discard_pile: Card[];
-  hands: Record<number, Card[]>;
+  hands: Record<number, Card[] | number>;
   team_melds: { 1: Card[][]; 2: Card[][] };
-  dead_piles: Card[][];
+  dead_piles_count: number;
+  has_taken_dead_pile?: [boolean, boolean]; // Added optional prop
   turn_phase: "DRAW" | "ACTION" | "DISCARD";
   current_player: number;
   last_drawn_card_id: string | null;
@@ -68,11 +69,12 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       my_player_name: "Você",
       players_data,
       
-      deck: local.deck,
+      deck_count: local.deck.length,
       discard_pile: local.discard_pile,
       hands: local.hands,
       team_melds: local.team_melds,
-      dead_piles: local.dead_piles,
+      dead_piles_count: local.dead_piles.length,
+      has_taken_dead_pile: [local.has_taken_dead_pile[1], local.has_taken_dead_pile[2]] as [boolean, boolean], // Map record to tuple
       turn_phase: local.turn_phase,
       current_player: local.current_player,
       last_drawn_card_id: local.last_drawn_card_id,

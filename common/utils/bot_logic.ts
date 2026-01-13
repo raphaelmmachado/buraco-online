@@ -32,7 +32,11 @@ const group_by_suit = (hand: Card[]) => {
 /**
  * Procura por sequências (mínimo 3 cartas do mesmo naipe).
  */
-export const find_meld_in_hand = (hand: Card[]): Card[] | null => {
+export const find_meld_in_hand = (
+  hand: Card[],
+  has_taken_dead_pile: boolean = false,
+  has_clean_canastra: boolean = false
+): Card[] | null => {
   const suits = group_by_suit(hand);
   const wildcards = hand.filter(c => c.value === "2");
   
@@ -44,7 +48,18 @@ export const find_meld_in_hand = (hand: Card[]): Card[] | null => {
     for (let len = cards.length; len >= 3; len--) {
         for (let i = 0; i <= cards.length - len; i++) {
             const sub = cards.slice(i, i + len);
-            if (validate_sequence(sub).is_valid) {
+            const validation = validate_sequence(sub);
+            if (validation.is_valid) {
+                // Proteção contra Soft Lock: 
+                // Se já pegou o morto e não tem canastra limpa, não pode ficar com menos de 2 cartas na mão.
+                if (has_taken_dead_pile && !has_clean_canastra) {
+                    const is_canastra = validation.is_valid && (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE');
+                    if (!is_canastra && (hand.length - sub.length) < 2) {
+                        console.log(`[BOT LOGIC] CLEAN Meld ${sub.length} cards rejected to avoid soft lock.`);
+                        continue;
+                    }
+                }
+
                 console.log(`[BOT LOGIC] Found CLEAN meld: ${sub.map(c => c.value + c.suit.icon).join("-")}`);
                 return sub;
             }
@@ -66,7 +81,17 @@ export const find_meld_in_hand = (hand: Card[]): Card[] | null => {
               for (let i = 0; i < cards.length - 1; i++) {
                   for (let j = i + 1; j < cards.length; j++) {
                       const attempt = [cards[i], cards[j], wc];
-                      if (validate_sequence(attempt).is_valid) {
+                      const validation = validate_sequence(attempt);
+                      if (validation.is_valid) {
+                          // Proteção contra Soft Lock
+                          if (has_taken_dead_pile && !has_clean_canastra) {
+                              const is_canastra = validation.is_valid && (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE');
+                              if (!is_canastra && (hand.length - attempt.length) < 2) {
+                                  console.log(`[BOT LOGIC] DIRTY Meld rejected to avoid soft lock.`);
+                                  continue;
+                              }
+                          }
+
                           console.log(`[BOT LOGIC] Found DIRTY meld with 2: ${attempt.map(c => c.value + c.suit.icon).join("-")}`);
                           return organize_meld(attempt);
                       }
@@ -88,7 +113,8 @@ export const find_meld_in_hand = (hand: Card[]): Card[] | null => {
 export const find_card_to_add = (
     hand: Card[], 
     meld: Card[], 
-    has_taken_dead_pile: boolean, // Novo parametro crucial
+    has_taken_dead_pile: boolean,
+    has_clean_canastra: boolean = false,
     is_desperate_to_close: boolean = false
 ): Card | null => {
   const target_suit = meld.find(c => c.value !== "2")?.suit.name;
@@ -117,6 +143,21 @@ export const find_card_to_add = (
     const validation = validate_sequence(attempt);
 
     if (validation.is_valid) {
+        // SOFT LOCK PROTECTION
+        if (has_taken_dead_pile && !has_clean_canastra) {
+            const is_now_canastra = validation.is_valid && (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE');
+            // Se jogar esta carta me deixar com 1 na mão (que terei que descartar), e não for pra bater com canastra, REJEITA.
+            if (!is_now_canastra && hand.length < 2) { // hand.length < 2 significa que já só tem 1 carta (estranho, mas possível se algo falhou)
+                 console.log(`[BOT LOGIC] Card ${card.value} rejected: Already at minimum hand size (1).`);
+                 continue;
+            }
+            // Se jogar esta carta me deixar com 1 na mão (hand.length-1 === 1), e não for pra bater com canastra, REJEITA.
+            if (!is_now_canastra && hand.length === 2) {
+                 console.log(`[BOT LOGIC] Card ${card.value} rejected to avoid soft lock (Hand would become 1).`);
+                 continue;
+            }
+        }
+
         // LÓGICA DE PROTEÇÃO DE LIMPEZA
         // Se o jogo era limpo, e vai ficar sujo com essa carta...
         if (is_currently_clean && !validation.is_clean) {
@@ -158,7 +199,9 @@ export const analyze_discard_pickup = (
   hand: Card[],
   top_discard: Card,
   team_melds: Card[][] = [],
-  has_taken_dead_pile: boolean = false
+  has_taken_dead_pile: boolean = false,
+  has_clean_canastra: boolean = false,
+  discard_pile_size: number = 0
 ): PickupAction | null => {
   
   // 1. TENTA ADICIONAR DIRETO EM UM JOGO EXISTENTE
@@ -180,6 +223,16 @@ export const analyze_discard_pickup = (
        if (was_clean && !validation.is_clean && has_taken_dead_pile) {
            console.log(`[BOT LOGIC] Pickup Rejected: Would dirty clean meld ${i} with ${top_discard.value}`);
            continue; 
+       }
+
+       // Proteção contra Soft Lock
+       if (has_taken_dead_pile && !has_clean_canastra) {
+           const is_now_canastra = validation.is_valid && (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE');
+           const new_hand_size = hand.length + (discard_pile_size - 1); // Ganha o lixo todo, mas perde 1 que vai pro jogo
+           if (!is_now_canastra && new_hand_size < 2) {
+               console.log(`[BOT LOGIC] Pickup Rejected: Direct add would cause soft lock.`);
+               continue;
+           }
        }
        
        console.log(`[BOT LOGIC] Pickup Discard: Direct add to meld ${i} (${top_discard.value})`);
@@ -207,6 +260,15 @@ export const analyze_discard_pickup = (
                   continue;
               }
 
+              // Proteção contra Soft Lock
+              if (has_taken_dead_pile && !has_clean_canastra) {
+                  const is_now_canastra = validation.is_valid && (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE');
+                  const new_hand_size = hand.length + (discard_pile_size - 1) - 1; // Ganha lixo, perde 1 da ponte, perde 1 pro meld
+                  if (!is_now_canastra && new_hand_size < 2) {
+                      continue;
+                  }
+              }
+
               console.log(`[BOT LOGIC] Pickup Discard: Bridge add to meld ${i} using ${card.value} + ${top_discard.value}`);
               return { type: 'ADD_TO_MELD', meld_index: i, cards: [card] };
           }
@@ -225,6 +287,15 @@ export const analyze_discard_pickup = (
         // Regra: Pegar lixo para novo jogo exige jogo LIMPO (sem curinga)
         // A validação 'is_clean' já garante isso, mas reforçando:
         if (validation.is_valid && validation.is_clean) {
+          // Proteção contra Soft Lock
+          if (has_taken_dead_pile && !has_clean_canastra) {
+              const is_now_canastra = validation.is_valid && (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE');
+              const new_hand_size = hand.length + (discard_pile_size - 1) - 2; // Ganha lixo, perde 2 da mão, perde 1 pro meld
+              if (!is_now_canastra && new_hand_size < 2) {
+                  continue;
+              }
+          }
+
           console.log(`[BOT LOGIC] Pickup Discard: Found new clean sequence ${top_discard.value}-${same_suit[i].value}-${same_suit[j].value}`);
           return { type: 'NEW_MELD', cards: [same_suit[i], same_suit[j]] }; 
         }

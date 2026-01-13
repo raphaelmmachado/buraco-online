@@ -30,10 +30,10 @@ export const useGameAudio = (game: GameAdapterInterface, isMyTurn: boolean) => {
 
   // State trackers to prevent sounds on mount
   const isMounted = useRef(false);
-  const prevDeckLen = useRef(game.deck.length);
-  const prevDeadPileLen = useRef(game.dead_piles.length);
+  const prevDeckLen = useRef(game.deck_count);
+  const prevDeadPileLen = useRef(game.dead_piles_count);
   const prevMeldsStr = useRef(JSON.stringify(game.team_melds)); // Deep compare string trick
-  const prevDiscardLen = useRef(game.discard_pile.length);
+  const prevDiscardLen = useRef(game.discard_pile?.length || 0);
 
   // Notification & Start Sound
   useEffect(() => {
@@ -55,16 +55,16 @@ export const useGameAudio = (game: GameAdapterInterface, isMyTurn: boolean) => {
     }
 
     // Dead Pile Taken
-    if (game.dead_piles.length < prevDeadPileLen.current) {
+    if (game.dead_piles_count < prevDeadPileLen.current) {
       playSound(sfx.deadPile);
     }
-    prevDeadPileLen.current = game.dead_piles.length;
+    prevDeadPileLen.current = game.dead_piles_count;
 
     // Deck Draw (Deck size decreased)
-    if (game.deck.length < prevDeckLen.current) {
+    if (game.deck_count < prevDeckLen.current) {
       playSound(sfx.flip);
     }
-    prevDeckLen.current = game.deck.length;
+    prevDeckLen.current = game.deck_count;
 
     // Meld Change (Card placed)
     const currentMeldsStr = JSON.stringify(game.team_melds);
@@ -74,15 +74,16 @@ export const useGameAudio = (game: GameAdapterInterface, isMyTurn: boolean) => {
     }
 
     // Discard Pile Pickup (Size decreased)
-    if (game.discard_pile.length < prevDiscardLen.current) {
+    const currentDiscardLen = game.discard_pile?.length || 0;
+    if (currentDiscardLen < prevDiscardLen.current) {
       playSound(sfx.discardPile);
     }
-    prevDiscardLen.current = game.discard_pile.length;
+    prevDiscardLen.current = currentDiscardLen;
   }, [
-    game.dead_piles.length,
-    game.deck.length,
+    game.dead_piles_count,
+    game.deck_count,
     game.team_melds,
-    game.discard_pile.length,
+    game.discard_pile,
     sfx,
   ]);
 };

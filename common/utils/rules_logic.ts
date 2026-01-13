@@ -84,10 +84,20 @@ export const get_sequence_details = (cards: Card[]): SequenceDetails => {
 
   // Verifica duplicatas de ID (sanidade) e contagem por valor/naipe
   const cardCounts = new Map<string, number>();
-  cards.forEach((c) => {
+  const idSet = new Set<string>();
+
+  for (const c of cards) {
+    if (idSet.has(c.id)) {
+      return {
+        is_valid: false,
+        error: "Erro grave! Cartas com ID duplicado no jogo.",
+      };
+    }
+    idSet.add(c.id);
+
     const key = `${c.value}_${c.suit.name}`;
     cardCounts.set(key, (cardCounts.get(key) || 0) + 1);
-  });
+  }
 
   for (const [key, count] of cardCounts.entries()) {
     // Regra: Máximo 2 cartas iguais (ex: dois 7 de ouros).
@@ -98,16 +108,10 @@ export const get_sequence_details = (cards: Card[]): SequenceDetails => {
       };
     }
 
-    // Regra conforme MEMORIAS.md: Proibir dois '2' do mesmo naipe em uma sequência.
-    if (count === 2 && key.startsWith("2_")) {
-      return {
-        is_valid: false,
-        error: `Não são permitidos dois '2' do mesmo naipe ('${key}') no mesmo jogo.`,
-      };
-    }
-
-    // Regra: Outras duplicatas (não A) são impossíveis de formar sequência de pesos únicos.
-    if (count === 2 && !key.startsWith("A_")) {
+    // Regra conforme MEMORIAS.md: Permitir dois '2' se um for natural e outro curinga.
+    // A validação de "no máximo 1 curinga" já acontece no solver.
+    // Permitimos duplicatas de 'A' (A baixo/alto) e '2' (natural/curinga).
+    if (count === 2 && !key.startsWith("A_") && !key.startsWith("2_")) {
       return {
         is_valid: false,
         error: `Cartas duplicadas inválidas ('${key}') no jogo.`,

@@ -178,7 +178,34 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const new_hand = sort_cards([...remaining_hand, ...pile_to_take]);
 
     const team_id = get_team(current_player);
-    const new_melds = [...team_melds[team_id], organize_meld(potential_meld)];
+    const is_clean_canasta = (v: any) =>
+      v.is_valid &&
+      (v.canastra_type === "CLEAN" ||
+        v.canastra_type === "KING" ||
+        v.canastra_type === "ACE");
+
+    const will_have_clean =
+      get().internal_can_beat() || is_clean_canasta(validation);
+
+    if (
+      get().has_taken_dead_pile[team_id] &&
+      new_hand.length <= 1 &&
+      !will_have_clean
+    ) {
+      set({
+        last_error:
+          "Proibido bater sem canastra limpa (você ficaria apenas com uma carta na mão).",
+      });
+      return;
+    }
+
+    const organized_meld = organize_meld(potential_meld);
+    const final_meld = organized_meld.length === potential_meld.length ? organized_meld : sort_cards(potential_meld);
+    if (final_meld.length !== potential_meld.length) {
+        console.error("CRITICAL: organize_meld lost cards in local store");
+    }
+
+    const new_melds = [...team_melds[team_id], final_meld];
 
     set({
       hands: { ...hands, [current_player]: new_hand },
@@ -226,8 +253,32 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     );
     const new_hand = sort_cards([...remaining_hand, ...pile_to_take]);
 
+    const is_clean_canasta = (v: any) =>
+      v.is_valid &&
+      (v.canastra_type === "CLEAN" ||
+        v.canastra_type === "KING" ||
+        v.canastra_type === "ACE");
+
+    const will_have_clean = team_melds[team_id].some((meld, idx) => {
+      const v = idx === meld_index ? validation : validate_sequence(meld);
+      return is_clean_canasta(v);
+    });
+
+    if (
+      get().has_taken_dead_pile[team_id] &&
+      new_hand.length <= 1 &&
+      !will_have_clean
+    ) {
+      set({
+        last_error:
+          "Proibido bater sem canastra limpa (você ficaria apenas com uma carta na mão).",
+      });
+      return;
+    }
+
     const new_melds = [...team_melds[team_id]];
-    new_melds[meld_index] = organize_meld(proposed_meld);
+    const organized_meld = organize_meld(proposed_meld);
+    new_melds[meld_index] = organized_meld.length === proposed_meld.length ? organized_meld : sort_cards(proposed_meld);
 
     set({
       hands: { ...hands, [current_player]: new_hand },
@@ -265,13 +316,33 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const new_hand = sort_cards(
       my_hand.filter((c) => !card_ids.includes(c.id))
     );
-    if (new_hand.length === 0 && !get().internal_can_beat()) {
-      set({ last_error: "É necessário ter uma canastra limpa para bater." });
+
+    const is_clean_canasta = (v: any) =>
+      v.is_valid &&
+      (v.canastra_type === "CLEAN" ||
+        v.canastra_type === "KING" ||
+        v.canastra_type === "ACE");
+
+    const will_have_clean = team_melds[team_id].some((meld, idx) => {
+      const v = idx === meld_index ? validation : validate_sequence(meld);
+      return is_clean_canasta(v);
+    });
+
+    if (
+      get().has_taken_dead_pile[team_id] &&
+      new_hand.length <= 1 &&
+      !will_have_clean
+    ) {
+      set({
+        last_error:
+          "Proibido bater sem canastra limpa (você ficaria apenas com uma carta na mão).",
+      });
       return;
     }
 
     const new_melds = [...team_melds[team_id]];
-    new_melds[meld_index] = organize_meld(proposed_meld);
+    const organized_meld = organize_meld(proposed_meld);
+    new_melds[meld_index] = organized_meld.length === proposed_meld.length ? organized_meld : sort_cards(proposed_meld);
 
     set({
       hands: { ...hands, [current_player]: new_hand },
@@ -302,17 +373,37 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const new_hand = sort_cards(
       my_hand.filter((c) => !card_ids.includes(c.id))
     );
-    if (new_hand.length === 0 && !get().internal_can_beat()) {
-      set({ last_error: "É necessário ter uma canastra limpa para bater." });
+
+    const team_id = get_team(current_player);
+    const is_clean_canasta = (v: any) =>
+      v.is_valid &&
+      (v.canastra_type === "CLEAN" ||
+        v.canastra_type === "KING" ||
+        v.canastra_type === "ACE");
+
+    const will_have_clean =
+      get().internal_can_beat() || is_clean_canasta(validation);
+
+    if (
+      get().has_taken_dead_pile[team_id] &&
+      new_hand.length <= 1 &&
+      !will_have_clean
+    ) {
+      set({
+        last_error:
+          "Proibido bater sem canastra limpa (você ficaria apenas com uma carta na mão).",
+      });
       return;
     }
 
-    const team_id = get_team(current_player);
+    const organized_meld = organize_meld(cards);
+    const final_meld = organized_meld.length === cards.length ? organized_meld : sort_cards(cards);
+
     set({
       hands: { ...hands, [current_player]: new_hand },
       team_melds: {
         ...team_melds,
-        [team_id]: [...team_melds[team_id], organize_meld(cards)],
+        [team_id]: [...team_melds[team_id], final_meld],
       },
       last_error: null,
     });
@@ -326,19 +417,20 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const card = my_hand.find((c) => c.id === card_id);
     if (!card) return;
 
+    const team_id = get_team(current_player);
+    const new_hand = sort_cards(my_hand.filter((c) => c.id !== card.id));
+
     if (
-      my_hand.length === 1 &&
-      card.value === "2" &&
-      get().has_taken_dead_pile[get_team(current_player)] &&
+      new_hand.length === 0 &&
+      get().has_taken_dead_pile[team_id] &&
       !get().internal_can_beat()
     ) {
       set({
-        last_error: "Não pode descartar um 2 para bater sem canastra limpa.",
+        last_error: "Proibido bater sem canastra limpa.",
       });
       return;
     }
 
-    const new_hand = sort_cards(my_hand.filter((c) => c.id !== card.id));
     set({
       hands: { ...hands, [current_player]: new_hand },
       discard_pile: [card, ...discard_pile],
@@ -371,7 +463,12 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const team_id = get_team(current_player);
     return team_melds[team_id].some((meld) => {
       const v = validate_sequence(meld);
-      return v.is_valid && v.is_clean;
+      return (
+        v.is_valid &&
+        (v.canastra_type === "CLEAN" ||
+          v.canastra_type === "KING" ||
+          v.canastra_type === "ACE")
+      );
     });
   },
 

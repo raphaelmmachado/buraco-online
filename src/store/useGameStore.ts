@@ -154,9 +154,6 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         socket.emit("leave_game", { roomId });
     }
     
-    // Força desconexão para garantir limpeza de estado
-    socket.disconnect();
-    
     // Limpa estado local IMEDIATAMENTE
     localStorage.removeItem("baralho_active_room");
     
@@ -268,13 +265,22 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   },
 
   rejoinGame: () => {
-    if (!socket.connected) socket.connect();
     const savedRoom = localStorage.getItem("baralho_active_room");
     const savedPlayerId = localStorage.getItem("baralho_player_id");
-    
-    if (savedRoom && savedPlayerId) {
-        console.log("Tentando reconectar manualmente...", savedRoom);
+
+    if (!savedRoom || !savedPlayerId) return;
+
+    const emitRejoin = () => {
+        console.log("Emitindo rejoin para:", savedRoom);
         socket.emit("rejoin_game", { roomId: savedRoom, playerId: savedPlayerId });
+    };
+
+    if (socket.connected) {
+        emitRejoin();
+    } else {
+        console.log("Socket desconectado. Conectando antes de rejoin...");
+        socket.connect();
+        socket.once("connect", emitRejoin);
     }
   },
 

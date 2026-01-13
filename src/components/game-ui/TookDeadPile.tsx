@@ -3,11 +3,9 @@ import { Skull } from "lucide-react";
 export default function TookDeadPile({
   took,
   position,
-  myTeam,
 }: {
   took: boolean;
   position: string;
-  myTeam?: boolean;
 }) {
   if (!took) return null;
 

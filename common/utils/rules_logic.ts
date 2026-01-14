@@ -108,10 +108,10 @@ export const get_sequence_details = (cards: Card[]): SequenceDetails => {
       };
     }
 
-    // Regra conforme MEMORIAS.md: Permitir dois '2' se um for natural e outro curinga.
-    // A validação de "no máximo 1 curinga" já acontece no solver.
-    // Permitimos duplicatas de 'A' (A baixo/alto) e '2' (natural/curinga).
-    if (count === 2 && !key.startsWith("A_") && !key.startsWith("2_")) {
+    // Regra: Permitir dois 'A' (A baixo e A alto na canastra real).
+    // O '2' NÃO pode ter duplicata exata (naipe/valor) na mesma canastra,
+    // mesmo que um seja natural e o outro curinga.
+    if (count === 2 && !key.startsWith("A_")) {
       return {
         is_valid: false,
         error: `Cartas duplicadas inválidas ('${key}') no jogo.`,

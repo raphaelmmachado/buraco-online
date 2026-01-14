@@ -31,6 +31,7 @@ export interface GameAdapterInterface {
     details_t2: ScoreResult;
   } | null;
   last_error: string | null;
+  showAnimations: boolean;
 
   // Actions
   draw_card: () => void;
@@ -43,6 +44,7 @@ export interface GameAdapterInterface {
   leaveGame: () => void;
   sort_hand: () => void;
   clear_error: () => void;
+  toggleAnimations: () => void;
 }
 
 export const useLocalGameAdapter = (): GameAdapterInterface => {
@@ -85,6 +87,7 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
         details_t2: local.final_score.team_2
       } : null,
       last_error: local.last_error,
+      showAnimations: local.showAnimations,
 
       // Actions Mapped
       draw_card: local.draw_card_from_deck,
@@ -99,7 +102,8 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
           window.location.reload(); // Simple brute force for now, or we can add a reset action to local store
       },
       sort_hand: local.sort_my_hand,
-      clear_error: local.clear_error
+      clear_error: local.clear_error,
+      toggleAnimations: local.toggleAnimations
     };
   }, [local]);
 

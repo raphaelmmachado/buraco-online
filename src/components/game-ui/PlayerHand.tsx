@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { type Card as CardType } from "../../../common/types/card";
 import { HandCard } from "./HandCard";
 
@@ -157,58 +158,70 @@ export const PlayerHand = ({
             margin: isOverflowing ? "0 40px" : "0 auto",
           }}
         >
-          {cards.map((card, i) => {
-            const isSelected = selectedCardIds.includes(card.id);
-            const isHovered = hoveredIndex === i;
+          <AnimatePresence>
+            {cards.map((card, i) => {
+              const isSelected = selectedCardIds.includes(card.id);
+              const isHovered = hoveredIndex === i;
 
-            const x = i * currentSpacing;
-            const rotation = startAngle + i * angleStep;
-            const archY = getArchOffset(i);
+              const x = i * currentSpacing;
+              const rotation = startAngle + i * angleStep;
+              const archY = getArchOffset(i);
 
-            let translateY = archY;
-            let scale = 1;
+              let translateY = archY;
+              let scale = 1;
 
-            if (isSelected) {
-              translateY -= isMobile
-                ? HAND_CONFIG.interaction.selectedLiftMobile
-                : HAND_CONFIG.interaction.selectedLiftDesktop;
-            }
+              if (isSelected) {
+                translateY -= isMobile
+                  ? HAND_CONFIG.interaction.selectedLiftMobile
+                  : HAND_CONFIG.interaction.selectedLiftDesktop;
+              }
 
-            if (isHovered && !isMobile) {
-              translateY -= HAND_CONFIG.interaction.hoverLift;
-              scale = HAND_CONFIG.interaction.hoverScale;
-            }
+              if (isHovered && !isMobile) {
+                translateY -= HAND_CONFIG.interaction.hoverLift;
+                scale = HAND_CONFIG.interaction.hoverScale;
+              }
 
-            const bottomPos = isMobile
-              ? HAND_CONFIG.position.bottomOffsetMobile
-              : HAND_CONFIG.position.bottomOffsetDesktop;
+              const bottomPos = isMobile
+                ? HAND_CONFIG.position.bottomOffsetMobile
+                : HAND_CONFIG.position.bottomOffsetDesktop;
 
-            return (
-              <div
-                key={card.id}
-                className="absolute origin-bottom transition-all duration-300 ease-out pointer-events-auto will-change-transform"
-                style={{
-                  transform: `translateX(${x}px) translateY(${translateY}px) rotate(${rotation}deg) scale(${scale})`,
-                  bottom: `${bottomPos}px`,
-                  left: 0,
-                  width: `${cardWidth}px`,
-                  zIndex:
-                    isHovered && HAND_CONFIG.hover_zIndex && !isMobile
-                      ? 100
-                      : "auto",
-                }}
-                onMouseEnter={() => setHoveredIndex(i)}
-                onMouseLeave={() => setHoveredIndex(null)}
-              >
-                <HandCard
-                  card={card}
-                  isSelected={isSelected}
-                  isLastDrawn={card.id === lastDrawnCardId}
-                  onClick={() => onCardClick(card.id)}
-                />
-              </div>
-            );
-          })}
+              return (
+                <motion.div
+                  key={card.id}
+                  layout
+                  initial={{ opacity: 0, y: 50, scale: 0.8 }}
+                  animate={{
+                    opacity: 1,
+                    x,
+                    y: translateY,
+                    rotate: rotation,
+                    scale: scale,
+                  }}
+                  exit={{ opacity: 0, y: 20, scale: 0.5 }}
+                  // transition removed to use MotionConfig context
+                  className="absolute origin-bottom pointer-events-auto"
+                  style={{
+                    bottom: `${bottomPos}px`,
+                    left: 0,
+                    width: `${cardWidth}px`,
+                    zIndex:
+                      isHovered && HAND_CONFIG.hover_zIndex && !isMobile
+                        ? 100
+                        : "auto",
+                  }}
+                  onMouseEnter={() => setHoveredIndex(i)}
+                  onMouseLeave={() => setHoveredIndex(null)}
+                >
+                  <HandCard
+                    card={card}
+                    isSelected={isSelected}
+                    isLastDrawn={card.id === lastDrawnCardId}
+                    onClick={() => onCardClick(card.id)}
+                  />
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </div>
       </div>
 

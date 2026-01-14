@@ -14,7 +14,7 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
   const onlineNames = useGameStore((state) => state.onlineNames);
 
   // Check for active session on mount
-  const [activeSession, setActiveSession] = useState<string | null>(() =>
+  const [activeSession] = useState<string | null>(() =>
     localStorage.getItem("baralho_active_room")
   );
 
@@ -22,32 +22,30 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
     () => localStorage.getItem("baralho_user_name") || ""
   );
 
+  const handleUserNameChange = (val: string) => {
+    const cleaned = val.toUpperCase();
+    setUserName(cleaned);
+    if (cleaned) {
+      localStorage.setItem("baralho_user_name", cleaned);
+    }
+  };
+
   // VALIDATE ACTIVE SESSION
-  // Se a lista de salas chegou e minha sala salva não está nela -> Limpa o localStorage
   useEffect(() => {
     if (rooms.length > 0 && activeSession) {
       const roomExists = rooms.some((r) => r.roomId === activeSession);
       if (!roomExists) {
-        console.log("Sessão salva inválida (sala fechada). Limpando...");
         localStorage.removeItem("baralho_active_room");
       }
     }
-    // Edge case: Lista vazia mas tenho sessão (pode ser delay, ou todas fecharam)
-    // Vamos dar um tempo ou assumir que se totalOnline > 0 e rooms=[] entao acabou mesmo.
-    // Por segurança, validamos apenas se rooms estiver populado ou se totalOnline confirmarmos que recebeu dados.
   }, [rooms, activeSession]);
 
   // Inicializa o socket e busca as salas ao montar o componente
   useEffect(() => {
     initializeSocket();
-    const interval = setInterval(fetchRooms, 5000); // Atualiza a cada 5s
+    const interval = setInterval(fetchRooms, 5000);
     return () => clearInterval(interval);
   }, [initializeSocket, fetchRooms]);
-
-  // check username
-  useEffect(() => {
-    if (userName) localStorage.setItem("baralho_user_name", userName);
-  }, [userName]);
 
   const handleCreate = (mode: "1v1" | "2v2") => {
     if (userName.trim() === "") {
@@ -108,7 +106,7 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
                 type="text"
                 value={userName}
                 onChange={(e) => {
-                  setUserName(e.target.value);
+                  handleUserNameChange(e.target.value);
                 }}
                 maxLength={8}
                 placeholder="SEU NICKNAME"

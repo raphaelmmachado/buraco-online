@@ -1,13 +1,20 @@
 import { useState } from "react";
-import { Settings, Volume2, VolumeX, LogOut } from "lucide-react";
+import { Settings, Volume2, VolumeX, LogOut, Zap, ZapOff } from "lucide-react";
 import { useGameStore } from "../../store/useGameStore";
 
 interface GameMenuProps {
   onOpenRules: () => void;
   onLeave?: () => void;
+  showAnimations?: boolean;
+  toggleAnimations?: () => void;
 }
 
-export const GameMenu = ({ onOpenRules, onLeave }: GameMenuProps) => {
+export const GameMenu = ({
+  onOpenRules,
+  onLeave,
+  showAnimations,
+  toggleAnimations,
+}: GameMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const toggleMute = useGameStore((state) => state.toggleMute);
   const isMuted = useGameStore((state) => state.isMuted);
@@ -26,13 +33,24 @@ export const GameMenu = ({ onOpenRules, onLeave }: GameMenuProps) => {
           <button
             onClick={() => {
               toggleMute();
-              setIsOpen(false);
             }}
             className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-bold text-slate-300 hover:bg-white/10 hover:text-white transition-all"
           >
             {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-            {isMuted ? "Mutado" : "Som Ligado"}
+            {isMuted ? "Som: OFF" : "Som: ON"}
           </button>
+
+          {toggleAnimations && (
+            <button
+              onClick={() => {
+                toggleAnimations();
+              }}
+              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-bold text-slate-300 hover:bg-white/10 hover:text-white transition-all"
+            >
+              {showAnimations ? <Zap size={16} /> : <ZapOff size={16} />}
+              {showAnimations ? "Animações: ON" : "Animações: OFF"}
+            </button>
+          )}
 
           <button
             onClick={() => {

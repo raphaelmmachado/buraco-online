@@ -1,5 +1,10 @@
+import { motion } from "framer-motion";
 import { type Card as CardType } from "../../../common/types/card";
 import { SuitIcon } from "./SuitIcon";
+import {
+  type ScreenDirection,
+  getAnimationOrigin,
+} from "../../utils/animation_utils";
 
 interface DiscardCardProps {
   card?: CardType;
@@ -8,6 +13,7 @@ interface DiscardCardProps {
   highlight: boolean;
   subtleHighlight?: boolean;
   mini?: boolean;
+  originDirection?: ScreenDirection; // Nova prop para saber de onde vem a carta
 }
 
 export const DiscardCard = ({
@@ -17,6 +23,7 @@ export const DiscardCard = ({
   highlight,
   subtleHighlight = false,
   mini = false,
+  originDirection = "bottom",
 }: DiscardCardProps) => {
   if (!card) {
     return (
@@ -39,12 +46,29 @@ export const DiscardCard = ({
 
   const isRed = card.color === "red";
 
+  // Se a carta vem de "mim" (bottom), usamos layoutId para transição mágica da mão.
+  // Se vem de outros, usamos animação explícita de entrada.
+  const isFromMe = originDirection === "bottom";
+  const animationProps = isFromMe
+    ? { layoutId: card.id }
+    : {
+        initial: {
+          ...getAnimationOrigin(originDirection, 800),
+          opacity: 1,
+          scale: 1.2,
+          rotate: Math.random() * 30 - 15, // Mais rotação para descarte
+        },
+        animate: { x: 0, y: 0, opacity: 1, scale: 1, rotate: 0 },
+        // transition: removed to use MotionConfig context
+      };
+
   return (
-    <div
+    <motion.div
+      {...animationProps}
       onClick={onClick}
       className={`
-        relative rounded-md shadow-lg border bg-white select-none transition-all
-         duration-300 flex flex-col items-center p-1 font-black
+        relative rounded-md shadow-lg border bg-white select-none
+         flex flex-col items-center p-1 font-black
         ${
           mini
             ? "w-10 h-14 justify-center"
@@ -94,6 +118,6 @@ export const DiscardCard = ({
           />
         </div>
       )}
-    </div>
+    </motion.div>
   );
 };

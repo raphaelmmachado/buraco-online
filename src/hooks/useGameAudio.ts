@@ -6,8 +6,11 @@ import flip_card_sound from "../assets/sound/flipcard.mp3";
 import card_placement_sound from "../assets/sound/card-placement.mp3";
 import cards_sound from "../assets/sound/cards-sound.mp3";
 import { type GameAdapterInterface } from "../components/game-ui/useLocalGameAdapter";
+import { useGameStore } from "../store/useGameStore";
 
 export const useGameAudio = (game: GameAdapterInterface, isMyTurn: boolean) => {
+  const isMuted = useGameStore((state) => state.isMuted);
+
   // --- AUDIO SYSTEM (Optimized) ---
   // Memoize audio instances so they are not re-created on every render
   const sfx = useMemo(
@@ -24,6 +27,7 @@ export const useGameAudio = (game: GameAdapterInterface, isMyTurn: boolean) => {
 
   // Helper to safely play sound
   const playSound = (audio: HTMLAudioElement) => {
+    if (isMuted) return; // Silent mode
     // console.log("🔊 Playing Sound:", audio.src);
     audio.currentTime = 0; // Rewind to start for rapid playback
     audio.play().catch((e) => console.warn("Audio play blocked:", e));

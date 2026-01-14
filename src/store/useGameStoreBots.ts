@@ -28,6 +28,7 @@ interface GameState {
   last_drawn_card_id: string | null;
   final_score: { team_1: ScoreResult; team_2: ScoreResult } | null;
   last_error: string | null;
+  showAnimations: boolean;
 }
 
 interface GameActions {
@@ -43,6 +44,7 @@ interface GameActions {
     bridge_card_ids: string[]
   ) => void;
   clear_error: () => void;
+  toggleAnimations: () => void;
   internal_can_beat: () => boolean;
   internal_handle_empty_hand: (type: "DIRECT" | "INDIRECT") => void;
 }
@@ -67,8 +69,17 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   last_drawn_card_id: null,
   final_score: null,
   last_error: null,
+  showAnimations: localStorage.getItem("baralho_show_animations") !== "false",
 
   clear_error: () => set({ last_error: null }),
+
+  toggleAnimations: () => {
+    set((state) => {
+      const newVal = !state.showAnimations;
+      localStorage.setItem("baralho_show_animations", String(newVal));
+      return { showAnimations: newVal };
+    });
+  },
 
   start_game: (mode = "1v1") => {
     const full_deck = create_deck();

@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { type Card as CardType } from "../../../common/types/card";
 import { HandCard } from "./HandCard";
 
@@ -36,28 +37,36 @@ export const MobilePlayerHand = ({
         <div className="flex items-center -space-x-10">
           {" "}
           {/* Negative margin for overlap */}
-          {cards.map((card) => {
-            const isSelected = selectedCardIds.includes(card.id);
-            const isLastDrawn = card.id === lastDrawnCardId;
+          <AnimatePresence mode="popLayout">
+            {cards.map((card) => {
+              const isSelected = selectedCardIds.includes(card.id);
+              const isLastDrawn = card.id === lastDrawnCardId;
 
-            return (
-              <div
-                key={card.id}
-                className={`
-                relative shrink-0 snap-center transition-all duration-200
-                ${isSelected ? "-translate-y-2" : "translate-y-0"}
-              `}
-              >
-                <HandCard
-                  card={card}
-                  isSelected={isSelected}
-                  isLastDrawn={isLastDrawn}
-                  onClick={() => onCardClick(card.id)}
-                  className="w-16 h-24 shadow-md"
-                />
-              </div>
-            );
-          })}
+              return (
+                <motion.div
+                  key={card.id}
+                  layout
+                  initial={{ opacity: 0, x: 20, scale: 0.8 }}
+                  animate={{
+                    opacity: 1,
+                    x: 0,
+                    scale: 1,
+                    y: isSelected ? -8 : 0,
+                  }}
+                  exit={{ opacity: 0, scale: 0.5 }}
+                  className={`relative shrink-0 snap-center pointer-events-auto`}
+                >
+                  <HandCard
+                    card={card}
+                    isSelected={isSelected}
+                    isLastDrawn={isLastDrawn}
+                    onClick={() => onCardClick(card.id)}
+                    className="w-16 h-24 shadow-md"
+                  />
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </div>
       </div>
 

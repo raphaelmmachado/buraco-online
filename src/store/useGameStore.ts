@@ -55,6 +55,7 @@ interface GameState {
   >;
   mode: "1v1" | "2v2";
   isMuted: boolean;
+  showAnimations: boolean;
 
   deck_count: number;
   discard_pile: Card[];
@@ -94,6 +95,7 @@ interface GameActions {
   switchTeam: () => void;
   sort_hand: () => void;
   toggleMute: () => void;
+  toggleAnimations: () => void;
 
   set_server_state: (server_data: IncomingServerState) => void;
 }
@@ -115,9 +117,10 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   totalOnline: 0,
   onlineNames: [],
   last_error: null,
+  isMuted: localStorage.getItem("baralho_muted") === "true",
+  showAnimations: localStorage.getItem("baralho_show_animations") !== "false",
   players_data: {},
   mode: "1v1",
-  isMuted: false,
 
   deck_count: 0,
   discard_pile: [],
@@ -132,7 +135,19 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
   clear_error: () => set({ last_error: null }),
 
-  toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
+  toggleMute: () =>
+    set((state) => {
+      const newVal = !state.isMuted;
+      localStorage.setItem("baralho_muted", String(newVal));
+      return { isMuted: newVal };
+    }),
+
+  toggleAnimations: () =>
+    set((state) => {
+      const newVal = !state.showAnimations;
+      localStorage.setItem("baralho_show_animations", String(newVal));
+      return { showAnimations: newVal };
+    }),
 
   addBot: () => {
     const { roomId } = get();

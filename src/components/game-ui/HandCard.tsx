@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { type Card as CardType } from "../../../common/types/card";
 import { SuitIcon } from "./SuitIcon";
 
@@ -26,12 +27,13 @@ export const HandCard = ({
   const { name } = card.suit;
 
   return (
-    <div
+    <motion.div
+      layoutId={card.id}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       className={`
-        relative rounded-md shadow-lg border bg-white select-none transition-all duration-200
+        relative rounded-md shadow-lg border bg-white select-none
         flex flex-col items-center justify-between md:p-1 cursor-pointer
         w-14 h-20 md:w-20 md:h-32 transform origin-bottom
         ${
@@ -59,6 +61,6 @@ export const HandCard = ({
         <span className="font-black md:text-2xl">{card.value}</span>
         <SuitIcon suit={name} className="w-4 h-4 md:w-5 md:h-5" />
       </div>
-    </div>
+    </motion.div>
   );
 };

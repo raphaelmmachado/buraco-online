@@ -154,7 +154,6 @@ export const get_sequence_details = (cards: Card[]): SequenceDetails => {
   const best_solution = solve_recursive(card_options, {}, 0, target_suit);
 
   if (best_solution) {
-    console.log(`[VALIDATION SUCCESS] Cards: ${cards.map(c => c.value).join('-')} | Suit: ${target_suit}`);
     return build_valid_sequence(cards, best_solution, target_suit);
   }
 
@@ -237,7 +236,7 @@ const validate_assignment = (
   for (const card of cards) {
     // Verificação de segurança extra: Naipe Incorreto
     if (card.value !== "2" && card.suit.name !== target_suit) {
-        return false;
+      return false;
     }
 
     const w = assigned[card.id];
@@ -265,7 +264,7 @@ const build_valid_sequence = (
   const end_weight = weights[weights.length - 1];
 
   if (start_weight === undefined || end_weight === undefined) {
-      throw new Error("Invalid sequence assignment");
+    throw new Error("Invalid sequence assignment");
   }
 
   let wildcard_count = 0;

@@ -489,13 +489,13 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         team_melds[1],
         mode === "1v1" || team_id === 2 ? [hands[1]] : [],
         team_id === 1,
-        !has_taken_dead_pile[2]
+        !has_taken_dead_pile[1]
       );
       const t2_score = calculate_score(
         team_melds[2],
         mode === "1v1" || team_id === 1 ? [hands[2]] : [],
         team_id === 2,
-        !has_taken_dead_pile[1]
+        !has_taken_dead_pile[2]
       );
       set({
         status: "FINISHED",
@@ -508,7 +508,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       console.log(`[GAME] Jogador ${current_player} pegou o morto.`);
       const [my_dead_pile, ...remaining_piles] = dead_piles;
       set({
-        hands: { ...hands, [current_player]: my_dead_pile },
+        hands: { ...hands, [current_player]: sort_cards(my_dead_pile) },
         dead_piles: remaining_piles,
         has_taken_dead_pile: { ...has_taken_dead_pile, [team_id]: true },
         turn_phase: type === "DIRECT" ? "ACTION" : "DRAW",

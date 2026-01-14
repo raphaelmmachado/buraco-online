@@ -46,14 +46,11 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
 
       if (game.deck.length === 0) {
         if (game.dead_piles.length > 0) {
-          console.log(`[GAME] Deck vazio. Movendo morto para o monte.`);
           const new_deck = game.dead_piles.shift();
           if (new_deck) {
             game.deck = new_deck;
           }
         } else {
-          console.log("[GAME] Monte e mortos acabaram. Finalizando jogo.");
-
           const t1_hand_1 = game.hands[1] ?? [];
           const t1_hand_2 = game.hands[3] ?? [];
           const t2_hand_1 = game.hands[2] ?? [];
@@ -142,11 +139,6 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
 
       const combined = [...hand_cards, top_discard];
 
-      console.log(
-        `[PICKUP ATTEMPT] Player ${player_id} trying to pickup with: ${combined
-          .map((c) => c.value + c.suit.icon)
-          .join(", ")}`
-      );
       const is_valid_pickup = validate_discard_pickup(top_discard, hand_cards);
       console.log(`[PICKUP RESULT] Valid: ${is_valid_pickup}`);
 
@@ -157,9 +149,6 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
           ? validation.error
           : "O jogo formado deve ser LIMPO (sem curingas) para comprar o lixo.";
 
-        console.log(
-          `[VALIDATION FAIL] Player ${player_id} pickup discard: ${error_msg}`
-        );
         if (callback) callback({ error: `Lixo bloqueado: ${error_msg}` });
         return;
       }
@@ -211,9 +200,6 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       if (current_team_melds) {
         const organized = organize_meld(combined);
         if (organized.length !== combined.length) {
-          console.error(
-            `[CRITICAL] organize_meld lost cards! In: ${combined.length}, Out: ${organized.length}`
-          );
           current_team_melds.push(sort_cards(combined));
         } else {
           current_team_melds.push(organized);
@@ -278,19 +264,17 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       }
       const hand_cards = current_hand.filter((c) => card_ids.includes(c.id));
 
-      console.log(
-        `[PICKUP ADD ATTEMPT] Player ${player_id} adding to meld ${meld_index}. Discard: ${top_discard.value}${top_discard.suit.icon}. Bridge: ${hand_cards.length} cards.`
-      );
-
       const new_meld: Card[] = [...target_meld, ...hand_cards, top_discard];
       const validation = validate_sequence(new_meld);
-      
-      console.log(`[PICKUP ADD VALIDATION] Valid: ${validation.is_valid}. Error: ${!validation.is_valid ? validation.error : 'None'}`);
 
       if (!validation.is_valid) {
-        if (callback) callback({ error: `Movimento inválido: ${validation.error}` });
+        if (callback)
+          callback({ error: `Movimento inválido: ${validation.error}` });
         return;
       }
+
+      const new_hand_len =
+        current_hand.length - card_ids.length + (game.discard_pile.length - 1);
 
       if (requires_clean_to_empty_hand(game, team_id)) {
         if (new_hand_len <= 1) {
@@ -315,7 +299,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
             if (callback)
               callback({
                 error:
-                  "Proibido bater sem canastra limpa (você ficaria apenas com uma carta na mão).",
+                  "Impedido de ficar com apenas uma carta na mão. Proibido bater sem canastra limpa",
               });
             return;
           }
@@ -341,9 +325,6 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       if (team_melds) {
         const organized = organize_meld(new_meld);
         if (organized.length !== new_meld.length) {
-          console.error(
-            `[CRITICAL] organize_meld lost cards! In: ${new_meld.length}, Out: ${organized.length}`
-          );
           team_melds[meld_index] = sort_cards(new_meld);
         } else {
           team_melds[meld_index] = organized;
@@ -390,17 +371,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         return;
       }
 
-      console.log(
-        `[MELD ATTEMPT] Player ${player_id} trying to meld: ${cards_to_meld
-          .map((c) => c.value + c.suit.icon)
-          .join(", ")}`
-      );
       const validation = validate_sequence(cards_to_meld);
-      console.log(
-        `[MELD RESULT] Valid: ${validation.is_valid} ${
-          !validation.is_valid ? validation.error : ""
-        }`
-      );
 
       if (!validation.is_valid) {
         if (callback) callback({ error: `Jogo inválido: ${validation.error}` });
@@ -437,9 +408,6 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       if (team_melds) {
         const organized = organize_meld(cards_to_meld);
         if (organized.length !== cards_to_meld.length) {
-          console.error(
-            `[CRITICAL] organize_meld lost cards! In: ${cards_to_meld.length}, Out: ${organized.length}`
-          );
           team_melds.push(sort_cards(cards_to_meld));
         } else {
           team_melds.push(organized);
@@ -532,7 +500,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       game.hands[player_id] = sort_cards(
         current_hand.filter((c) => !card_ids.includes(c.id))
       );
-      
+
       const organized = organize_meld(new_meld);
       if (organized.length !== new_meld.length) {
         console.error(

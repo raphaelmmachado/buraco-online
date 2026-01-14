@@ -14,13 +14,29 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
   const onlineNames = useGameStore((state) => state.onlineNames);
 
   // Check for active session on mount
-  const [activeSession] = useState<string | null>(() =>
+  const [activeSession, setActiveSession] = useState<string | null>(() =>
     localStorage.getItem("baralho_active_room")
   );
 
   const [userName, setUserName] = useState(
     () => localStorage.getItem("baralho_user_name") || ""
   );
+
+  // VALIDATE ACTIVE SESSION
+  // Se a lista de salas chegou e minha sala salva não está nela -> Limpa o localStorage
+  useEffect(() => {
+    if (rooms.length > 0 && activeSession) {
+      const roomExists = rooms.some((r) => r.roomId === activeSession);
+      if (!roomExists) {
+        console.log("Sessão salva inválida (sala fechada). Limpando...");
+        localStorage.removeItem("baralho_active_room");
+      }
+    }
+    // Edge case: Lista vazia mas tenho sessão (pode ser delay, ou todas fecharam)
+    // Vamos dar um tempo ou assumir que se totalOnline > 0 e rooms=[] entao acabou mesmo.
+    // Por segurança, validamos apenas se rooms estiver populado ou se totalOnline confirmarmos que recebeu dados.
+  }, [rooms, activeSession]);
+
   // Inicializa o socket e busca as salas ao montar o componente
   useEffect(() => {
     initializeSocket();
@@ -320,7 +336,7 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
                                 : "bg-yellow-500/10 border-yellow-500/50 text-yellow-400 hover:bg-yellow-500 hover:text-black shadow-[0_0_10px_rgba(234,179,8,0.2)] active:scale-95"
                             }`}
                           >
-                            {isPlaying ? "RODANDO" : isFull ? "FULL" : "JOIN"}
+                            {isPlaying ? "EM JOGO" : isFull ? "FULL" : "JOIN"}
                           </button>
                         )}
                       </div>

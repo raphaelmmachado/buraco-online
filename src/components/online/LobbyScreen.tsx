@@ -1,4 +1,5 @@
 import { useGameStore } from "../../store/useGameStore";
+import { Users, Bot } from "lucide-react";
 
 export const LobbyScreen = () => {
   const roomId = useGameStore((state) => state.roomId);
@@ -8,8 +9,65 @@ export const LobbyScreen = () => {
   const startGame = useGameStore((state) => state.startGame);
 
   const maxPlayers = mode === "1v1" ? 2 : 4;
-  const connectedPlayers = Object.values(players_data);
-  const missingCount = maxPlayers - connectedPlayers.length;
+  const missingCount = maxPlayers - Object.keys(players_data).length;
+  
+  // Mapeia para array incluindo o Slot ID (Chave do objeto)
+  const allPlayers = Object.entries(players_data).map(([id, data]) => ({
+      ...data,
+      slotId: Number(id)
+  }));
+
+  const team1 = allPlayers.filter((p) => (p.slotId % 2 !== 0)); // 1, 3
+  const team2 = allPlayers.filter((p) => (p.slotId % 2 === 0)); // 2, 4
+
+  // Logic for Switch Team Button
+  const isTeam1Full = players_data[1] && players_data[3];
+  const isTeam2Full = players_data[2] && players_data[4];
+  
+  const canSwitch = my_player_number !== 1 && mode === "2v2" && (
+      (my_player_number === 3 && !isTeam2Full) || // Sou Time 1, quero ir pro 2
+      ((my_player_number === 2 || my_player_number === 4) && !isTeam1Full) // Sou Time 2, quero ir pro 1
+  );
+
+  const TeamList = ({
+    teamName,
+    players,
+    color,
+  }: {
+    teamName: string;
+    players: { userName: string; isBot?: boolean; playerId?: string; slotId: number }[];
+    color: string;
+  }) => (
+    <div className={`flex-1 bg-black/20 rounded-xl p-4 border border-white/5 flex flex-col gap-2 ${color}`}>
+      <h3 className="text-xs font-black uppercase tracking-widest opacity-70 mb-2 border-b border-white/5 pb-2">
+        {teamName}
+      </h3>
+      {players.length > 0 ? (
+        players.map((p, idx) => (
+          <div key={idx} className="flex items-center justify-between text-sm font-bold group/item">
+             <div className="flex items-center gap-2 overflow-hidden">
+                {p.isBot ? <Bot size={14} className="opacity-50 shrink-0" /> : <Users size={14} className="opacity-50 shrink-0" />}
+                <span className="truncate" title={p.userName}>{p.userName}</span>
+                {p.isBot && <span className="text-[9px] bg-white/10 px-1 rounded text-white/40">BOT</span>}
+             </div>
+             
+             {/* KICK BUTTON (Only for Host, never on self) */}
+             {my_player_number === 1 && p.slotId !== 1 && (
+                 <button 
+                    onClick={() => useGameStore.getState().kickPlayer(p.slotId)}
+                    className="opacity-0 group-hover/item:opacity-100 p-1 hover:bg-red-500/20 rounded text-red-400/50 hover:text-red-400 transition-all"
+                    title="Expulsar Jogador"
+                 >
+                    ✕
+                 </button>
+             )}
+          </div>
+        ))
+      ) : (
+        <span className="text-white/20 text-xs italic">Aguardando...</span>
+      )}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f2e1a] flex flex-col items-center justify-center text-white p-6 font-sans relative overflow-hidden">
@@ -17,143 +75,90 @@ export const LobbyScreen = () => {
       <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "30px 30px" }}></div>
       <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/50 pointer-events-none"></div>
 
-      <div className="text-center mb-12 animate-fade-in relative z-10">
-        <h1 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-yellow-300 via-yellow-500 to-orange-600 mb-4 uppercase tracking-tighter drop-shadow-xl">
+      <div className="text-center mb-8 animate-fade-in relative z-10">
+        <h1 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-br from-yellow-300 via-yellow-500 to-orange-600 mb-2 uppercase tracking-tighter drop-shadow-xl">
           Sala: {roomId}
         </h1>
-        <div className="flex items-center justify-center gap-3 bg-black/40 backdrop-blur-sm px-4 py-2 rounded-full border border-white/5 inline-flex shadow-lg">
-          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.8)]"></span>
-          <p className="text-xs md:text-sm text-slate-300 tracking-[0.2em] uppercase font-bold">
-            Lobby de Espera
+        <div className="flex items-center justify-center gap-2 bg-black/40 backdrop-blur-sm px-3 py-1 rounded-full border border-white/5 inline-flex shadow-lg">
+          <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.8)]"></span>
+          <p className="text-[10px] md:text-xs text-slate-300 tracking-[0.2em] uppercase font-bold">
+            Aguardando Jogadores
           </p>
         </div>
       </div>
 
-      <div className="bg-black/40 backdrop-blur-md p-1 rounded-2xl shadow-2xl w-full max-w-2xl border border-white/10 relative z-10 group hover:border-yellow-500/20 transition-colors">
-        <div className="bg-slate-900/60 p-8 rounded-xl">
-          <div className="flex justify-between items-center mb-8 border-b border-white/5 pb-4">
-            <h2 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-              <span className="text-xl">👥</span>
-              Jogadores
-            </h2>
-            <div className="bg-black/40 px-4 py-1.5 rounded-lg border border-white/10 flex items-center gap-2">
-              <span className="text-yellow-500 text-xs font-mono font-bold">
-                {connectedPlayers.length}
-              </span>
-              <span className="text-slate-600 text-[10px] font-mono">/</span>
-              <span className="text-slate-500 text-xs font-mono font-bold">
-                {maxPlayers}
-              </span>
+      <div className="bg-black/40 backdrop-blur-md p-1 rounded-2xl shadow-2xl w-full max-w-lg border border-white/10 relative z-10 group hover:border-yellow-500/20 transition-colors">
+        <div className="bg-slate-900/60 p-6 rounded-xl">
+          
+          <div className="flex gap-4 mb-6">
+            <TeamList teamName="Equipe 1" players={team1} color="border-blue-500/20 bg-blue-900/10 text-blue-200" />
+            
+            <div className="flex items-center justify-center">
+               <span className="text-2xl font-black text-white/10 italic">VS</span>
             </div>
+
+            <TeamList teamName="Equipe 2" players={team2} color="border-red-500/20 bg-red-900/10 text-red-200" />
           </div>
 
-          <div className="grid grid-cols-1 gap-4 mb-10">
-            {connectedPlayers.map((player, idx) => (
-              <div
-                key={idx}
-                className="flex items-center gap-4 bg-white/5 p-4 rounded-xl border border-white/5 animate-slide-up group/player hover:bg-white/10 hover:border-white/10 transition-all relative overflow-hidden"
-              >
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>
-                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-yellow-500 to-orange-600 flex items-center justify-center text-xl font-black text-black shadow-lg">
-                  {player.userName.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <p className="font-black text-white text-lg uppercase tracking-wide">
-                    {player.userName.substring(0, 8)}
-                  </p>
-                  <p className="text-[9px] text-green-400 uppercase tracking-widest font-mono">
-                    ● Conectado
-                  </p>
-                </div>
-                {player.isBot && (
-                   <span className="ml-2 text-[9px] bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30 uppercase font-bold tracking-wider">
-                     BOT AI
-                   </span>
-                )}
-                <div className="ml-auto">
-                  <span className="text-xs font-black text-slate-500 uppercase tracking-widest group-hover/player:text-white transition-colors">
-                    Pronto
-                  </span>
-                </div>
-              </div>
-            ))}
+          <div className="flex flex-col gap-3">
+             {/* Info Slots */}
+             <div className="text-center text-xs text-slate-500 uppercase tracking-wider font-mono mb-2">
+                {missingCount > 0 ? `Vagas restantes: ${missingCount}` : "Sala Cheia"}
+             </div>
 
-            {[...Array(missingCount)].map((_, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-4 bg-black/20 p-4 rounded-xl border border-dashed border-white/10 opacity-60"
-              >
-                <div className="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center text-xl font-black text-white/20">
-                  ?
-                </div>
-                <div className="flex-1">
-                  <p className="font-bold text-slate-500 uppercase text-sm tracking-wide">Vaga Aberta</p>
-                  <p className="text-[9px] text-slate-600 uppercase tracking-widest font-mono">
-                    Aguardando...
-                  </p>
-                </div>
-                {my_player_number === 1 && (
-                    <button
-                      onClick={useGameStore.getState().addBot}
-                      className="text-[9px] font-black bg-white/5 hover:bg-purple-600 hover:text-white px-4 py-2 rounded-lg text-slate-400 transition-all uppercase tracking-widest border border-white/5 hover:border-purple-500/50 hover:shadow-[0_0_10px_rgba(147,51,234,0.4)] active:scale-95"
-                    >
-                      + Adicionar Bot
-                    </button>
-                )}
-              </div>
-            ))}
-          </div>
+             {/* Actions */}
+             <div className="flex gap-3">
+               {canSwitch && (
+                  <button
+                    onClick={useGameStore.getState().switchTeam}
+                    className="flex-1 bg-slate-600/40 hover:bg-slate-500/50 text-slate-200 border border-slate-500/30 py-3 rounded-lg font-bold text-xs uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    ⇄ Trocar Time
+                  </button>
+               )}
+               {my_player_number === 1 && missingCount > 0 && (
+                  <button
+                    onClick={useGameStore.getState().addBot}
+                    className="flex-1 bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 border border-purple-500/30 py-3 rounded-lg font-bold text-xs uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    <Bot size={16} /> + Bot
+                  </button>
+               )}
+             </div>
 
-          <div className="text-center pt-4 border-t border-white/5">
-            <p className="text-slate-500 text-xs uppercase tracking-widest mb-8 font-mono">
-              {missingCount > 0
-                ? `Aguardando ${missingCount} jogador${missingCount > 1 ? "es" : ""}...`
-                : "Sistema pronto. Iniciando sequência..."}
-            </p>
-
-            {/* Botão de Início para o Anfitrião (Player 1) */}
             {my_player_number === 1 && missingCount === 0 && (
               <button
                 onClick={() => startGame()}
-                className="w-full bg-green-600 hover:bg-green-500 text-white py-5 rounded-xl font-black text-xl shadow-[0_0_20px_rgba(34,197,94,0.4)] transition-all hover:scale-[1.02] active:scale-95 animate-pulse mb-6 uppercase tracking-[0.2em] border border-white/10"
+                className="w-full bg-green-600 hover:bg-green-500 text-white py-4 rounded-xl font-black text-lg shadow-[0_0_20px_rgba(34,197,94,0.4)] transition-all hover:scale-[1.02] active:scale-95 animate-pulse uppercase tracking-[0.2em] border border-white/10 mt-2"
               >
                 INICIAR PARTIDA
               </button>
             )}
 
-            {/* Loading indicator */}
-            {(my_player_number !== 1 || missingCount > 0) && (
-              <div className="flex justify-center mb-8">
-                <div className="flex gap-3">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-sm animate-bounce [animation-delay:-0.3s]"></div>
-                  <div className="w-2 h-2 bg-yellow-500 rounded-sm animate-bounce [animation-delay:-0.15s]"></div>
-                  <div className="w-2 h-2 bg-yellow-500 rounded-sm animate-bounce"></div>
-                </div>
-              </div>
-            )}
+            <div className="mt-4 pt-4 border-t border-white/5 flex justify-center">
+              {my_player_number === 1 ? (
+                <button
+                  onClick={() => useGameStore.getState().closeRoom()}
+                  className="text-[10px] font-bold text-red-500/70 hover:text-red-400 uppercase tracking-[0.2em] transition-colors hover:underline decoration-red-500/30 underline-offset-4"
+                >
+                  Cancelar Sala
+                </button>
+              ) : (
+                <button
+                  onClick={() => useGameStore.getState().leaveGame()}
+                  className="text-[10px] font-bold text-slate-500 hover:text-slate-300 uppercase tracking-[0.2em] transition-colors hover:underline decoration-slate-500/30 underline-offset-4"
+                >
+                  Sair da Sala
+                </button>
+              )}
+            </div>
 
-            {/* Botões de Saída */}
-            {my_player_number === 1 ? (
-              <button
-                onClick={() => useGameStore.getState().closeRoom()}
-                className="text-[10px] font-bold text-red-500/70 hover:text-red-400 uppercase tracking-[0.3em] transition-colors hover:underline decoration-red-500/30 underline-offset-4"
-              >
-                Encerrar Sessão
-              </button>
-            ) : (
-              <button
-                onClick={() => useGameStore.getState().leaveGame()}
-                className="text-[10px] font-bold text-slate-500 hover:text-slate-300 uppercase tracking-[0.3em] transition-colors hover:underline decoration-slate-500/30 underline-offset-4"
-              >
-                Desconectar
-              </button>
-            )}
           </div>
         </div>
       </div>
-
+      
       <p className="mt-8 text-slate-500/50 text-[9px] uppercase tracking-[0.5em] font-mono">
-        ID DO SERVIDOR: {roomId} // STATUS: ONLINE
+        ID: {roomId}
       </p>
     </div>
   );

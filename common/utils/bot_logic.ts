@@ -83,6 +83,19 @@ export const find_meld_in_hand = (
                       const attempt = [cards[i], cards[j], wc];
                       const validation = validate_sequence(attempt);
                       if (validation.is_valid) {
+                          // GESTÃO DE CURINGAS (Item 3)
+                          // Não gastar curinga em jogo pequeno (< 6 cartas) à toa.
+                          // Exceções:
+                          // 1. Ainda não peguei o morto (preciso baixar pontos rápido).
+                          // 2. Tenho muitos curingas (mais de 2).
+                          const is_small_meld = attempt.length < 6;
+                          const has_excess_wildcards = wildcards.length > 2;
+                          
+                          if (is_small_meld && has_taken_dead_pile && !has_excess_wildcards) {
+                              console.log(`[BOT LOGIC] Saving Wildcard: Meld too small (${attempt.length}) and no urgency.`);
+                              continue;
+                          }
+
                           // Proteção contra Soft Lock
                           if (has_taken_dead_pile && !has_clean_canastra) {
                               const is_canastra = validation.is_valid && (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE');
@@ -162,6 +175,13 @@ export const find_card_to_add = (
         // Se o jogo era limpo, e vai ficar sujo com essa carta...
         if (is_currently_clean && !validation.is_clean) {
             
+            // REGRA DE OURO: NUNCA sujar uma Canastra Limpa já feita (7+ cartas)
+            // Não importa se precisa de morto ou bater, estragar 200/400 pontos para virar 100 é proibido.
+            if (meld.length >= 7) {
+                console.log(`[BOT LOGIC] REJECTED ${card.value}: Would dirty a Clean Canastra!`);
+                continue;
+            }
+
             // Regra 1: Se ainda não peguei o morto, PODE SUJAR! (Prioridade é pegar o morto)
             if (!has_taken_dead_pile) {
                 console.log(`[BOT LOGIC] Dirtying clean meld with ${card.value} because need Dead Pile.`);
@@ -220,6 +240,12 @@ export const analyze_discard_pickup = (
        const meld_val = validate_sequence(meld);
        const was_clean = meld_val.is_valid && meld_val.is_clean;
        
+       // REGRA DE OURO: NUNCA sujar uma Canastra Limpa já feita (7+ cartas)
+       if (was_clean && !validation.is_clean && meld.length >= 7) {
+           console.log(`[BOT LOGIC] Pickup Rejected: Would dirty a finished Clean Canastra.`);
+           continue;
+       }
+
        if (was_clean && !validation.is_clean && has_taken_dead_pile) {
            console.log(`[BOT LOGIC] Pickup Rejected: Would dirty clean meld ${i} with ${top_discard.value}`);
            continue; 
@@ -255,6 +281,11 @@ export const analyze_discard_pickup = (
           if (validation.is_valid) {
               const meld_val = validate_sequence(meld);
               const was_clean = meld_val.is_valid && meld_val.is_clean;
+
+              // REGRA DE OURO: NUNCA sujar uma Canastra Limpa já feita (7+ cartas)
+              if (was_clean && !validation.is_clean && meld.length >= 7) {
+                  continue;
+              }
 
               if (was_clean && !validation.is_clean && has_taken_dead_pile) {
                   continue;
@@ -307,20 +338,53 @@ export const analyze_discard_pickup = (
 };
 
 const calculate_discard_risk = (card: Card, opponent_melds: Card[][]): number => {
-    let risk = 0;
-    if (card.value === "2") return 95; 
+    let max_risk = 0;
+    if (card.value === "2") return 95; // Curinga é sempre arriscado
+
+    const my_val = RANK_MAP[card.value];
+    if (!my_val) return 0;
 
     for (const meld of opponent_melds) {
+        // Ignora melds de naipe diferente
         const meld_suit = meld.find(c => c.value !== "2")?.suit.name;
         if (meld_suit !== card.suit.name) continue;
 
+        // 1. Risco Imediato (Encaixa perfeitamente)
         const attempt = [...meld, card];
         if (validate_sequence(attempt).is_valid) {
-            risk = 100; 
-            break;
+            return 100; // Risco Máximo: Entrega o jogo
+        }
+
+        // 2. Risco de Proximidade (Defensiva)
+        // Acha as pontas do jogo do oponente
+        let min_rank = 15;
+        let max_rank = 0;
+        
+        for (const c of meld) {
+            if (c.value === "2") continue; // Ignora curinga para calcular range
+            const r = RANK_MAP[c.value] || 0;
+            if (r < min_rank) min_rank = r;
+            if (r > max_rank) max_rank = r;
+        }
+
+        if (max_rank === 0) continue; // Meld só de coringas? (Raro)
+
+        // Distância para as pontas
+        const dist_down = Math.abs(my_val - min_rank);
+        const dist_up = Math.abs(my_val - max_rank);
+        const distance = Math.min(dist_down, dist_up);
+
+        // Penalidades progressivas
+        // Distância 1: Ex: Ele tem 4-5-6. Eu descarto 8. (Falta o 7) -> Muito Perigoso
+        if (distance === 1) {
+            max_risk = Math.max(max_risk, 85); 
+        }
+        // Distância 2: Ex: Ele tem 4-5-6. Eu descarto 9. (Falta 7 e 8) -> Perigoso
+        else if (distance === 2) {
+            max_risk = Math.max(max_risk, 50);
         }
     }
-    return risk;
+    return max_risk;
 };
 
 const calculate_hand_utility = (card: Card, hand: Card[], has_taken_dead_pile: boolean): number => {

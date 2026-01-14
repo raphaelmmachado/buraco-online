@@ -18,7 +18,7 @@ interface IncomingServerState {
   current_player: number;
   players_data: Record<
     number,
-    { socketId: string; userName: string; isBot?: boolean }
+    { socketId: string; userName: string; isBot?: boolean; playerId: string }
   >;
   last_drawn_card_id: string | null;
   has_taken_dead_pile: [boolean, boolean];
@@ -51,7 +51,7 @@ interface GameState {
   last_error: string | null;
   players_data: Record<
     number,
-    { socketId: string; userName: string; isBot?: boolean }
+    { socketId: string; userName: string; isBot?: boolean; playerId: string }
   >;
   mode: "1v1" | "2v2";
   isMuted: boolean;
@@ -87,9 +87,11 @@ interface GameActions {
   pick_up_discard_new_meld: (card_ids: string[]) => void;
   pick_up_discard_add_to_meld: (meld_index: number, card_ids: string[]) => void;
   addBot: () => void;
+  kickPlayer: (playerId: number) => void;
   startGame: () => void;
   leaveGame: () => void;
   closeRoom: () => void;
+  switchTeam: () => void;
   sort_hand: () => void;
   toggleMute: () => void;
 
@@ -137,6 +139,16 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     socket.emit("action_add_bot", { roomId });
   },
 
+  kickPlayer: (playerId: number) => {
+    const { roomId } = get();
+    socket.emit("action_kick_player", { roomId, targetId: playerId });
+  },
+
+  switchTeam: () => {
+    const { roomId } = get();
+    socket.emit("action_switch_team", { roomId });
+  },
+
   sort_hand: () => {
     const { roomId } = get();
     socket.emit("action_sort_hand", { roomId });
@@ -145,7 +157,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   closeRoom: () => {
     const { roomId } = get();
     socket.emit("action_close_room", { roomId });
-    // The server will send 'game_closed' event, which we handle below.
+    // Chama leaveGame para garantir limpeza local e redirecionamento imediato
+    get().leaveGame();
   },
 
   leaveGame: () => {
@@ -196,6 +209,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
       socket.on("game_closed", (reason: string) => {
         alert(reason); // Simple alert for now
+        
+        // Limpa estado local e redireciona
         localStorage.removeItem("baralho_active_room");
         set({
           status: "IDLE",
@@ -207,7 +222,28 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
           discard_pile: [],
           deck_count: 0,
           dead_piles_count: 0,
+          players_data: {},
           final_score: null,
+          last_error: null
+        });
+      });
+
+      socket.on("kicked", () => {
+        alert("Você foi expulso da sala pelo anfitrião.");
+        localStorage.removeItem("baralho_active_room");
+        set({
+          status: "IDLE",
+          roomId: "",
+          my_player_number: null,
+          my_player_name: null,
+          hands: {},
+          team_melds: { 1: [], 2: [] },
+          discard_pile: [],
+          deck_count: 0,
+          dead_piles_count: 0,
+          players_data: {},
+          final_score: null,
+          last_error: null
         });
       });
 

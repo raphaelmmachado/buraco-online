@@ -24,6 +24,7 @@ export const useGameAudio = (game: GameAdapterInterface, isMyTurn: boolean) => {
 
   // Helper to safely play sound
   const playSound = (audio: HTMLAudioElement) => {
+    // console.log("🔊 Playing Sound:", audio.src);
     audio.currentTime = 0; // Rewind to start for rapid playback
     audio.play().catch((e) => console.warn("Audio play blocked:", e));
   };

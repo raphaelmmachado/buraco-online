@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Dot, Hand, ShoppingCart, Skull, Trash } from "lucide-react";
-import { LayoutGroup, MotionConfig } from "framer-motion";
+import { LayoutGroup, MotionConfig, motion } from "framer-motion";
 import { calculate_score } from "../../../common/utils/scoring";
 import { type Card } from "../../../common/types/card";
 import { getPlayerDirection } from "../../utils/animation_utils";
@@ -132,7 +132,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     <MotionConfig
       transition={
         game.showAnimations
-          ? { type: "spring", stiffness: 1500, damping: 40, mass: 0.5 }
+          ? { type: "spring", stiffness: 500, damping: 30, mass: 0.8 }
           : { duration: 0 }
       }
     >
@@ -192,7 +192,8 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           </section>
 
           {/* SEPARATOR / INFO BAR (Draggable) */}
-          <section
+          <motion.section
+            transition={{ stiffness: 500 }}
             id="game-separator"
             onMouseDown={startDrag}
             onTouchStart={startDrag}
@@ -389,7 +390,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                 </div>
               )}
             </div>
-          </section>
+          </motion.section>
 
           {/* ÁREA DO JOGADOR (Resizable) */}
           <section

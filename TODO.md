@@ -4,6 +4,17 @@ Este documento organiza as tarefas pendentes, priorizando a estabilidade e a exp
 
 ---
 
+## INTELIGENCIA DOS BOTS
+
+Os BOTS estão muito burros, parece que ficaram mais burros após as alterações de ontem. Eles simplesmente criam qualquer jogo que tiver na │
+│ mão. │
+│ Eles devem evitar criar varios jogos do mesmo naipes se as cartas forem muito próximas. por exemplo: │
+│ - Ele cria 3-4-5 e 7-8-9 do mesmo naipe. Ele deveria ser inteligente de segurar essas cartas. │
+│ - O BOT deve saber que existem coringas limpáveis. por exemplo seria OK ele criar 3-4-5-2-7-8-9 se o coringa for do mesmo naipe. │
+│ - Ele pode sujar o jogo para pontuar se ja há varios jogos do mesmo naipe na mesa, se ele sabe que a carta que ele precisa já foram │
+│ usadas,por exemplo ele pode criar 2_paus-9-10-J-Q-K-A-copas se os dois 8_copas já foram usados (qualquer um pode ver as cartas baixadas). │
+│ Criar qualquer jogo para ir para o morto deveria ser um ato de desespero, se o time dele não consegue criar nada, ou não está pontuando.
+
 ## ✅ Concluído Recentemente
 
 - [x] **Estabilidade Online:** Impedir múltiplas salas por host e corrigir botão de encerrar sessão.

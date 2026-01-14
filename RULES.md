@@ -67,7 +67,7 @@ Todas as sequências são organizadas **horizontalmente na mesa**, da **esquerda
 - Todas as cartas reais devem ser do **mesmo naipe**.
 - "2" de naipe diferente **assume o naipe da canastra**.
 - **Máximo um coringa por canastra**.
-- pode haver outro "2" no mesmo jogo se um deles estiver posicionado **exatamente no valor que representa**.
+- pode haver outro "2" no mesmo jogo se um deles estiver posicionado **exatamente no valor que representa** (mas nunca duas cartas '2' idênticas de mesmo naipe).
 
 ### Posicionamento do Ás
 
@@ -123,6 +123,7 @@ Todas as sequências são organizadas **horizontalmente na mesa**, da **esquerda
 - Bater sem ter pelo menos 1 canastra limpa.
 - Esquecer de pegar o morto na batida (-100 pontos por morto).
 - Usar trincas ou lavadeiras (3 cartas iguais de naipes diferentes).
+- Usar duas cartas idênticas (mesmo naipe e valor) na mesma canastra, exceto Ás (Real).
 - Adicionar carta no meio da canastra sem ser para substituir "2".
 - Revelar cartas abaixo do topo do lixo.
 

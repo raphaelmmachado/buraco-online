@@ -15,6 +15,9 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,mp3}"],
+      },
       manifest: {
         name: "Baralho Resenha",
         short_name: "Baralho",

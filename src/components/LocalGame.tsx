@@ -15,7 +15,14 @@ export const LocalGame = ({ onBack }: { onBack?: () => void }) => {
     return (
       <div className="min-h-screen bg-[#0f2e1a] flex flex-col gap-8 items-center justify-center text-white font-sans relative overflow-hidden">
         {/* Background Texture */}
-        <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "30px 30px" }}></div>
+        <div
+          className="absolute inset-0 opacity-10 pointer-events-none"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle, #fff 1px, transparent 1px)",
+            backgroundSize: "30px 30px",
+          }}
+        ></div>
         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/50 pointer-events-none"></div>
 
         <div className="text-center relative z-10 animate-fade-in">
@@ -37,18 +44,22 @@ export const LocalGame = ({ onBack }: { onBack?: () => void }) => {
               className="bg-blue-600/80 hover:bg-blue-500 text-white py-6 rounded-xl font-black shadow-lg shadow-blue-900/20 transition-all active:scale-95 border border-white/10 flex items-center justify-center gap-4 group/btn"
               onClick={() => store.start_game("1v1")}
             >
-              <span className="text-3xl group-hover/btn:scale-110 transition-transform">👤</span>
+              <span className="text-3xl group-hover/btn:scale-110 transition-transform">
+                👤
+              </span>
               <span className="text-lg uppercase tracking-widest">1 vs 1</span>
             </button>
             <button
               className="bg-purple-600/80 hover:bg-purple-500 text-white py-6 rounded-xl font-black shadow-lg shadow-purple-900/20 transition-all active:scale-95 border border-white/10 flex items-center justify-center gap-4 group/btn"
               onClick={() => store.start_game("2v2")}
             >
-              <span className="text-3xl group-hover/btn:scale-110 transition-transform">👥</span>
+              <span className="text-3xl group-hover/btn:scale-110 transition-transform">
+                👥
+              </span>
               <span className="text-lg uppercase tracking-widest">2 vs 2</span>
             </button>
           </div>
-          
+
           {onBack && (
             <div className="mt-8 pt-6 border-t border-white/5 text-center">
               <button

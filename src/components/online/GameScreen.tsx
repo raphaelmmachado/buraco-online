@@ -51,6 +51,11 @@ export const GameScreen = ({
   const oppTeamHasTaken =
     game.has_taken_dead_pile?.[opponent_team - 1] ?? false;
 
+  // Discard Pile Logic
+  const topDiscardCard = game.discard_pile[0];
+  const isDiscardSelected =
+    !!topDiscardCard && selectedCards.includes(topDiscardCard.id);
+
   // Calculate direction for discard animation
   // The top card of the discard pile always comes from the previous player (who just finished their turn)
   const numPlayers = Object.keys(game.players_data).length; // 2 or 4
@@ -107,13 +112,16 @@ export const GameScreen = ({
   };
 
   const handleDeckClick = () => {
-    if (canDraw) game.draw_card();
+    if (canDraw) {
+      game.draw_card();
+      setSelectedCards([]); // Clear selection on draw
+    }
   };
 
   const handleDiscardClick = () => {
-    if (canDraw && selectedCards.length >= 2) {
-      game.pick_up_discard_new_meld(selectedCards);
-      setSelectedCards([]);
+    if (canDraw && topDiscardCard) {
+      // Toggle selection of the top discard card
+      toggleSelect(topDiscardCard.id);
     } else if (canAction && selectedCards.length === 1) {
       game.discard_card(selectedCards[0]);
       setSelectedCards([]);
@@ -126,10 +134,35 @@ export const GameScreen = ({
     if (canAction && selectedCards.length > 0) {
       game.add_to_meld(selectedCards, meldIndex);
       setSelectedCards([]);
-    } else if (canDraw) {
-      game.pick_up_discard_add_to_meld(meldIndex, selectedCards);
+    } else if (canDraw && isDiscardSelected) {
+      // Pick up discard and add to meld
+      // We must filter out the discard card ID from the selected cards list passed to the store
+      // because the store expects only HAND cards in the "bridge" list
+      const handCardsForMeld = selectedCards.filter(
+        (id) => id !== topDiscardCard?.id
+      );
+      game.pick_up_discard_add_to_meld(meldIndex, handCardsForMeld);
       setSelectedCards([]);
     }
+  };
+
+  // Logic for "New Meld" Button visibility
+  // Case 1: Normal Action Phase - Select 3+ cards from hand
+  // Case 2: Draw Phase (Pick Up) - Select Discard + 2+ cards from hand
+  const showNewMeldAction = canAction && selectedCards.length >= 3;
+  const showNewMeldPickUp =
+    canDraw && isDiscardSelected && selectedCards.length >= 3;
+
+  const handleNewMeldClick = () => {
+    if (showNewMeldAction) {
+      game.meld_cards(selectedCards);
+    } else if (showNewMeldPickUp) {
+      const handCardsForMeld = selectedCards.filter(
+        (id) => id !== topDiscardCard?.id
+      );
+      game.pick_up_discard_new_meld(handCardsForMeld);
+    }
+    setSelectedCards([]);
   };
 
   return (
@@ -329,10 +362,7 @@ export const GameScreen = ({
                       isActionable={
                         canDraw || (canAction && selectedCards.length === 1)
                       }
-                      highlight={
-                        (canDraw && selectedCards.length >= 2) ||
-                        hoveredMeld !== null
-                      }
+                      highlight={isDiscardSelected || hoveredMeld !== null}
                       subtleHighlight={canAction && selectedCards.length === 1}
                       originDirection={discardOriginDirection}
                     />
@@ -442,12 +472,9 @@ export const GameScreen = ({
                 </div>
               }
               {/* Botão Baixar Novo Jogo - VISUAL DE SLOT RETANGULAR */}
-              {canAction && selectedCards.length >= 3 && (
+              {(showNewMeldAction || showNewMeldPickUp) && (
                 <div
-                  onClick={() => {
-                    game.meld_cards(selectedCards);
-                    setSelectedCards([]);
-                  }}
+                  onClick={handleNewMeldClick}
                   className="shrink-0 w-32 h-20 md:w-48 md:h-28 border-2 border-dotted border-yellow-600/40 bg-yellow-600/5 cursor-pointer hover:bg-yellow-600/10 shadow-sm rounded-xl flex flex-col items-center justify-center transition-all duration-300"
                 >
                   <div className="flex items-center gap-3 text-yellow-600/60">
@@ -522,10 +549,7 @@ export const GameScreen = ({
                   isActionable={
                     canDraw || (canAction && selectedCards.length === 1)
                   }
-                  highlight={
-                    (canDraw && selectedCards.length >= 2) ||
-                    hoveredMeld !== null
-                  }
+                  highlight={isDiscardSelected || hoveredMeld !== null}
                   subtleHighlight={canAction && selectedCards.length === 1}
                   mini={isMobile}
                   originDirection={discardOriginDirection}

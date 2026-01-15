@@ -25,12 +25,14 @@ export const PileCard = ({
   }
 
   // Lógica para determinar quantas "camadas" mostrar atrás
-  const showFirstLayer = quantity > 1;
-  const showSecondLayer = quantity > 5;
+  const showL1 = quantity > 1;
+  const showL2 = quantity > 10;
+  const showL3 = quantity > 25;
+  const showL4 = quantity > 50;
 
   // Estilos comuns para garantir que as cartas de trás pareçam com a da frente
   const baseCardStyles = `
-    rounded-md shadow-xl border-2 border-white/10 
+    rounded-md shadow-2xl border border-white/10 
     bg-gradient-to-br from-indigo-900 via-blue-950 to-slate-900
   `;
 
@@ -39,27 +41,27 @@ export const PileCard = ({
     <div
       className={`relative group ${
         mini ? "w-10 h-14" : "w-14 h-20 md:w-20 md:h-32"
-      }`}
+      } flex items-center justify-center`}
     >
-      {/* --- Camada de fundo 2 (aparece se tiver muitas cartas) --- */}
-      {showSecondLayer && !mini && (
+      {/* Camadas extras para dar volume (Monte) */}
+      {showL4 && (
         <div
-          className={`
-            absolute inset-0 ${baseCardStyles}
-            translate-x-2 translate-y-1 rotate-6 opacity-60 z-0
-            transition-transform duration-300 group-hover:rotate-12 group-hover:translate-x-3
-          `}
+          className={`absolute inset-0 ${baseCardStyles} opacity-20 translate-x-2.5 translate-y-2 rotate-[5deg] z-0`}
         />
       )}
-
-      {/* --- Camada de fundo 1 (aparece se tiver > 1 carta) --- */}
-      {showFirstLayer && !mini && (
+      {showL3 && (
         <div
-          className={`
-            absolute inset-0 ${baseCardStyles}
-            translate-x-1 translate-y-0.5 rotate-3 opacity-80 z-0
-            transition-transform duration-300 group-hover:rotate-6 group-hover:translate-x-2
-          `}
+          className={`absolute inset-0 ${baseCardStyles} opacity-40 translate-x-2 translate-y-1.5 rotate-[4deg] z-0`}
+        />
+      )}
+      {showL2 && (
+        <div
+          className={`absolute inset-0 ${baseCardStyles} opacity-60 translate-x-1.5 translate-y-1 rotate-[3deg] z-0`}
+        />
+      )}
+      {showL1 && (
+        <div
+          className={`absolute inset-0 ${baseCardStyles} opacity-80 translate-x-0.5 translate-y-0.5 rotate-[1.5deg] z-0`}
         />
       )}
 

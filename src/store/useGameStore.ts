@@ -107,6 +107,7 @@ const socket: Socket = io(SERVER_ADDRESS, {
 });
 
 let listeners_setup = false;
+let is_manual_join = false;
 
 export const useGameStore = create<GameState & GameActions>((set, get) => ({
   roomId: "",
@@ -298,6 +299,14 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       socket.on("connect", () => {
         console.log("Socket conectado!", socket.id);
         set({ last_error: null });
+
+        // Se conectou e NÃO foi via botão 'Entrar' (ou seja, foi reconexão automática ou refresh), tenta voltar pro jogo
+        if (!is_manual_join) {
+          console.log(
+            "Conexão automática detectada. Tentando voltar para a sala..."
+          );
+          get().rejoinGame();
+        }
       });
 
       listeners_setup = true;
@@ -342,6 +351,12 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     }
     // Limpa a sala anterior do storage para evitar auto-rejoin
     localStorage.removeItem("baralho_active_room");
+
+    // Marca que esta conexão é intencional (manual), evitando que o evento 'connect' dispare o rejoin automático
+    is_manual_join = true;
+    setTimeout(() => {
+      is_manual_join = false;
+    }, 5000);
 
     socket.connect();
 

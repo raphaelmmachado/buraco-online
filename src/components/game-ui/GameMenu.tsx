@@ -19,7 +19,6 @@ interface GameMenuProps {
 }
 
 export const GameMenu = ({
-  onOpenRules,
   onOpenHowToPlay,
   onLeave,
   showAnimations,
@@ -74,17 +73,6 @@ export const GameMenu = ({
               Como Jogar
             </button>
           )}
-
-          <button
-            onClick={() => {
-              onOpenRules();
-              setIsOpen(false);
-            }}
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-bold text-slate-300 hover:bg-white/10 hover:text-white transition-all"
-          >
-            <span className="text-lg leading-none">📜</span>
-            Regras
-          </button>
 
           {onLeave && (
             <>

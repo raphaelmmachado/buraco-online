@@ -55,7 +55,7 @@ const get_next_player = (current: number, mode: GameMode): PlayerID => {
   return ((current % 4) + 1) as PlayerID;
 };
 
-export const useGameStore = create<GameState & GameActions>((set, get) => ({
+export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
   status: "LOBBY",
   mode: "1v1",
   deck: [],
@@ -211,9 +211,12 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     }
 
     const organized_meld = organize_meld(potential_meld);
-    const final_meld = organized_meld.length === potential_meld.length ? organized_meld : sort_cards(potential_meld);
+    const final_meld =
+      organized_meld.length === potential_meld.length
+        ? organized_meld
+        : sort_cards(potential_meld);
     if (final_meld.length !== potential_meld.length) {
-        console.error("CRITICAL: organize_meld lost cards in local store");
+      console.error("CRITICAL: organize_meld lost cards in local store");
     }
 
     const new_melds = [...team_melds[team_id], final_meld];
@@ -289,7 +292,10 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
     const new_melds = [...team_melds[team_id]];
     const organized_meld = organize_meld(proposed_meld);
-    new_melds[meld_index] = organized_meld.length === proposed_meld.length ? organized_meld : sort_cards(proposed_meld);
+    new_melds[meld_index] =
+      organized_meld.length === proposed_meld.length
+        ? organized_meld
+        : sort_cards(proposed_meld);
 
     set({
       hands: { ...hands, [current_player]: new_hand },
@@ -353,7 +359,10 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
     const new_melds = [...team_melds[team_id]];
     const organized_meld = organize_meld(proposed_meld);
-    new_melds[meld_index] = organized_meld.length === proposed_meld.length ? organized_meld : sort_cards(proposed_meld);
+    new_melds[meld_index] =
+      organized_meld.length === proposed_meld.length
+        ? organized_meld
+        : sort_cards(proposed_meld);
 
     set({
       hands: { ...hands, [current_player]: new_hand },
@@ -408,7 +417,10 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     }
 
     const organized_meld = organize_meld(cards);
-    const final_meld = organized_meld.length === cards.length ? organized_meld : sort_cards(cards);
+    const final_meld =
+      organized_meld.length === cards.length
+        ? organized_meld
+        : sort_cards(cards);
 
     set({
       hands: { ...hands, [current_player]: new_hand },

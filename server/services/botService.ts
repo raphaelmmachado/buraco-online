@@ -214,7 +214,7 @@ const execute_bot_move = (io: Server, roomId: string) => {
     const has_taken = game.has_taken_dead_pile[my_team_idx as 0 | 1];
 
     // A. Meld
-    const new_meld_cards = find_meld_in_hand(my_hand, has_taken, has_clean);
+    const new_meld_cards = find_meld_in_hand(my_hand, team_melds, has_taken, has_clean);
     if (new_meld_cards) {
       const card_ids = new_meld_cards.map((c) => c.id);
 

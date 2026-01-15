@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { type Card as CardType } from "../../../common/types/card";
 import { SuitIcon } from "./SuitIcon";
@@ -11,6 +12,16 @@ interface MeldCardProps {
   highlight?: boolean;
   enterFrom?: ScreenDirection;
 }
+// Função auxiliar fora do componente (Pura)
+const stableRotation = (id: string) => {
+  // Cria um hash simples somando os caracteres do ID
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash += id.charCodeAt(i);
+  }
+  // Retorna um número entre -10 e 10 baseado no hash
+  return (hash % 21) - 10;
+};
 
 export const MeldCard = ({
   card,
@@ -25,24 +36,26 @@ export const MeldCard = ({
 
   const isFromMe = enterFrom === "bottom";
 
-  const animationProps = isFromMe
-    ? { layoutId: card.id }
-    : {
-        initial: {
-          ...getAnimationOrigin(enterFrom, 800), // Garante offscreen
-          opacity: 1, // Visível desde fora
-          scale: 1.2, // Sensação de altura/profundidade
-          rotate: Math.random() * 20 - 10, // Rotação aleatória (-10 a 10 graus)
-        },
-        animate: {
-          x: 0,
-          y: 0,
-          opacity: 1,
-          scale: 1,
-          rotate: 0,
-        },
-        // transition: removed to use MotionConfig context
-      };
+  const animationProps = useMemo(() => {
+    return isFromMe
+      ? { layoutId: card.id }
+      : {
+          initial: {
+            ...getAnimationOrigin(enterFrom, 800), // Garante offscreen
+            opacity: 1, // Visível desde fora
+            scale: 1.2, // Sensação de altura/profundidade
+            rotate: stableRotation(card.id), // Rotação aleatória (-10 a 10 graus)
+          },
+          animate: {
+            x: 0,
+            y: 0,
+            opacity: 1,
+            scale: 1,
+            rotate: 0,
+          },
+          // transition: removed to use MotionConfig context
+        };
+  }, [isFromMe, card.id, enterFrom]);
 
   return (
     <motion.div

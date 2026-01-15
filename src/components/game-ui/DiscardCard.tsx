@@ -15,7 +15,18 @@ interface DiscardCardProps {
   mini?: boolean;
   originDirection?: ScreenDirection; // Nova prop para saber de onde vem a carta
 }
+function getStableNumber(id: string, min: number, max: number) {
+  let hash = 0;
+  // Transforma a string do ID em um número (soma dos códigos ASCII)
+  for (let i = 0; i < id.length; i++) {
+    hash += id.charCodeAt(i);
+  }
 
+  const amplitude = max - min;
+  // O operador % garante que o número não exceda a amplitude
+  // O + min ajusta o ponto de partida
+  return (hash % (amplitude + 1)) + min;
+}
 export const DiscardCard = ({
   card,
   onClick,
@@ -43,9 +54,7 @@ export const DiscardCard = ({
       </div>
     );
   }
-
-  const isRed = card.color === "red";
-
+  const isRed = card.suit.color === "red";
   // Se a carta vem de "mim" (bottom), usamos layoutId para transição mágica da mão.
   // Se vem de outros, usamos animação explícita de entrada.
   const isFromMe = originDirection === "bottom";
@@ -56,7 +65,7 @@ export const DiscardCard = ({
           ...getAnimationOrigin(originDirection, 800),
           opacity: 1,
           scale: 1.2,
-          rotate: Math.random() * 30 - 15, // Mais rotação para descarte
+          rotate: getStableNumber(card.id, -15, 10), // Mais rotação para descarte
         },
         animate: { x: 0, y: 0, opacity: 1, scale: 1, rotate: 0 },
         // transition: removed to use MotionConfig context

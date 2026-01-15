@@ -11,6 +11,19 @@ export const PileCard = ({
   mini = false,
   quantity,
 }: PileCardProps) => {
+  if (quantity === 0) {
+    return (
+      <div
+        className={`${mini ? "w-10 h-14" : "w-14 h-20 md:w-20 md:h-32"}
+          text-xs tracking-wider md:text-base border-2 border-dashed border-white/10 rounded-md
+          flex items-center justify-center font-black text-white/10 select-none
+        `}
+      >
+        MONTE
+      </div>
+    );
+  }
+
   // Lógica para determinar quantas "camadas" mostrar atrás
   const showFirstLayer = quantity > 1;
   const showSecondLayer = quantity > 5;

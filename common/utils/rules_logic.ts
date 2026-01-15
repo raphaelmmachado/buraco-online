@@ -75,7 +75,7 @@ export const get_sequence_details = (cards: Card[]): SequenceDetails => {
   if (cards.length < GAME_RULES.MIN_CARDS_FOR_MELD) {
     return { is_valid: false, error: "Um jogo deve ter no mínimo 3 cartas." };
   }
-  if (cards.length > 14) {
+  if (cards.length > GAME_RULES.MAX_LENGTH) {
     return {
       is_valid: false,
       error: "Um jogo não pode ter mais de 14 cartas.",
@@ -327,7 +327,7 @@ export const validate_discard_pickup = (
   discard_top_card: Card,
   selected_hand_cards: Card[]
 ): boolean => {
-  if (selected_hand_cards.length < 2) {
+  if (selected_hand_cards.length < GAME_RULES.MIN_CARDS_FOR_MELD - 1) {
     return false;
   }
 

@@ -202,8 +202,20 @@ const evaluate_potential_melds = (
             Math.abs(existingMeldDetails.start_weight - validation.end_weight)
           );
 
-          if (gap > 0 && gap <= 3) { // Gap of 1, 2 or 3 cards
-            score -= (100 / gap); // Heavy penalty for small gaps
+          // Check if the existing meld is an uncleanable dirty canasta
+          const is_existing_uncleanable = existingMeld.length >= 7 && 
+                                          !existingMeldDetails.is_clean && 
+                                          existingMeld.some(c => c.value === '2' && c.suit.name !== existingMeldSuit);
+
+          // Human Logic: Having two separate piles of the same suit is terrible strategy.
+          // It blocks a big canasta. We should heavily penalize this unless they are extremely far apart,
+          // OR if the existing canasta is already dirty and cannot be cleaned.
+          if (gap > 0 && gap <= 4 && !is_existing_uncleanable) { 
+            score -= (500 / gap); // Drastic penalty. Gap 1 = -500, Gap 4 = -125.
+            console.log(`[BOT LOGIC] Penalty applied for split meld (Gap: ${gap}, Suit: ${meldSuit})`);
+          } else if (is_existing_uncleanable) {
+            console.log(`[BOT LOGIC] Penalty SKIPPED for split meld: Existing canasta is uncleanable. Creating a new clean one is a good strategy.`);
+            score += 100; // Reward creating a new clean path
           }
         }
       }
@@ -237,14 +249,24 @@ export const find_card_to_add = (
     meld: Card[], 
     has_taken_dead_pile: boolean,
     has_clean_canastra: boolean = false,
-    is_desperate_to_close: boolean = false
+    is_desperate_to_close: boolean = false,
+    all_played_cards: Card[] = []
 ): Card | null => {
   const target_suit = meld.find(c => c.value !== "2")?.suit.name;
   if (!target_suit) return null;
 
   // Verifica o estado atual do meld
-  const current_validation = validate_sequence(meld);
+  const current_validation = get_sequence_details(meld);
   const is_currently_clean = current_validation.is_valid && current_validation.is_clean;
+
+  // NEW STRATEGY: Avoid adding to an uncleanable dirty canasta
+  if (meld.length >= 7 && !is_currently_clean) {
+      const wildcard = meld.find(c => c.value === "2" && c.suit.name !== target_suit);
+      if (wildcard) {
+          console.log(`[BOT LOGIC] REJECTED adding to meld: It's a dirty canasta with an off-suit joker, making it uncleanable. Better to start a new meld.`);
+          return null; // Don't add cards to a dead-end canasta
+      }
+  }
 
   // Candidatos: Cartas do mesmo naipe ou Curingas (2)
   const candidates = hand.filter(c => c.suit.name === target_suit || c.value === "2");
@@ -284,29 +306,77 @@ export const find_card_to_add = (
         // Se o jogo era limpo, e vai ficar sujo com essa carta...
         if (is_currently_clean && !validation.is_clean) {
             
-            // REGRA DE OURO: NUNCA sujar uma Canastra Limpa já feita (7+ cartas)
+            // REGRA DE OURO 1: NUNCA sujar uma Canastra Limpa já feita (7+ cartas)
             // Não importa se precisa de morto ou bater, estragar 200/400 pontos para virar 100 é proibido.
             if (meld.length >= 7) {
                 console.log(`[BOT LOGIC] REJECTED ${card.value}: Would dirty a Clean Canastra!`);
                 continue;
             }
 
-            // Regra 1: Se ainda não peguei o morto, PODE SUJAR! (Prioridade é pegar o morto)
-            if (!has_taken_dead_pile) {
-                console.log(`[BOT LOGIC] Dirtying clean meld with ${card.value} because need Dead Pile.`);
-                return card;
+            // EXCEÇÃO 1: Joker Limpável (Mesmo Naipe)
+            // Se o curinga for do mesmo naipe, ele pode virar carta limpa depois. É aceitável.
+            if (card.value === "2" && card.suit.name === target_suit) {
+                 console.log(`[BOT LOGIC] ALLOWED ${card.value}: Same-suit joker is cleanable.`);
+                 return card;
             }
 
-            // Regra 2: Se estou desesperado para bater o jogo final, PODE SUJAR!
+            // EXCEÇÃO 2: Cartas Mortas (Impossível Limpar)
+            // Se as cartas necessárias para completar a sequência natural já foram jogadas (estão no lixo/mesa),
+            // então não adianta esperar. Pode sujar.
+            const meld_details = get_sequence_details(meld);
+            if (meld_details.is_valid && all_played_cards.length > 0) {
+                 const rank_needed_start = meld_details.start_weight - 1;
+                 const rank_needed_end = meld_details.end_weight + 1;
+                 
+                 let start_blocked = rank_needed_start < 3; // Blocked if needed is below 3 (impossible)
+                 let end_blocked = rank_needed_end > 14; // Blocked if needed is above Ace (impossible)
+
+                 if (!start_blocked) {
+                     // Check if all copies of the needed start card are played
+                     const start_needed_card_val = Object.keys(RANK_MAP).find(k => RANK_MAP[k] === rank_needed_start);
+                     if (start_needed_card_val) {
+                         const copies_played = all_played_cards.filter(c => c.value === start_needed_card_val && c.suit.name === target_suit).length;
+                         // In Buraco there are 2 decks, so 2 copies of each card.
+                         // But wait, the BOT might have one in hand?
+                         // all_played_cards usually includes discard + table. Hand is separate.
+                         // We should check: (copies_played + copies_in_hand) >= 2
+                         const copies_in_hand = hand.filter(c => c.value === start_needed_card_val && c.suit.name === target_suit).length;
+                         if (copies_played + copies_in_hand >= 2) start_blocked = true;
+                     }
+                 }
+
+                 if (!end_blocked) {
+                     const end_needed_card_val = Object.keys(RANK_MAP).find(k => RANK_MAP[k] === rank_needed_end);
+                     if (end_needed_card_val) {
+                         const copies_played = all_played_cards.filter(c => c.value === end_needed_card_val && c.suit.name === target_suit).length;
+                         const copies_in_hand = hand.filter(c => c.value === end_needed_card_val && c.suit.name === target_suit).length;
+                         if (copies_played + copies_in_hand >= 2) end_blocked = true;
+                     }
+                 }
+
+                 // If purely a sequence extension (not internal hole fill, which 2 usually isn't in simple validation),
+                 // and both ends are blocked, then it's impossible to clean naturally.
+                 if (start_blocked && end_blocked) {
+                      console.log(`[BOT LOGIC] ALLOWED ${card.value}: Dirtying because natural growth is blocked (Dead Cards).`);
+                      return card;
+                 }
+            }
+
+
+            // REGRA DE OURO 2: PRIORIDADE AOS 200 PONTOS (Clean Canastra)
+            // A obsessão pelo morto não paga a diferença de pontos de uma limpa (200) para uma suja (100).
+            // A menos que estejamos desesperados (fim de jogo ou perdendo feio - is_desperate_to_close),
+            // preferimos segurar o curinga e tentar comprar a carta limpa.
+            if (!is_desperate_to_close) {
+                 console.log(`[BOT LOGIC] REJECTED ${card.value}: Saving clean meld for potential 200pts bonus.`);
+                 continue;
+            }
+
+            // Regra de Desespero: Se estou desesperado (batida final ou perdendo muito), PODE SUJAR!
             if (is_desperate_to_close) {
-                console.log(`[BOT LOGIC] Dirtying clean meld with ${card.value} to CLOSE GAME.`);
+                console.log(`[BOT LOGIC] Dirtying clean meld with ${card.value} because DESPERATE to close/dead pile.`);
                 return card; 
             }
-
-            // Se já peguei o morto e não estou batendo, NÃO SUJA.
-            // Protege pontos de canastra limpa.
-            console.log(`[BOT LOGIC] REJECTED ${card.value} to protect Clean Canastra (Taken Dead Pile = true).`);
-            continue; 
         }
 
         console.log(`[BOT LOGIC] Adding ${card.value} to meld.`);

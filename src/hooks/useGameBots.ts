@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useGameStore } from "../store/useGameStoreBots";
+import { useGameStoreBots } from "../store/useGameStoreBots";
 import {
   analyze_discard_pickup,
   choose_discard,
@@ -9,7 +9,7 @@ import {
 import type { Card } from "../../common/types/card"; // Import Card type
 
 export const useGameBots = () => {
-  const store = useGameStore();
+  const store = useGameStoreBots();
   const timeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -80,8 +80,21 @@ export const useGameBots = () => {
         }
 
         // B. Tenta adicionar a jogos existentes
+        const all_played_cards_for_add = [
+            ...store.discard_pile,
+            ...store.team_melds[1].flat(),
+            ...store.team_melds[2].flat(),
+            ...store.dead_piles.flat()
+        ];
         for (let i = 0; i < team_melds.length; i++) {
-            const card_to_add = find_card_to_add(my_hand, team_melds[i], has_taken, has_clean);
+            const card_to_add = find_card_to_add(
+                my_hand, 
+                team_melds[i], 
+                has_taken, 
+                has_clean,
+                false, // is_desperate default (can be improved later)
+                all_played_cards_for_add
+            );
             if (card_to_add) {
                 console.log(`🤖 Bot ${store.current_player} adicionou ao jogo ${i}.`);
                 store.add_card_to_meld([card_to_add.id], i);

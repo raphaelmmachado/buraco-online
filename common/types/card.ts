@@ -136,4 +136,5 @@ export const GAME_RULES = {
   CARDS_IN_DEAD_PILE: 11,
   MIN_CARDS_FOR_MELD: 3,
   MIN_CARDS_FOR_CANASTRA: 7,
+  MAX_LENGTH: 14,
 } as const;

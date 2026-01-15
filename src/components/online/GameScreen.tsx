@@ -7,7 +7,7 @@ import { getPlayerDirection } from "../../utils/animation_utils";
 // UI Components
 import { MeldDisplay } from "../game-ui/MeldDisplay";
 import { GameMenu } from "../game-ui/GameMenu";
-import { RulesModal } from "../game-ui/RulesModal";
+import { HowToPlay } from "../game-ui/HowToPlay";
 import { FinishScreen } from "./FinishScreen";
 import { PlayerHand } from "../game-ui/PlayerHand";
 import { MobilePlayerHand } from "../game-ui/MobilePlayerHand";
@@ -27,14 +27,12 @@ import TookDeadPile from "../game-ui/TookDeadPile";
 
 export const GameScreen = ({
   game,
-  onOpenHowToPlay,
 }: {
   game: GameAdapterInterface;
-  onOpenHowToPlay?: () => void;
 }) => {
   // State
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
-  const [showRules, setShowRules] = useState(false);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [hoveredMeld, setHoveredMeld] = useState<{
     teamId: number;
     index: number;
@@ -148,16 +146,16 @@ export const GameScreen = ({
           className="h-screen w-screen bg-[#0f2e1a] text-white overflow-hidden flex flex-col select-none relative font-sans"
         >
           {/* Rules Modal */}
-          {showRules && <RulesModal onClose={() => setShowRules(false)} />}
+          {showHowToPlay && <HowToPlay onClose={() => setShowHowToPlay(false)} />}
 
           {/* Menu Dropdown */}
           <div className="absolute top-4 right-4 z-100">
             <GameMenu
-              onOpenRules={() => setShowRules(true)}
+              onOpenRules={() => setShowHowToPlay(true)}
               onLeave={game.leaveGame}
               showAnimations={game.showAnimations}
               toggleAnimations={game.toggleAnimations}
-              onOpenHowToPlay={onOpenHowToPlay}
+              onOpenHowToPlay={() => setShowHowToPlay(true)}
             />
           </div>
 

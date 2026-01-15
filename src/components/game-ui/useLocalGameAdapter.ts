@@ -1,4 +1,4 @@
-import { useGameStore as useLocalStore } from "../../store/useGameStoreBots";
+import { useGameStoreBots as useLocalStore } from "../../store/useGameStoreBots";
 import { useMemo } from "react";
 import type { Card } from "../../../common/types/card";
 import type { ScoreResult } from "../../../common/utils/scoring";
@@ -8,13 +8,13 @@ import type { ScoreResult } from "../../../common/utils/scoring";
 export interface GameAdapterInterface {
   status: "IDLE" | "LOBBY" | "PLAYING" | "FINISHED";
   mode: "1v1" | "2v2";
-  
+
   // State
   roomId: string; // Mocked
   my_player_number: number | null;
   my_player_name: string | null;
   players_data: Record<number, { socketId: string; userName: string }>;
-  
+
   deck_count: number;
   discard_pile: Card[];
   hands: Record<number, Card[] | number>;
@@ -52,14 +52,15 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
 
   const adapter = useMemo(() => {
     // Mock Players Data
-    const players_data: Record<number, { socketId: string; userName: string }> = {
+    const players_data: Record<number, { socketId: string; userName: string }> =
+      {
         1: { socketId: "local-1", userName: "Você" },
         2: { socketId: "local-2", userName: "Bot 1" },
-    };
+      };
 
     if (local.mode === "2v2") {
-        players_data[3] = { socketId: "local-3", userName: "Bot 2" };
-        players_data[4] = { socketId: "local-4", userName: "Bot 3" };
+      players_data[3] = { socketId: "local-3", userName: "Bot 2" };
+      players_data[4] = { socketId: "local-4", userName: "Bot 3" };
     }
 
     return {
@@ -70,22 +71,27 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       my_player_number: 1, // Always Player 1 in local mode
       my_player_name: "Você",
       players_data,
-      
+
       deck_count: local.deck.length,
       discard_pile: local.discard_pile,
       hands: local.hands,
       team_melds: local.team_melds,
       dead_piles_count: local.dead_piles.length,
-      has_taken_dead_pile: [local.has_taken_dead_pile[1], local.has_taken_dead_pile[2]] as [boolean, boolean], // Map record to tuple
+      has_taken_dead_pile: [
+        local.has_taken_dead_pile[1],
+        local.has_taken_dead_pile[2],
+      ] as [boolean, boolean], // Map record to tuple
       turn_phase: local.turn_phase,
       current_player: local.current_player,
       last_drawn_card_id: local.last_drawn_card_id,
-      final_score: local.final_score ? {
-        team_1: local.final_score.team_1.total_score,
-        team_2: local.final_score.team_2.total_score,
-        details_t1: local.final_score.team_1,
-        details_t2: local.final_score.team_2
-      } : null,
+      final_score: local.final_score
+        ? {
+            team_1: local.final_score.team_1.total_score,
+            team_2: local.final_score.team_2.total_score,
+            details_t1: local.final_score.team_1,
+            details_t2: local.final_score.team_2,
+          }
+        : null,
       last_error: local.last_error,
       showAnimations: local.showAnimations,
 
@@ -98,12 +104,12 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       pick_up_discard_add_to_meld: local.pick_up_discard_add_to_meld,
       startGame: local.start_game,
       leaveGame: () => {
-          // Reset local store if needed, or just handle navigation in parent
-          window.location.reload(); // Simple brute force for now, or we can add a reset action to local store
+        // Reset local store if needed, or just handle navigation in parent
+        window.location.reload(); // Simple brute force for now, or we can add a reset action to local store
       },
       sort_hand: local.sort_my_hand,
       clear_error: local.clear_error,
-      toggleAnimations: local.toggleAnimations
+      toggleAnimations: local.toggleAnimations,
     };
   }, [local]);
 

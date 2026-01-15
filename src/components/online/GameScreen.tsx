@@ -357,6 +357,7 @@ export const GameScreen = ({
                   <div className="relative h-full py-1 flex items-center shrink-0">
                     <DiscardCard
                       card={game.discard_pile[0]}
+                      quantity={game.discard_pile.length}
                       onClick={handleDiscardClick}
                       mini={true}
                       isActionable={
@@ -545,6 +546,7 @@ export const GameScreen = ({
               <div className="shrink-0 pb-1 relative pointer-events-auto">
                 <DiscardCard
                   card={game.discard_pile[0]}
+                  quantity={game.discard_pile.length}
                   onClick={handleDiscardClick}
                   isActionable={
                     canDraw || (canAction && selectedCards.length === 1)

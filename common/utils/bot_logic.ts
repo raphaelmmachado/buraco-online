@@ -1,5 +1,5 @@
 import { type Card, SUITS } from "../types/card";
-import { validate_sequence } from "./rules_logic";
+import { validate_sequence, get_sequence_details, type ValidSequence } from "./rules_logic";
 import { sort_cards, organize_meld } from "./sort_cards";
 
 // =============================================================================
@@ -16,6 +16,12 @@ const CARD_POINTS: Record<string, number> = {
   "8": 10, "9": 10, "10": 10, "J": 10, "Q": 10, "K": 10
 };
 
+export interface PotentialMeld {
+  cards: Card[];
+  validation: ValidSequence;
+  // Add other scoring/strategic properties here later
+}
+
 // =============================================================================
 // 1. ANÁLISE DE OFENSIVA (SEQUÊNCIAS)
 // =============================================================================
@@ -29,14 +35,13 @@ const group_by_suit = (hand: Card[]) => {
   return suits;
 };
 
-/**
- * Procura por sequências (mínimo 3 cartas do mesmo naipe).
- */
 export const find_meld_in_hand = (
   hand: Card[],
+  team_melds: Card[][] = [],
   has_taken_dead_pile: boolean = false,
   has_clean_canastra: boolean = false
 ): Card[] | null => {
+  const all_potential_melds: PotentialMeld[] = [];
   const suits = group_by_suit(hand);
   const wildcards = hand.filter(c => c.value === "2");
   
@@ -48,27 +53,15 @@ export const find_meld_in_hand = (
     for (let len = cards.length; len >= 3; len--) {
         for (let i = 0; i <= cards.length - len; i++) {
             const sub = cards.slice(i, i + len);
-            const validation = validate_sequence(sub);
+            const validation = get_sequence_details(sub); // Use get_sequence_details for full info
             if (validation.is_valid) {
-                // Proteção contra Soft Lock: 
-                // Se já pegou o morto e não tem canastra limpa, não pode ficar com menos de 2 cartas na mão.
-                if (has_taken_dead_pile && !has_clean_canastra) {
-                    const is_canastra = validation.is_valid && (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE');
-                    if (!is_canastra && (hand.length - sub.length) < 2) {
-                        console.log(`[BOT LOGIC] CLEAN Meld ${sub.length} cards rejected to avoid soft lock.`);
-                        continue;
-                    }
-                }
-
-                console.log(`[BOT LOGIC] Found CLEAN meld: ${sub.map(c => c.value + c.suit.icon).join("-")}`);
-                return sub;
+                all_potential_melds.push({ cards: sub, validation: validation as ValidSequence });
             }
         }
     }
   }
 
   // 2. Tenta sequências COM CURINGA (mesmo naipe)
-  // Só cria suja se não tiver opção limpa.
   if (wildcards.length > 0) {
       for (const wc of wildcards) {
           const hand_without_wc = hand.filter(c => c.id !== wc.id);
@@ -81,32 +74,9 @@ export const find_meld_in_hand = (
               for (let i = 0; i < cards.length - 1; i++) {
                   for (let j = i + 1; j < cards.length; j++) {
                       const attempt = [cards[i], cards[j], wc];
-                      const validation = validate_sequence(attempt);
+                      const validation = get_sequence_details(attempt); // Use get_sequence_details
                       if (validation.is_valid) {
-                          // GESTÃO DE CURINGAS (Item 3)
-                          // Não gastar curinga em jogo pequeno (< 6 cartas) à toa.
-                          // Exceções:
-                          // 1. Ainda não peguei o morto (preciso baixar pontos rápido).
-                          // 2. Tenho muitos curingas (mais de 2).
-                          const is_small_meld = attempt.length < 6;
-                          const has_excess_wildcards = wildcards.length > 2;
-                          
-                          if (is_small_meld && has_taken_dead_pile && !has_excess_wildcards) {
-                              console.log(`[BOT LOGIC] Saving Wildcard: Meld too small (${attempt.length}) and no urgency.`);
-                              continue;
-                          }
-
-                          // Proteção contra Soft Lock
-                          if (has_taken_dead_pile && !has_clean_canastra) {
-                              const is_canastra = validation.is_valid && (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE');
-                              if (!is_canastra && (hand.length - attempt.length) < 2) {
-                                  console.log(`[BOT LOGIC] DIRTY Meld rejected to avoid soft lock.`);
-                                  continue;
-                              }
-                          }
-
-                          console.log(`[BOT LOGIC] Found DIRTY meld with 2: ${attempt.map(c => c.value + c.suit.icon).join("-")}`);
-                          return organize_meld(attempt);
+                          all_potential_melds.push({ cards: organize_meld(attempt), validation: validation as ValidSequence });
                       }
                   }
               }
@@ -114,7 +84,146 @@ export const find_meld_in_hand = (
       }
   }
 
-  return null;
+  // Now, evaluate all potential melds and choose the best one
+  const bestMeld = evaluate_potential_melds(all_potential_melds, hand, team_melds, has_taken_dead_pile, has_clean_canastra);
+
+  return bestMeld ? bestMeld.cards : null;
+};
+
+// Helper to remove cards from hand
+const remove_cards_from_hand = (hand: Card[], cardsToRemove: Card[]): Card[] => {
+  const handCopy = [...hand];
+  for (const cardToRemove of cardsToRemove) {
+    const index = handCopy.findIndex(c => c.id === cardToRemove.id);
+    if (index !== -1) {
+      handCopy.splice(index, 1);
+    }
+  }
+  return handCopy;
+};
+
+// Helper to analyze the "connectedness" or "potential sequences" in a hand
+const analyze_hand_for_potential_sequences = (hand: Card[]): number => {
+    let connectedness_score = 0;
+    const suits = group_by_suit(hand);
+
+    for (const suitName in suits) {
+        const cards = sort_cards(suits[suitName]);
+        if (cards.length < 2) continue;
+
+        let current_sequence_length = 1;
+        for (let i = 0; i < cards.length - 1; i++) {
+            const current_rank = RANK_MAP[cards[i].value];
+            const next_rank = RANK_MAP[cards[i+1].value];
+
+            if (next_rank && current_rank && next_rank === current_rank + 1) {
+                current_sequence_length++;
+            } else {
+                if (current_sequence_length >= 2) {
+                    connectedness_score += (current_sequence_length * 10);
+                }
+                current_sequence_length = 1;
+            }
+        }
+        if (current_sequence_length >= 2) {
+            connectedness_score += (current_sequence_length * 10);
+        }
+    }
+    return connectedness_score;
+};
+
+const evaluate_potential_melds = (
+  potentialMelds: PotentialMeld[],
+  currentHand: Card[],
+  team_melds: Card[][],
+  hasTakenDeadPile: boolean,
+  hasCleanCanastra: boolean
+): PotentialMeld | null => {
+  let bestMeld: PotentialMeld | null = null;
+  let highestScore = -Infinity;
+
+  const initialConnectedness = analyze_hand_for_potential_sequences(currentHand);
+
+  for (const meld of potentialMelds) {
+    let score = 0;
+    const { cards, validation } = meld;
+
+    // 1. Basic Scoring: Length and Canastra Type
+    score += cards.length * 10;
+
+    if (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE') {
+      score += 500;
+      if (validation.is_clean) score += 200;
+    } else if (validation.is_clean) {
+      score += 50;
+    } else {
+      score -= 20;
+    }
+
+    // 2. Soft Lock Prevention
+    const remainingHand = remove_cards_from_hand(currentHand, cards);
+    if (hasTakenDeadPile && !hasCleanCanastra && remainingHand.length < 2) {
+      score -= 1000;
+    }
+
+    // 3. Joker Preservation & Strategy
+    const jokersInMeld = cards.filter(c => c.value === "2");
+    if (jokersInMeld.length > 0) {
+        if (!validation.is_clean) {
+            const meldSuit = validation.start_weight > 0 ? cards.find(c => c.value !== "2")?.suit.name : undefined;
+            const isCleanable = jokersInMeld.some(joker => meldSuit && joker.suit.name === meldSuit);
+            if (isCleanable) score += 35;
+        }
+        
+        const jokersInHandBefore = currentHand.filter(c => c.value === "2").length;
+        const jokersInHandAfter = remainingHand.filter(c => c.value === "2").length;
+        if (jokersInHandBefore === 1 && jokersInHandAfter === 0) {
+            if (! (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE')) score -= 150;
+        }
+        if (!validation.is_clean && cards.length < 5) score -= 30;
+    }
+
+    // 4. "Hand Gap" Logic: Evaluate impact on hand connectedness
+    const remainingConnectedness = analyze_hand_for_potential_sequences(remainingHand);
+    const connectednessChange = initialConnectedness - remainingConnectedness;
+    score -= connectednessChange * 2;
+
+    // 5. NEW "Table Gap" Logic: Penalize creating melds close to existing ones
+    const meldSuit = cards.find(c => c.value !== "2")?.suit.name;
+    if (meldSuit) {
+      for (const existingMeld of team_melds) {
+        const existingMeldDetails = get_sequence_details(existingMeld);
+        if (!existingMeldDetails.is_valid) continue;
+
+        const existingMeldSuit = existingMeld.find(c => c.value !== "2")?.suit.name;
+        if (existingMeldSuit === meldSuit) {
+          const gap = Math.min(
+            Math.abs(validation.start_weight - existingMeldDetails.end_weight),
+            Math.abs(existingMeldDetails.start_weight - validation.end_weight)
+          );
+
+          if (gap > 0 && gap <= 3) { // Gap of 1, 2 or 3 cards
+            score -= (100 / gap); // Heavy penalty for small gaps
+          }
+        }
+      }
+    }
+
+    if (score > highestScore) {
+      highestScore = score;
+      bestMeld = meld;
+    }
+  }
+
+  // ADDED: Minimum score threshold
+  // If the best play is still heavily penalized (e.g., for creating a gapped meld),
+  // it might be better to do nothing.
+  if (highestScore < 40) { // Threshold, can be tuned
+      console.log(`[BOT LOGIC] Best meld score (${highestScore.toFixed(1)}) is below threshold. Holding cards.`);
+      return null;
+  }
+
+  return bestMeld;
 };
 
 /**
@@ -221,8 +330,14 @@ export const analyze_discard_pickup = (
   team_melds: Card[][] = [],
   has_taken_dead_pile: boolean = false,
   has_clean_canastra: boolean = false,
-  discard_pile_size: number = 0
+  discard_pile_size: number = 0,
+  deck_size: number = 0, 
+  all_played_cards: Card[] = [] 
 ): PickupAction | null => {
+  console.log(`[BOT LOGIC] analyze_discard_pickup: Cards played so far: ${all_played_cards.length}`);
+  
+  // Desperation factor for end game
+  const desperation_factor = deck_size < 10 ? (10 - deck_size) * 5 : 0; // Increases as deck size decreases
   
   // 1. TENTA ADICIONAR DIRETO EM UM JOGO EXISTENTE
   for (let i = 0; i < team_melds.length; i++) {
@@ -246,7 +361,7 @@ export const analyze_discard_pickup = (
            continue;
        }
 
-       if (was_clean && !validation.is_clean && has_taken_dead_pile) {
+       if (was_clean && !validation.is_clean && has_taken_dead_pile && desperation_factor === 0) { // Only protect if not desperate
            console.log(`[BOT LOGIC] Pickup Rejected: Would dirty clean meld ${i} with ${top_discard.value}`);
            continue; 
        }
@@ -255,7 +370,7 @@ export const analyze_discard_pickup = (
        if (has_taken_dead_pile && !has_clean_canastra) {
            const is_now_canastra = validation.is_valid && (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE');
            const new_hand_size = hand.length + (discard_pile_size - 1); // Ganha o lixo todo, mas perde 1 que vai pro jogo
-           if (!is_now_canastra && new_hand_size < 2) {
+           if (!is_now_canastra && new_hand_size < 2 && desperation_factor === 0) { // Only protect if not desperate
                console.log(`[BOT LOGIC] Pickup Rejected: Direct add would cause soft lock.`);
                continue;
            }
@@ -287,7 +402,7 @@ export const analyze_discard_pickup = (
                   continue;
               }
 
-              if (was_clean && !validation.is_clean && has_taken_dead_pile) {
+              if (was_clean && !validation.is_clean && has_taken_dead_pile && desperation_factor === 0) { // Only protect if not desperate
                   continue;
               }
 
@@ -295,7 +410,7 @@ export const analyze_discard_pickup = (
               if (has_taken_dead_pile && !has_clean_canastra) {
                   const is_now_canastra = validation.is_valid && (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE');
                   const new_hand_size = hand.length + (discard_pile_size - 1) - 1; // Ganha lixo, perde 1 da ponte, perde 1 pro meld
-                  if (!is_now_canastra && new_hand_size < 2) {
+                  if (!is_now_canastra && new_hand_size < 2 && desperation_factor === 0) { // Only protect if not desperate
                       continue;
                   }
               }
@@ -322,7 +437,7 @@ export const analyze_discard_pickup = (
           if (has_taken_dead_pile && !has_clean_canastra) {
               const is_now_canastra = validation.is_valid && (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE');
               const new_hand_size = hand.length + (discard_pile_size - 1) - 2; // Ganha lixo, perde 2 da mão, perde 1 pro meld
-              if (!is_now_canastra && new_hand_size < 2) {
+              if (!is_now_canastra && new_hand_size < 2 && desperation_factor === 0) { // Only protect if not desperate
                   continue;
               }
           }
@@ -337,7 +452,7 @@ export const analyze_discard_pickup = (
   return null;
 };
 
-const calculate_discard_risk = (card: Card, opponent_melds: Card[][]): number => {
+const calculate_discard_risk = (card: Card, opponent_melds: Card[][], all_played_cards: Card[] = []): number => {
     let max_risk = 0;
     if (card.value === "2") return 95; // Curinga é sempre arriscado
 
@@ -345,7 +460,6 @@ const calculate_discard_risk = (card: Card, opponent_melds: Card[][]): number =>
     if (!my_val) return 0;
 
     for (const meld of opponent_melds) {
-        // Ignora melds de naipe diferente
         const meld_suit = meld.find(c => c.value !== "2")?.suit.name;
         if (meld_suit !== card.suit.name) continue;
 
@@ -356,32 +470,39 @@ const calculate_discard_risk = (card: Card, opponent_melds: Card[][]): number =>
         }
 
         // 2. Risco de Proximidade (Defensiva)
-        // Acha as pontas do jogo do oponente
         let min_rank = 15;
         let max_rank = 0;
         
         for (const c of meld) {
-            if (c.value === "2") continue; // Ignora curinga para calcular range
+            if (c.value === "2") continue;
             const r = RANK_MAP[c.value] || 0;
             if (r < min_rank) min_rank = r;
             if (r > max_rank) max_rank = r;
         }
 
-        if (max_rank === 0) continue; // Meld só de coringas? (Raro)
+        if (max_rank === 0) continue;
 
-        // Distância para as pontas
-        const dist_down = Math.abs(my_val - min_rank);
-        const dist_up = Math.abs(my_val - max_rank);
-        const distance = Math.min(dist_down, dist_up);
+        const dist_down = my_val - min_rank;
+        const dist_up = max_rank - my_val;
 
-        // Penalidades progressivas
-        // Distância 1: Ex: Ele tem 4-5-6. Eu descarto 8. (Falta o 7) -> Muito Perigoso
-        if (distance === 1) {
-            max_risk = Math.max(max_risk, 85); 
+        // Distância 1: Perigoso
+        if (Math.abs(dist_down) === 1 || Math.abs(dist_up) === 1) {
+            max_risk = Math.max(max_risk, 85);
         }
-        // Distância 2: Ex: Ele tem 4-5-6. Eu descarto 9. (Falta 7 e 8) -> Perigoso
-        else if (distance === 2) {
-            max_risk = Math.max(max_risk, 50);
+        // Distância 2: Risco de "ponte"
+        else if (Math.abs(dist_down) === 2) { // Ex: Descarta 3, oponente tem 5-6...
+            const gap_card_rank = min_rank - 1;
+            const is_gap_card_played = all_played_cards.some(c => c.suit.name === card.suit.name && RANK_MAP[c.value] === gap_card_rank);
+            if (!is_gap_card_played) {
+                max_risk = Math.max(max_risk, 50);
+            }
+        }
+        else if (Math.abs(dist_up) === 2) { // Ex: Descarta 8, oponente tem 5-6...
+            const gap_card_rank = max_rank + 1;
+            const is_gap_card_played = all_played_cards.some(c => c.suit.name === card.suit.name && RANK_MAP[c.value] === gap_card_rank);
+            if (!is_gap_card_played) {
+                max_risk = Math.max(max_risk, 50);
+            }
         }
     }
     return max_risk;
@@ -425,7 +546,9 @@ export const choose_discard = (
     hand: Card[], 
     opponent_melds: Card[][] = [],
     discard_pile_top: Card | null = null,
-    has_taken_dead_pile: boolean = false
+    has_taken_dead_pile: boolean = false,
+    deck_size: number = 0, 
+    all_played_cards: Card[] = [] 
 ): Card => {
   let best_card: Card | null = null;
   let min_score = Infinity; 
@@ -433,9 +556,12 @@ export const choose_discard = (
   const candidates = hand.length > 1 ? hand.filter(c => c.value !== "2") : hand;
   const pool = candidates.length > 0 ? candidates : hand;
 
+  // Desperation factor for end game
+  const desperation_factor = deck_size < 10 ? (10 - deck_size) * 5 : 0; // Increases as deck size decreases
+
   pool.forEach((card: Card) => {
       const utility = calculate_hand_utility(card, hand, has_taken_dead_pile);
-      const risk = calculate_discard_risk(card, opponent_melds);
+      const risk = calculate_discard_risk(card, opponent_melds, all_played_cards);
       
       let penalty = 0;
       if (discard_pile_top && card.value === discard_pile_top.value && card.suit.name === discard_pile_top.suit.name) {
@@ -444,7 +570,8 @@ export const choose_discard = (
 
       const card_val_points = CARD_POINTS[card.value] || 0;
 
-      const score = (utility * 3) + (risk * 25) + penalty - (card_val_points / 20);
+      // Adjust score with desperation factor
+      const score = (utility * 3) + (risk * 25) + penalty - (card_val_points / 20) - (desperation_factor * (card_val_points / 10));
 
       if (score < min_score) {
           min_score = score;

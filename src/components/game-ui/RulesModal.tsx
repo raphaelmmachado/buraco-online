@@ -30,20 +30,22 @@ export const RulesModal = ({ onClose }: { onClose: () => void }) => (
             Visão Geral
           </h3>
           <p className="text-sm md:text-base leading-relaxed">
-            O Buraco Fechado (STBL) é jogado com 2 baralhos (104 cartas). O objetivo é formar <strong>canastras</strong> (7+ cartas do mesmo naipe), bater e somar pontos.
+            O Buraco Fechado (STBL) é jogado com 2 baralhos (104 cartas). O
+            objetivo é formar <strong>canastras</strong> (7+ cartas do mesmo
+            naipe), bater e somar pontos.
           </p>
           <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
             <li className="flex gap-2">
-              <span className="text-yellow-500">✔</span> Apenas sequências do mesmo naipe.
+              <span className="text-yellow-500">✔</span> Apenas sequências do
+              mesmo naipe.
             </li>
             <li className="flex gap-2">
-              <span className="text-yellow-500">✔</span> Não valem trincas (lavadeiras).
+              <span className="text-yellow-500">✔</span> Os "2" são os únicos
+              curingas. Pode usar de qualquer naipe em qualquer jogo.
             </li>
             <li className="flex gap-2">
-              <span className="text-yellow-500">✔</span> Os "2" são os únicos curingas.
-            </li>
-            <li className="flex gap-2">
-              <span className="text-yellow-500">✔</span> Lixo fechado (só o topo é visível).
+              <span className="text-yellow-500">✔</span> Lixo fechado (só o topo
+              é visível).
             </li>
           </ul>
         </section>
@@ -60,9 +62,16 @@ export const RulesModal = ({ onClose }: { onClose: () => void }) => (
               { l: "3 ao 7", p: "5" },
               { l: "2 (Curinga)", p: "20" },
             ].map((item) => (
-              <div key={item.l} className="bg-white/5 p-3 rounded-xl border border-white/5 text-center">
-                <span className="block text-lg font-black text-white">{item.p}</span>
-                <span className="text-[9px] uppercase font-bold opacity-40">{item.l}</span>
+              <div
+                key={item.l}
+                className="bg-white/5 p-3 rounded-xl border border-white/5 text-center"
+              >
+                <span className="block text-lg font-black text-white">
+                  {item.p}
+                </span>
+                <span className="text-[9px] uppercase font-bold opacity-40">
+                  {item.l}
+                </span>
               </div>
             ))}
           </div>
@@ -75,15 +84,20 @@ export const RulesModal = ({ onClose }: { onClose: () => void }) => (
           </h3>
           <div className="space-y-2">
             {[
-              { n: "Limpa", p: "+400", d: "7+ cartas sem curinga" },
+              { n: "Limpa", p: "+200", d: "7+ cartas sem curinga" },
               { n: "Suja", p: "+100", d: "7+ cartas com 1 curinga" },
               { n: "De 500", p: "+500", d: "13 cartas sem curinga" },
               { n: "Real", p: "+1000", d: "A ao A (14 cartas) limpa" },
               { n: "Batida", p: "+100", d: "Zerar a mão e pegar o morto" },
             ].map((item) => (
-              <div key={item.n} className="flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/5">
+              <div
+                key={item.n}
+                className="flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/5"
+              >
                 <div>
-                  <span className="font-black text-white text-sm">{item.n}</span>
+                  <span className="font-black text-white text-sm">
+                    {item.n}
+                  </span>
                   <p className="text-[10px] opacity-50">{item.d}</p>
                 </div>
                 <span className="font-black text-green-400">{item.p}</span>
@@ -98,7 +112,10 @@ export const RulesModal = ({ onClose }: { onClose: () => void }) => (
             Regras de Curinga
           </h3>
           <p className="text-xs leading-relaxed">
-            Máximo de <strong>um "2" como curinga</strong> por canastra. Pode haver outro "2" no mesmo jogo se ele estiver na sua posição natural (como valor 2). O Ás pode ser baixo (antes do 2) ou alto (depois do K).
+            Máximo de <strong>um "2" como curinga</strong> por canastra. Pode
+            haver outro "2" no mesmo jogo se ele estiver na sua posição natural
+            (como valor 2). O Ás pode ser baixo (antes do 2) ou alto (depois do
+            K).
           </p>
         </section>
 
@@ -108,7 +125,9 @@ export const RulesModal = ({ onClose }: { onClose: () => void }) => (
             Compra do Lixo
           </h3>
           <p className="text-xs leading-relaxed">
-            Você só pode pegar o lixo se a carta do topo for usada <strong>imediatamente</strong> em um jogo (novo ou já na mesa). Ao pegar o topo, você leva todas as cartas que estavam abaixo dele.
+            Você só pode pegar o lixo se a carta do topo for usada{" "}
+            <strong>imediatamente</strong> em um jogo (novo ou já na mesa). Ao
+            pegar o topo, você leva todas as cartas que estavam abaixo dele.
           </p>
         </section>
 
@@ -118,7 +137,9 @@ export const RulesModal = ({ onClose }: { onClose: () => void }) => (
             Batida Final
           </h3>
           <p className="text-xs leading-relaxed">
-            Para encerrar a rodada (bater), sua dupla <strong>deve ter pelo menos uma canastra limpa</strong>. Se o morto não for pego, a dupla perde 100 pontos.
+            Para encerrar a rodada (bater), sua dupla{" "}
+            <strong>deve ter pelo menos uma canastra limpa</strong>. Se o morto
+            não for pego, a dupla perde 100 pontos.
           </p>
         </section>
 
@@ -147,4 +168,3 @@ export const RulesModal = ({ onClose }: { onClose: () => void }) => (
     </div>
   </div>
 );
-

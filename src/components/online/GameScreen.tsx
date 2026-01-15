@@ -25,7 +25,13 @@ import TookDeadPile from "../game-ui/TookDeadPile";
 
 // --- TELA PRINCIPAL ---
 
-export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
+export const GameScreen = ({
+  game,
+  onOpenHowToPlay,
+}: {
+  game: GameAdapterInterface;
+  onOpenHowToPlay?: () => void;
+}) => {
   // State
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
   const [showRules, setShowRules] = useState(false);
@@ -151,6 +157,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               onLeave={game.leaveGame}
               showAnimations={game.showAnimations}
               toggleAnimations={game.toggleAnimations}
+              onOpenHowToPlay={onOpenHowToPlay}
             />
           </div>
 

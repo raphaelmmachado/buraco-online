@@ -6,14 +6,15 @@ Este documento organiza as tarefas pendentes, priorizando a estabilidade e a exp
 
 ## INTELIGENCIA DOS BOTS
 
-Os BOTS estão muito burros, parece que ficaram mais burros após as alterações de ontem. Eles simplesmente criam qualquer jogo que tiver na │
-│ mão. │
-│ Eles devem evitar criar varios jogos do mesmo naipes se as cartas forem muito próximas. por exemplo: │
-│ - Ele cria 3-4-5 e 7-8-9 do mesmo naipe. Ele deveria ser inteligente de segurar essas cartas. │
-│ - O BOT deve saber que existem coringas limpáveis. por exemplo seria OK ele criar 3-4-5-2-7-8-9 se o coringa for do mesmo naipe. │
-│ - Ele pode sujar o jogo para pontuar se ja há varios jogos do mesmo naipe na mesa, se ele sabe que a carta que ele precisa já foram │
-│ usadas,por exemplo ele pode criar 2_paus-9-10-J-Q-K-A-copas se os dois 8_copas já foram usados (qualquer um pode ver as cartas baixadas). │
-│ Criar qualquer jogo para ir para o morto deveria ser um ato de desespero, se o time dele não consegue criar nada, ou não está pontuando.
+Os BOTS estão muito burros, parece que ficaram mais burros após as alterações de ontem.
+Eles simplesmente criam qualquer jogo que tiver na mão.
+Eles devem evitar criar varios jogos do mesmo naipes se as cartas forem muito próximas. por exemplo:
+
+- Ele cria 3-4-5 e 7-8-9 do mesmo naipe. Ele deveria respeitar um gap de no mínimo 4 cartas. Ele deveria ser inteligente de segurar essas cartas para formar um único jogo. Antes de pegar o lixo, ele também deve pensar nisso, se vale a pena criar um.
+- O BOT deve saber que existem coringas limpáveis. por exemplo seria OK ele criar 3-4-5-2-7-8-9 se o coringa for do mesmo naipe.
+- Ele pode sujar o jogo para pontuar se ja há varios jogos do mesmo naipe na mesa, se ele sabe que a carta que ele precisa já foram
+  usadas,por exemplo ele pode criar 2_paus-9-10-J-Q-K-A-copas se os dois 8_copas já foram usados (qualquer um pode ver as cartas baixadas) ou se já está no final do jogo (faltando menos de 15 cartas contando deck + morto).
+  Criar qualquer jogo para ir para o morto deveria ser um ato de desespero de final de jogo, se o time dele não consegue criar nada, então ele cria jogos para ajudar o companheiro ou não está pontuando e não terminar o jogo com cartas na mão.
 
 ## ✅ Concluído Recentemente
 

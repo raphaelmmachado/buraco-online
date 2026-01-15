@@ -4,8 +4,9 @@ import {
   analyze_discard_pickup,
   choose_discard,
   find_card_to_add,
-  find_meld_in_hand,
+  find_meld_in_hand
 } from "../../common/utils/bot_logic";
+import type { Card } from "../../common/types/card"; // Import Card type
 
 export const useGameBots = () => {
   const store = useGameStore();
@@ -30,22 +31,30 @@ export const useGameBots = () => {
         if (store.discard_pile.length > 0) {
             const top_discard = store.discard_pile[0];
             
+            const all_played_cards = [
+                ...store.discard_pile,
+                ...store.team_melds[1].flat(),
+                ...store.team_melds[2].flat(),
+                ...store.dead_piles.flat()
+            ];
             const action = analyze_discard_pickup(
               my_hand, 
               top_discard, 
               team_melds, 
               has_taken, 
               has_clean, 
-              store.discard_pile.length
+              store.discard_pile.length,
+              store.deck.length, // Pass deck_size
+              all_played_cards
             );
             
             if (action) {
                 if (action.type === 'NEW_MELD') {
                     console.log(`🤖 Bot ${store.current_player} pegou do lixo (Novo Jogo)!`);
-                    store.pick_up_discard_new_meld(action.cards.map(c => c.id));
+                    store.pick_up_discard_new_meld(action.cards.map((c: Card) => c.id));
                 } else if (action.type === 'ADD_TO_MELD') {
                     console.log(`🤖 Bot ${store.current_player} pegou do lixo (Add ao Jogo ${action.meld_index})!`);
-                    store.pick_up_discard_add_to_meld(action.meld_index, action.cards.map(c => c.id));
+                    store.pick_up_discard_add_to_meld(action.meld_index, action.cards.map((c: Card) => c.id));
                 }
                 return;
             }
@@ -63,7 +72,7 @@ export const useGameBots = () => {
         const has_clean = store.internal_can_beat();
 
         // A. Tenta baixar novo jogo
-        const new_meld = find_meld_in_hand(my_hand, has_taken, has_clean);
+        const new_meld = find_meld_in_hand(my_hand, team_melds, has_taken, has_clean);
         if (new_meld) {
             console.log(`🤖 Bot ${store.current_player} baixou jogo.`);
             store.meld_cards(new_meld.map(c => c.id));
@@ -81,7 +90,21 @@ export const useGameBots = () => {
         }
 
         // C. Se não tem mais ações, descarta
-        const card_to_discard = choose_discard(my_hand);
+        const opponent_melds = team_id === 1 ? store.team_melds[2] : store.team_melds[1]; // Assuming 2 teams
+        const all_played_cards = [
+            ...store.discard_pile,
+            ...store.team_melds[1].flat(),
+            ...store.team_melds[2].flat(),
+            ...store.dead_piles.flat()
+        ];
+        const card_to_discard = choose_discard(
+            my_hand, 
+            opponent_melds, 
+            store.discard_pile.length > 0 ? store.discard_pile[0] : null,
+            has_taken,
+            store.deck.length, // Pass deck_size
+            all_played_cards
+        );
         if (card_to_discard) {
             console.log(`🤖 Bot ${store.current_player} descartou ${card_to_discard.value}.`);
             store.discard_card(card_to_discard.id);

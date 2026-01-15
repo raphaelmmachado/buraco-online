@@ -81,7 +81,7 @@ Todas as sequências são organizadas **horizontalmente na mesa**, da **esquerda
 
 | Tipo            | Organização (esquerda → direita)   | Observação                     |
 | --------------- | ---------------------------------- | ------------------------------ |
-| Limpa 7         | 4♥ 5♥ 6♥ 7♥ 8♥ 9♥ 10♥              | +400 pontos                    |
+| Limpa 7         | 4♥ 5♥ 6♥ 7♥ 8♥ 9♥ 10♥              | +200 pontos                    |
 | Suja 7          | 5♦ 2♠(=6♦) 7♦ 8♦ 9♦ 10♦ J♦         | +100 pontos                    |
 | De 500 (baixa)  | A♣ 2♣ 3♣ 4♣ 5♣ 6♣ 7♣               | +500 pontos                    |
 | De 500 (alta)   | 2♠ 3♠ 4♠ 5♠ 6♠ 7♠ A♠               | +500 pontos                    |

@@ -1,14 +1,21 @@
+import { useState } from "react";
 import { useGameStore } from "../store/useGameStoreBots";
 import { useGameBots } from "../hooks/useGameBots";
 import { GameScreen } from "./online/GameScreen";
 import { useLocalGameAdapter } from "./game-ui/useLocalGameAdapter";
+import { HowToPlay } from "./game-ui/HowToPlay";
 
 export const LocalGame = ({ onBack }: { onBack?: () => void }) => {
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
   const store = useGameStore();
   const gameAdapter = useLocalGameAdapter();
 
   // Initialize Bots Logic
   useGameBots();
+
+  const handleToggleHowToPlay = () => {
+    setShowHowToPlay((prev) => !prev);
+  };
 
   // If in Lobby, show the local lobby (similar to what DebugGame had)
   if (store.status === "LOBBY") {
@@ -91,5 +98,10 @@ export const LocalGame = ({ onBack }: { onBack?: () => void }) => {
     },
   };
 
-  return <GameScreen game={gameAdapterWithBack} />;
+  return (
+    <>
+      {showHowToPlay && <HowToPlay onClose={handleToggleHowToPlay} />}
+      <GameScreen game={gameAdapterWithBack} onOpenHowToPlay={handleToggleHowToPlay} />
+    </>
+  );
 };

@@ -1,9 +1,18 @@
 import { useState } from "react";
-import { Settings, Volume2, VolumeX, LogOut, Zap, ZapOff } from "lucide-react";
+import {
+  Settings,
+  Volume2,
+  VolumeX,
+  LogOut,
+  Zap,
+  ZapOff,
+  HelpCircle,
+} from "lucide-react";
 import { useGameStore } from "../../store/useGameStore";
 
 interface GameMenuProps {
   onOpenRules: () => void;
+  onOpenHowToPlay?: () => void;
   onLeave?: () => void;
   showAnimations?: boolean;
   toggleAnimations?: () => void;
@@ -11,6 +20,7 @@ interface GameMenuProps {
 
 export const GameMenu = ({
   onOpenRules,
+  onOpenHowToPlay,
   onLeave,
   showAnimations,
   toggleAnimations,
@@ -52,6 +62,19 @@ export const GameMenu = ({
             </button>
           )}
 
+          {onOpenHowToPlay && (
+            <button
+              onClick={() => {
+                onOpenHowToPlay();
+                setIsOpen(false);
+              }}
+              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-bold text-slate-300 hover:bg-white/10 hover:text-white transition-all"
+            >
+              <HelpCircle size={16} />
+              Como Jogar
+            </button>
+          )}
+
           <button
             onClick={() => {
               onOpenRules();
@@ -81,11 +104,11 @@ export const GameMenu = ({
           )}
         </div>
       )}
-      
+
       {isOpen && (
-        <div 
-            className="fixed inset-0 z-[-1]" 
-            onClick={() => setIsOpen(false)}
+        <div
+          className="fixed inset-0 z-[-1]"
+          onClick={() => setIsOpen(false)}
         ></div>
       )}
     </div>

@@ -104,6 +104,7 @@ type ServerResponse = { error?: string; success?: boolean };
 
 const socket: Socket = io(SERVER_ADDRESS, {
   autoConnect: false,
+  transports: ["websocket"], // Força WebSocket para evitar problemas de polling no Render
 });
 
 let listeners_setup = false;

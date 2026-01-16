@@ -1,14 +1,29 @@
 console.log("--- SCRIPT START ---");
 import { Server, Socket } from "socket.io";
 import { createServer } from "http";
+import express from "express";
 import { registerRoomHandlers } from "./controllers/roomController";
 import { registerGameHandlers } from "./controllers/gameController";
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
-const httpServer = createServer();
+
+// Configuração do Express para responder ao Health Check do Render
+const app = express();
+
+app.get("/", (req, res) => {
+  res.status(200).send("Buraco Online Server is Live!");
+});
+
+// Endpoint de saúde específico
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok", uptime: process.uptime() });
+});
+
+const httpServer = createServer(app);
+
 const io = new Server(httpServer, {
-  pingInterval: 5000,  // Heartbeat mais frequente (5s) para manter conexão viva
-  pingTimeout: 30000,  // Mais tolerância (30s) se o cliente demorar a responder (aba em background)
+  pingInterval: 5000,
+  pingTimeout: 30000,
   cors: {
     origin: "*",
     methods: ["GET", "POST"],

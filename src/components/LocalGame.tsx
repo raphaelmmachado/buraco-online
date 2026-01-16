@@ -2,6 +2,8 @@ import { useGameStoreBots } from "../store/useGameStoreBots";
 import { useGameBots } from "../hooks/useGameBots";
 import { GameScreen } from "./online/GameScreen";
 import { useLocalGameAdapter } from "./game-ui/useLocalGameAdapter";
+import { StyledButton } from "./ui/StyledButton";
+import { User, Users, ArrowLeft } from "lucide-react";
 
 export const LocalGame = ({ onBack }: { onBack?: () => void }) => {
   const store = useGameStoreBots();
@@ -40,34 +42,39 @@ export const LocalGame = ({ onBack }: { onBack?: () => void }) => {
 
         <div className="bg-black/40 backdrop-blur-md p-8 rounded-2xl shadow-2xl border border-white/10 relative z-10 w-full max-w-md group hover:border-purple-500/20 transition-colors">
           <div className="flex flex-col gap-4">
-            <button
-              className="bg-blue-600/80 hover:bg-blue-500 text-white py-6 rounded-xl font-black shadow-lg shadow-blue-900/20 transition-all active:scale-95 border border-white/10 flex items-center justify-center gap-4 group/btn"
+            <StyledButton
+              variant="secondary"
+              size="xl"
+              fullWidth
+              icon={<User size={32} />}
               onClick={() => store.start_game("1v1")}
+              className="bg-blue-600/80 hover:bg-blue-500" // Custom overwrite if needed, but variant handles it
             >
-              <span className="text-3xl group-hover/btn:scale-110 transition-transform">
-                👤
-              </span>
-              <span className="text-lg uppercase tracking-widest">1 vs 1</span>
-            </button>
-            <button
-              className="bg-purple-600/80 hover:bg-purple-500 text-white py-6 rounded-xl font-black shadow-lg shadow-purple-900/20 transition-all active:scale-95 border border-white/10 flex items-center justify-center gap-4 group/btn"
+              1 vs 1
+            </StyledButton>
+            
+            <StyledButton
+              variant="secondary"
+              size="xl"
+              fullWidth
+              icon={<Users size={32} />}
               onClick={() => store.start_game("2v2")}
+              className="bg-purple-600/80 hover:bg-purple-500 shadow-purple-900/20"
             >
-              <span className="text-3xl group-hover/btn:scale-110 transition-transform">
-                👥
-              </span>
-              <span className="text-lg uppercase tracking-widest">2 vs 2</span>
-            </button>
+              2 vs 2
+            </StyledButton>
           </div>
 
           {onBack && (
             <div className="mt-8 pt-6 border-t border-white/5 text-center">
-              <button
+              <StyledButton
+                variant="ghost"
+                size="sm"
+                icon={<ArrowLeft size={14} />}
                 onClick={onBack}
-                className="text-[10px] font-bold text-slate-500 hover:text-white uppercase tracking-[0.2em] transition-colors hover:underline decoration-white/20 underline-offset-4"
               >
-                ← Voltar ao Menu Principal
-              </button>
+                Voltar ao Menu Principal
+              </StyledButton>
             </div>
           )}
         </div>

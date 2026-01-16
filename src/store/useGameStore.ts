@@ -49,6 +49,7 @@ interface GameState {
   totalOnline: number;
   onlineNames: string[];
   last_error: string | null;
+  connectionStatus: "CONNECTED" | "DISCONNECTED" | "CONNECTING" | "RECONNECTING";
   players_data: Record<
     number,
     { socketId: string; userName: string; isBot?: boolean; playerId: string }
@@ -105,6 +106,9 @@ type ServerResponse = { error?: string; success?: boolean };
 const socket: Socket = io(SERVER_ADDRESS, {
   autoConnect: false,
   transports: ["websocket"], // Força WebSocket para evitar problemas de polling no Render
+  reconnection: true,
+  reconnectionAttempts: Infinity,
+  reconnectionDelay: 1000,
 });
 
 let listeners_setup = false;
@@ -119,6 +123,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   totalOnline: 0,
   onlineNames: [],
   last_error: null,
+  connectionStatus: "DISCONNECTED",
   isMuted: localStorage.getItem("baralho_muted") === "true",
   showAnimations: localStorage.getItem("baralho_show_animations") !== "false",
   players_data: {},
@@ -294,12 +299,15 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
       socket.on("connect_error", (err) => {
         console.error("Socket connection error:", err);
-        set({ last_error: `Erro de conexão: ${err.message}` });
+        set({ 
+            last_error: `Erro de conexão: ${err.message}`,
+            connectionStatus: "DISCONNECTED" // ou RECONNECTING se quisermos ser mais específicos, mas connect_error é falha
+        });
       });
 
       socket.on("connect", () => {
         console.log("Socket conectado!", socket.id);
-        set({ last_error: null });
+        set({ last_error: null, connectionStatus: "CONNECTED" });
 
         // Se conectou e NÃO foi via botão 'Entrar' (ou seja, foi reconexão automática ou refresh), tenta voltar pro jogo
         if (!is_manual_join) {
@@ -309,11 +317,21 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
           get().rejoinGame();
         }
       });
+      
+      socket.on("disconnect", (reason) => {
+        console.warn("Socket disconnected:", reason);
+        set({ connectionStatus: "DISCONNECTED" });
+      });
+      
+      socket.io.on("reconnect_attempt", () => {
+         set({ connectionStatus: "RECONNECTING" });
+      });
 
       listeners_setup = true;
     }
 
     if (!socket.connected) {
+      set({ connectionStatus: "CONNECTING" });
       socket.connect();
     }
     

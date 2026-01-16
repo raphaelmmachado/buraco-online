@@ -22,6 +22,7 @@ export interface ServerGameState {
     details_t1: ScoreResult;
     details_t2: ScoreResult;
   } | null;
+  disconnectTimeout?: NodeJS.Timeout | null;
 }
 
 // In-memory database

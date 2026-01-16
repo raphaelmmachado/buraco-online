@@ -1,5 +1,7 @@
 import { type ScoreResult } from "../../../common/utils/scoring";
 import { MELD_POINTS, BONUS_POINTS } from "../../../common/types/card";
+import { StyledButton } from "../ui/StyledButton";
+import { RotateCcw, LogOut } from "lucide-react";
 
 interface FinishScreenProps {
   finalScore: {
@@ -94,19 +96,25 @@ export const FinishScreen = ({ finalScore, myTeam, onPlayAgain, onLeave }: Finis
 
       {/* FOOTER: ACTIONS */}
       <div className="flex flex-col md:flex-row gap-6 w-full max-w-2xl">
-        <button
+        <StyledButton
           onClick={onPlayAgain}
-          className="flex-1 py-5 bg-green-600 hover:bg-green-500 text-white font-black rounded-2xl transition-all text-sm uppercase tracking-widest shadow-lg hover:shadow-green-500/20 active:scale-95 flex items-center justify-center gap-3"
+          variant="primary"
+          size="lg"
+          fullWidth
+          icon={<RotateCcw size={20} />}
         >
-          <span className="text-xl">🔄</span> Jogar Novamente
-        </button>
+          Jogar Novamente
+        </StyledButton>
         
-        <button
+        <StyledButton
           onClick={onLeave}
-          className="flex-1 py-5 bg-red-600/80 hover:bg-red-500 text-white font-black rounded-2xl transition-all text-sm uppercase tracking-widest shadow-lg hover:shadow-red-500/20 active:scale-95 flex items-center justify-center gap-3"
+          variant="danger"
+          size="lg"
+          fullWidth
+          icon={<LogOut size={20} />}
         >
-          <span className="text-xl">🚪</span> Sair da Sala
-        </button>
+          Sair da Sala
+        </StyledButton>
       </div>
 
     </div>

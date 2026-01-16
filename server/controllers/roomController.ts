@@ -27,7 +27,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
 
         if (playerEntry) {
           const [pNum, pData] = playerEntry;
-          console.log(`Jogador ${pData.userName} (${pNum}) caiu. Bot assumindo.`);
+          console.log(`Socket de ${pData.userName} (${pNum}) desconectado.`);
           
           if (game.status === "PLAYING") {
              pData.isBot = true;
@@ -35,17 +35,24 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
              if (game.current_player === Number(pNum)) {
                 process_bot_turn(io, roomId);
              }
-          } else if (game.status === "LOBBY") {
-             // Se caiu no Lobby, removemos ele para liberar a vaga
-             delete game.players_data[Number(pNum) as PlayerID];
           }
+          // No Lobby, mantemos os dados para permitir reconexão rápida (ex: refresh)
+          // O host pode expulsar se o jogador não retornar.
         }
 
-        // Verifica se ainda existem humanos na sala
-        const hasHumans = Object.values(game.players_data).some(p => !p.isBot);
-        if (!hasHumans) {
-          console.log(`Sala ${roomId} sem humanos. Deletando.`);
-          delete games[roomId];
+        // Verifica se ainda existem humanos CONECTADOS na sala
+        const anyHumanConnected = Object.values(game.players_data).some(p => 
+          !p.isBot && game.players_connected.includes(p.socketId)
+        );
+
+        if (!anyHumanConnected) {
+          if (!game.disconnectTimeout) {
+            console.log(`Sala ${roomId} sem humanos conectados. Agendando deleção em 1 minuto.`);
+            game.disconnectTimeout = setTimeout(() => {
+              console.log(`Tempo esgotado. Deletando sala ${roomId}.`);
+              delete games[roomId];
+            }, 60000); // 1 minute grace period
+          }
         } else {
           broadcast_game_update(io, roomId);
         }
@@ -241,6 +248,13 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
       const game = games[roomId];
       if (!game) return;
 
+      // Se houver um timeout de deleção agendado, cancela pois um humano voltou
+      if (game.disconnectTimeout) {
+        console.log(`Cancelando deleção da sala ${roomId}. Humano retornou (join).`);
+        clearTimeout(game.disconnectTimeout);
+        game.disconnectTimeout = null;
+      }
+
       // Verifica se é uma reconexão disfarçada de join (mesmo ID de jogador)
       const existingPlayerEntry = Object.entries(game.players_data).find(
         ([_, p]) => p.playerId === playerId
@@ -319,6 +333,13 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
         console.log(`[REJOIN] Failed: Room ${roomId} not found.`);
         socket.emit("rejoin_failed");
         return;
+      }
+
+      // Se houver um timeout de deleção agendado, cancela pois um humano voltou
+      if (game.disconnectTimeout) {
+        console.log(`Cancelando deleção da sala ${roomId}. Humano retornou (rejoin).`);
+        clearTimeout(game.disconnectTimeout);
+        game.disconnectTimeout = null;
       }
 
       const playerEntry = Object.entries(game.players_data).find(
@@ -437,20 +458,22 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
       }
     }
 
-    // CHECK IF ONLY BOTS REMAIN
-    const remainingPlayers = Object.values(game.players_data);
-    const hasHumans = remainingPlayers.some((p) => !p.isBot);
+    // CHECK IF ANY HUMANS REMAIN CONNECTED
+    const anyHumanConnected = Object.values(game.players_data).some(p => 
+      !p.isBot && game.players_connected.includes(p.socketId)
+    );
 
     socket.leave(roomId);
 
-    // If room is empty OR only bots remain, delete it
-    if (
-      (game.players_connected.length === 0 &&
-        Object.keys(game.players_data).length === 0) ||
-      !hasHumans
-    ) {
-      console.log(`Room ${roomId} has no humans left. Deleting game.`);
-      delete games[roomId];
+    // If room is empty OR only bots remain, schedule deletion instead of immediate delete
+    if (!anyHumanConnected) {
+      if (!game.disconnectTimeout) {
+        console.log(`Sala ${roomId} sem humanos conectados (leave). Agendando deleção em 1 minuto.`);
+        game.disconnectTimeout = setTimeout(() => {
+          console.log(`Tempo esgotado (leave). Deletando sala ${roomId}.`);
+          delete games[roomId];
+        }, 60000);
+      }
     } else {
       // Notify others
       broadcast_game_update(io, roomId);

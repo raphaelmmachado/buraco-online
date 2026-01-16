@@ -1,5 +1,54 @@
 import { useEffect, useState } from "react";
 import { useGameStore } from "../../store/useGameStore";
+import {
+  Loader2,
+  Wifi,
+  WifiOff,
+  User,
+  Users,
+  Play,
+  RefreshCw,
+} from "lucide-react";
+import { StyledButton } from "../ui/StyledButton";
+
+const ConnectionBadge = () => {
+  const connectionStatus = useGameStore((state) => state.connectionStatus);
+
+  switch (connectionStatus) {
+    case "CONNECTED":
+      return (
+        <div className="fixed bottom-4 right-4 md:bottom-8 md:right-8 flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full animate-fade-in z-50">
+          <Wifi size={14} className="text-green-500" />
+          <span className="text-[10px] font-black text-green-500 uppercase tracking-widest">
+            Conectado
+          </span>
+        </div>
+      );
+    case "CONNECTING":
+    case "RECONNECTING":
+      return (
+        <div className="fixed bottom-4 right-4 md:bottom-8 md:right-8 flex items-center gap-2 px-3 py-1.5 bg-yellow-500/10 border border-yellow-500/20 rounded-full animate-fade-in z-50">
+          <Loader2 size={14} className="text-yellow-500 animate-spin" />
+          <span className="text-[10px] font-black text-yellow-500 uppercase tracking-widest">
+            {connectionStatus === "CONNECTING"
+              ? "Conectando..."
+              : "Reconectando..."}
+          </span>
+        </div>
+      );
+    case "DISCONNECTED":
+      return (
+        <div className="fixed bottom-4 right-4 md:bottom-8 md:right-8 flex items-center gap-2 px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-full animate-fade-in z-50">
+          <WifiOff size={14} className="text-red-500" />
+          <span className="text-[10px] font-black text-red-500 uppercase tracking-widest">
+            Desconectado
+          </span>
+        </div>
+      );
+    default:
+      return null;
+  }
+};
 
 export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
   const [newRoomId, setNewRoomId] = useState("");
@@ -12,6 +61,7 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
   const rejoinGame = useGameStore((state) => state.rejoinGame);
   const totalOnline = useGameStore((state) => state.totalOnline);
   const onlineNames = useGameStore((state) => state.onlineNames);
+  const connectionStatus = useGameStore((state) => state.connectionStatus);
 
   // Check for active session on mount
   const [activeSession] = useState<string | null>(() =>
@@ -48,6 +98,9 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
   }, [initializeSocket, fetchRooms]);
 
   const handleCreate = (mode: "1v1" | "2v2") => {
+    if (connectionStatus !== "CONNECTED") {
+      return; // Prevent action if disconnected
+    }
     if (userName.trim() === "") {
       alert("Por favor, digite seu nome primeiro.");
       return;
@@ -60,6 +113,8 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
   };
 
   const handleJoinExisting = (roomId: string, mode: "1v1" | "2v2") => {
+    if (connectionStatus !== "CONNECTED") return;
+
     if (userName.trim() === "") {
       alert("Por favor, digite seu nome antes de entrar.");
       return;
@@ -69,6 +124,9 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
 
   return (
     <div className="min-h-screen bg-[#0f2e1a] flex flex-col items-center justify-center text-white p-6 font-sans relative overflow-hidden">
+      {/* Connection Status Indicator */}
+      <ConnectionBadge />
+
       {/* Background Texture */}
       <div
         className="absolute inset-0 opacity-10 pointer-events-none"
@@ -78,19 +136,6 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
         }}
       ></div>
       <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/50 pointer-events-none"></div>
-
-      <div className="text-center mb-12 animate-fade-in relative z-10">
-        <h1 className="text-7xl md:text-9xl font-black text-transparent bg-clip-text bg-gradient-to-br from-yellow-300 via-yellow-500 to-orange-600 mb-2 drop-shadow-2xl">
-          BARALHO
-        </h1>
-        <div className="flex items-center justify-center gap-3">
-          <div className="h-[1px] w-12 bg-white/20"></div>
-          <p className="text-sm md:text-lg text-slate-300 tracking-[0.5em] uppercase font-bold text-shadow-sm">
-            Multiplayer Online
-          </p>
-          <div className="h-[1px] w-12 bg-white/20"></div>
-        </div>
-      </div>
 
       <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
         {/* LADO ESQUERDO: PERFIL E CRIAÇÃO */}
@@ -149,7 +194,13 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
 
             <div className="p-6 flex-1 flex flex-col">
               {activeTab === "ONLINE" ? (
-                <div className="flex-1 flex flex-col gap-6 animate-fade-in">
+                <div
+                  className={`flex-1 flex flex-col gap-6 animate-fade-in ${
+                    connectionStatus !== "CONNECTED"
+                      ? "opacity-50 pointer-events-none grayscale"
+                      : ""
+                  }`}
+                >
                   <div>
                     <h3 className="text-[10px] font-black text-slate-400 uppercase mb-3 tracking-widest">
                       Nome da Sala
@@ -163,28 +214,24 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4 mt-auto">
-                    <button
+                    <StyledButton
                       onClick={() => handleCreate("1v1")}
-                      className="bg-blue-600/80 hover:bg-blue-500 text-white py-4 rounded-xl font-black shadow-lg shadow-blue-900/20 transition-all active:scale-95 border border-white/10 flex flex-col items-center justify-center gap-1 group/btn"
+                      variant="secondary"
+                      size="lg"
+                      icon={<User size={20} />}
+                      className="bg-blue-600/80 hover:bg-blue-500 shadow-blue-900/20"
                     >
-                      <span className="text-2xl group-hover/btn:scale-110 transition-transform">
-                        👤
-                      </span>
-                      <span className="text-xs uppercase tracking-widest">
-                        1 vs 1
-                      </span>
-                    </button>
-                    <button
+                      1 vs 1
+                    </StyledButton>
+                    <StyledButton
                       onClick={() => handleCreate("2v2")}
-                      className="bg-purple-600/80 hover:bg-purple-500 text-white py-4 rounded-xl font-black shadow-lg shadow-purple-900/20 transition-all active:scale-95 border border-white/10 flex flex-col items-center justify-center gap-1 group/btn"
+                      variant="secondary"
+                      size="lg"
+                      icon={<Users size={20} />}
+                      className="bg-purple-600/80 hover:bg-purple-500 shadow-purple-900/20"
                     >
-                      <span className="text-2xl group-hover/btn:scale-110 transition-transform">
-                        👥
-                      </span>
-                      <span className="text-xs uppercase tracking-widest">
-                        2 vs 2
-                      </span>
-                    </button>
+                      2 vs 2
+                    </StyledButton>
                   </div>
                 </div>
               ) : (
@@ -196,13 +243,16 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
                     Treine suas habilidades localmente contra a I.A.
                   </p>
                   {onPlayLocal && (
-                    <button
+                    <StyledButton
                       onClick={onPlayLocal}
-                      className="w-full bg-green-600/80 hover:bg-green-500 text-white py-5 rounded-xl font-black shadow-lg shadow-green-900/20 transition-all active:scale-95 border border-white/10 flex items-center justify-center gap-3 text-sm uppercase tracking-[0.2em] group/start"
+                      variant="primary"
+                      size="lg"
+                      fullWidth
+                      icon={<Play size={20} />}
+                      className="bg-green-600/80 hover:bg-green-500 shadow-green-900/20"
                     >
-                      <span className="group-hover/start:animate-pulse">▶</span>
                       Iniciar Partida
-                    </button>
+                    </StyledButton>
                   )}
                 </div>
               )}
@@ -244,18 +294,35 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
             <div className="space-y-3 overflow-y-auto flex-1 pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
               {rooms.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full opacity-30 gap-4">
-                  <div className="w-20 h-20 border-2 border-dashed border-white/20 rounded-full flex items-center justify-center">
-                    <span className="text-2xl">⚡</span>
-                  </div>
-                  <p className="text-xs font-mono uppercase tracking-widest">
-                    Nenhum sinal detectado
-                  </p>
+                  {connectionStatus === "CONNECTED" ? (
+                    <>
+                      <div className="w-20 h-20 border-2 border-dashed border-white/20 rounded-full flex items-center justify-center">
+                        <span className="text-2xl">⚡</span>
+                      </div>
+                      <p className="text-xs font-mono uppercase tracking-widest">
+                        Nenhum sinal detectado
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-20 h-20 flex items-center justify-center">
+                        <Loader2
+                          className="animate-spin text-white/20"
+                          size={40}
+                        />
+                      </div>
+                      <p className="text-xs font-mono uppercase tracking-widest">
+                        Procurando Servidor...
+                      </p>
+                    </>
+                  )}
                 </div>
               ) : (
                 rooms.map((room) => {
                   const isFull = room.playerCount >= room.maxPlayers;
                   const isPlaying = room.status !== "LOBBY";
-                  const canJoin = !isFull && !isPlaying;
+                  const canJoin =
+                    !isFull && !isPlaying && connectionStatus === "CONNECTED";
 
                   return (
                     <div
@@ -344,15 +411,15 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
               )}
             </div>
 
-            <button
+            <StyledButton
               onClick={fetchRooms}
-              className="mt-6 w-full py-3 text-[10px] font-bold text-slate-500 hover:text-white transition-colors uppercase tracking-[0.2em] border-t border-white/5 pt-4 flex items-center justify-center gap-2 group/refresh"
+              variant="ghost"
+              fullWidth
+              icon={<RefreshCw size={14} />}
+              className="mt-6 border-t border-white/5 pt-4 text-[10px] text-slate-500 hover:text-white justify-center"
             >
-              <span className="group-hover/refresh:rotate-180 transition-transform duration-500">
-                ↻
-              </span>
               Atualizar Feed
-            </button>
+            </StyledButton>
           </div>
         </div>
       </div>

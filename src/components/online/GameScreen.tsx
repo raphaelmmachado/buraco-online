@@ -21,6 +21,7 @@ import { useScreenDrag } from "../../hooks/useScreenDrag";
 import { useGameAudio } from "../../hooks/useGameAudio";
 import { useMobileCheck } from "../../hooks/useMobileCheck";
 import CurrentGamePoints from "../game-ui/CurrentGamePoints";
+import { ConnectionOverlay } from "./ConnectionOverlay";
 import TookDeadPile from "../game-ui/TookDeadPile";
 
 // --- TELA PRINCIPAL ---
@@ -174,6 +175,9 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           id="game-screen"
           className="h-screen w-screen bg-[#0f2e1a] text-white overflow-hidden flex flex-col select-none relative font-sans"
         >
+          {/* Connection Overlay (Only for Online Game) */}
+          {game.roomId !== "LOCAL_DEBUG" && <ConnectionOverlay />}
+
           {/* Rules Modal */}
           {showHowToPlay && (
             <HowToPlay onClose={() => setShowHowToPlay(false)} />

@@ -88,7 +88,6 @@ interface GameActions {
   add_to_meld: (card_ids: string[], meld_index: number) => void;
   pick_up_discard_new_meld: (card_ids: string[]) => void;
   pick_up_discard_add_to_meld: (meld_index: number, card_ids: string[]) => void;
-  addBot: () => void;
   kickPlayer: (playerId: number) => void;
   startGame: () => void;
   leaveGame: () => void;
@@ -155,11 +154,6 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       localStorage.setItem("baralho_show_animations", String(newVal));
       return { showAnimations: newVal };
     }),
-
-  addBot: () => {
-    const { roomId } = get();
-    socket.emit("action_add_bot", { roomId });
-  },
 
   kickPlayer: (playerId: number) => {
     const { roomId } = get();

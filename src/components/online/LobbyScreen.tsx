@@ -151,14 +151,6 @@ export const LobbyScreen = () => {
                     ⇄ Trocar Time
                   </button>
                )}
-               {my_player_number === 1 && missingCount > 0 && (
-                  <button
-                    onClick={useGameStore.getState().addBot}
-                    className="flex-1 bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 border border-purple-500/30 py-3 rounded-lg font-bold text-xs uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
-                  >
-                    <Bot size={16} /> + Bot
-                  </button>
-               )}
              </div>
 
             {my_player_number === 1 && missingCount === 0 && (

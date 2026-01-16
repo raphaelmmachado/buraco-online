@@ -574,11 +574,6 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         game.turn_phase = "DRAW";
         game.current_player = get_next_player(game.current_player, game.mode);
         game.last_drawn_card_id = null; // Limpa o destaque da carta comprada
-
-        const nextPData = game.players_data[game.current_player as PlayerID];
-        if (nextPData && nextPData.isBot) {
-          process_bot_turn(io, roomId);
-        }
       }
 
       broadcast_game_update(io, roomId);

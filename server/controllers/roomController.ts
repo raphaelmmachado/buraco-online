@@ -30,21 +30,8 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
           console.log(`Socket de ${pData.userName} (${pNum}) desconectado.`);
           
           if (game.status === "PLAYING") {
-             // DELAY BOT TAKEOVER (15s Grace Period for quick reconnects)
-             if (pData.botTakeoverTimeout) clearTimeout(pData.botTakeoverTimeout);
-
-             pData.botTakeoverTimeout = setTimeout(() => {
-                console.log(`Tempo de reconexão esgotado para ${pData.userName}. Bot assumindo.`);
-                pData.isBot = true;
-                pData.botTakeoverTimeout = null;
-                
-                broadcast_game_update(io, roomId); // Notify that player is now a bot
-
-                // Se era a vez dele, o bot deve começar a jogar
-                if (game.current_player === Number(pNum)) {
-                    process_bot_turn(io, roomId);
-                }
-             }, 15000); // 15 seconds delay
+             console.log(`Jogador ${pData.userName} (${pNum}) caiu. Aguardando reconexão.`);
+             // Não transformamos mais em BOT para evitar instabilidade no Render
           }
           // No Lobby, mantemos os dados para permitir reconexão rápida (ex: refresh)
           // O host pode expulsar se o jogador não retornar.
@@ -96,29 +83,6 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
       totalOnline,
       onlineNames,
     });
-  });
-
-  // ADD BOT ACTION
-  socket.on("action_add_bot", ({ roomId }: { roomId: string }) => {
-    const game = games[roomId];
-    if (!game) return;
-
-    const maxPlayers = game.mode === "1v1" ? 2 : 4;
-    const filledSlots = Object.keys(game.players_data).length;
-
-    if (filledSlots >= maxPlayers) return;
-
-    const botId = filledSlots + 1;
-    const botName = `Bot ${botId}`;
-
-    game.players_data[botId as PlayerID] = {
-      socketId: `BOT-${Date.now()}`, // Fake socket ID
-      userName: botName,
-      playerId: `BOT-${botId}`,
-      isBot: true,
-    };
-
-    broadcast_game_update(io, roomId);
   });
 
   socket.on("action_switch_team", ({ roomId }: { roomId: string }) => {
@@ -470,12 +434,8 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
       const [pId, pData] = playerEntry;
       
       if (game.status === "PLAYING") {
-        console.log(`Jogador ${pData.userName} saiu da partida. Bot assumindo permanentemente.`);
-        pData.isBot = true;
-        // Se era a vez dele, o bot deve começar a jogar
-        if (game.current_player === Number(pId)) {
-          process_bot_turn(io, roomId);
-        }
+        console.log(`Jogador ${pData.userName} saiu da partida.`);
+        // No futuro poderíamos encerrar a partida aqui, por enquanto o jogo fica parado.
       } else {
         // No Lobby ou fim de jogo, removemos para liberar a vaga
         delete game.players_data[Number(pId) as PlayerID];

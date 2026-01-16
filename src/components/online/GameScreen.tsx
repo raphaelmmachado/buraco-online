@@ -25,11 +25,7 @@ import TookDeadPile from "../game-ui/TookDeadPile";
 
 // --- TELA PRINCIPAL ---
 
-export const GameScreen = ({
-  game,
-}: {
-  game: GameAdapterInterface;
-}) => {
+export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   // State
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
@@ -179,7 +175,9 @@ export const GameScreen = ({
           className="h-screen w-screen bg-[#0f2e1a] text-white overflow-hidden flex flex-col select-none relative font-sans"
         >
           {/* Rules Modal */}
-          {showHowToPlay && <HowToPlay onClose={() => setShowHowToPlay(false)} />}
+          {showHowToPlay && (
+            <HowToPlay onClose={() => setShowHowToPlay(false)} />
+          )}
 
           {/* Menu Dropdown */}
           <div className="absolute top-4 right-4 z-100">
@@ -249,6 +247,8 @@ export const GameScreen = ({
                       active={canDraw}
                       mini={true}
                       quantity={game.deck_count}
+                      draw_phase={game.turn_phase === "DRAW"}
+                      dead_piles={game.dead_piles_count}
                     />
                     <div
                       className="bg-red-900 text-white text-xs font-black
@@ -507,6 +507,8 @@ export const GameScreen = ({
                   active={canDraw}
                   mini={isMobile}
                   quantity={game.deck_count}
+                  dead_piles={game.dead_piles_count}
+                  draw_phase={game.turn_phase === "DRAW"}
                 />
 
                 {/* Contadores */}

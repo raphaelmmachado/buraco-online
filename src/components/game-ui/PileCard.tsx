@@ -3,6 +3,8 @@ interface PileCardProps {
   active?: boolean;
   mini?: boolean;
   quantity: number;
+  dead_piles: number;
+  draw_phase: boolean;
 }
 
 export const PileCard = ({
@@ -10,8 +12,10 @@ export const PileCard = ({
   active = false,
   mini = false,
   quantity,
+  dead_piles,
+  draw_phase,
 }: PileCardProps) => {
-  if (quantity === 0) {
+  if (quantity === 0 && dead_piles === 0) {
     return (
       <div
         className={`${mini ? "w-10 h-14" : "w-14 h-20 md:w-20 md:h-32"}
@@ -90,9 +94,11 @@ export const PileCard = ({
         ></div>
 
         {/* Número da quantidade */}
-        <div className="text-white rounded-xl font-bold md:text-2xl drop-shadow-md z-20">
-          {quantity}
-        </div>
+        {dead_piles > 0 && draw_phase && quantity === 0 ? (
+          <PileQuantity quantity={quantity + 11} />
+        ) : (
+          <PileQuantity quantity={quantity} />
+        )}
 
         {/* Borda brilhante quando ativo */}
         {active && onClick && (
@@ -100,5 +106,15 @@ export const PileCard = ({
         )}
       </div>
     </div>
+  );
+};
+
+const PileQuantity = ({ quantity }: { quantity: number }) => {
+  return (
+    <>
+      <div className="text-white rounded-xl font-bold md:text-2xl drop-shadow-md z-20">
+        {quantity}
+      </div>
+    </>
   );
 };

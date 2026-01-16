@@ -37,13 +37,12 @@ export const useScreenDrag = (initialHeightPercentage: number = 35) => {
 
   const startDrag = (e: React.MouseEvent | React.TouchEvent) => {
     const target = e.target as HTMLElement;
-    
+
     // Impede o início do arraste se clicar em elementos interativos
     if (
-      target.closest("button") || 
-      target.closest(".no-drag") || 
-      target.closest("[role='button']") ||
-      target.closest(".cursor-pointer") // Cartas geralmente têm cursor-pointer
+      target.closest("button") ||
+      target.closest(".no-drag") ||
+      target.closest("[role='button']")
     ) {
       return;
     }

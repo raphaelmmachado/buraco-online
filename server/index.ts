@@ -7,8 +7,8 @@ import { registerGameHandlers } from "./controllers/gameController";
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 const httpServer = createServer();
 const io = new Server(httpServer, {
-  pingInterval: 25000, // 25 seconds heartbeat
-  pingTimeout: 20000,  // 20 seconds tolerance
+  pingInterval: 5000,  // Heartbeat mais frequente (5s) para manter conexão viva
+  pingTimeout: 30000,  // Mais tolerância (30s) se o cliente demorar a responder (aba em background)
   cors: {
     origin: "*",
     methods: ["GET", "POST"],

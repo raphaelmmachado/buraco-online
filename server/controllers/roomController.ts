@@ -44,11 +44,16 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
 
         if (!anyHumanConnected) {
           if (!game.disconnectTimeout) {
-            console.log(`Sala ${roomId} sem humanos conectados. Agendando deleção em 1 minuto.`);
+            // Se estiver no LOBBY, deleta rápido (5s) para limpar a lista.
+            // Se estiver JOGANDO, dá 1 minuto de tolerância para reconexão.
+            const timeoutDuration = game.status === "LOBBY" ? 5000 : 60000;
+            
+            console.log(`Sala ${roomId} (${game.status}) sem humanos. Agendando deleção em ${timeoutDuration/1000}s.`);
+            
             game.disconnectTimeout = setTimeout(() => {
               console.log(`Tempo esgotado. Deletando sala ${roomId}.`);
               delete games[roomId];
-            }, 60000); // 1 minute grace period
+            }, timeoutDuration);
           }
         } else {
           broadcast_game_update(io, roomId);
@@ -181,14 +186,29 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
       // IMPEDIR QUE O MESMO JOGADOR CRIE MAIS DE UMA SALA COMO HOST (Player 1)
       if (!games[roomId]) {
         // Verifica se o jogador já é host de alguma outra sala
-        const alreadyHosting = Object.values(games).some(g => {
+        const existingRoomEntry = Object.entries(games).find(([_, g]) => {
             const host = g.players_data[1];
             return host && host.playerId === playerId;
         });
 
-        if (alreadyHosting) {
-            socket.emit("error_msg", "Você já possui uma sala aberta. Encerre a anterior antes de criar uma nova.");
-            return;
+        if (existingRoomEntry) {
+            const [oldRoomId, oldGame] = existingRoomEntry;
+            
+            // Verifica se a sala antiga tem alguém conectado
+            // Usamos players_connected que rastreia sockets ativos
+            const isSomeoneConnected = oldGame.players_connected.length > 0;
+
+            if (!isSomeoneConnected) {
+                // SALA ABANDONADA (Zombie): O host está tentando criar nova, então matamos a velha
+                console.log(`[AUTO-CLEANUP] Host ${userName} criando nova sala. Deletando sala zombie ${oldRoomId}.`);
+                if (oldGame.disconnectTimeout) clearTimeout(oldGame.disconnectTimeout);
+                delete games[oldRoomId];
+                // Prossegue para criar a nova sala...
+            } else {
+                // SALA ATIVA: Não permitimos criar outra
+                socket.emit("error_msg", "Você já possui uma sala ativa com jogadores. Volte para ela.");
+                return;
+            }
         }
 
         console.log(`Criando sala ${roomId} [${mode}]`);
@@ -452,11 +472,13 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
     // If room is empty OR only bots remain, schedule deletion instead of immediate delete
     if (!anyHumanConnected) {
       if (!game.disconnectTimeout) {
-        console.log(`Sala ${roomId} sem humanos conectados (leave). Agendando deleção em 1 minuto.`);
+        const timeoutDuration = game.status === "LOBBY" ? 5000 : 60000;
+        console.log(`Sala ${roomId} (${game.status}) sem humanos (leave). Agendando deleção em ${timeoutDuration/1000}s.`);
+        
         game.disconnectTimeout = setTimeout(() => {
           console.log(`Tempo esgotado (leave). Deletando sala ${roomId}.`);
           delete games[roomId];
-        }, 60000);
+        }, timeoutDuration);
       }
     } else {
       // Notify others

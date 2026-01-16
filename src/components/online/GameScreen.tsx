@@ -245,7 +245,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               {isMobile ? (
                 <>
                   {/* MOBILE: DECK ON LEFT */}
-                  <div className="relative h-full py-1 flex flex-col-reverse gap-y-1 items-center shrink-0">
+                  <div className="relative h-full py-1 flex flex-col-reverse gap-y-1 items-center shrink-0 no-drag">
                     <PileCard
                       onClick={handleDeckClick}
                       active={canDraw}
@@ -358,7 +358,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                   </div>
 
                   {/* MOBILE: DISCARD ON RIGHT */}
-                  <div className="relative h-full py-1 flex items-center shrink-0">
+                  <div className="relative h-full py-1 flex items-center shrink-0 no-drag">
                     <DiscardCard
                       card={game.discard_pile[0]}
                       quantity={game.discard_pile.length}

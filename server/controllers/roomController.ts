@@ -30,11 +30,21 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
           console.log(`Socket de ${pData.userName} (${pNum}) desconectado.`);
           
           if (game.status === "PLAYING") {
-             pData.isBot = true;
-             // Se era a vez dele, o bot deve começar a jogar
-             if (game.current_player === Number(pNum)) {
-                process_bot_turn(io, roomId);
-             }
+             // DELAY BOT TAKEOVER (15s Grace Period for quick reconnects)
+             if (pData.botTakeoverTimeout) clearTimeout(pData.botTakeoverTimeout);
+
+             pData.botTakeoverTimeout = setTimeout(() => {
+                console.log(`Tempo de reconexão esgotado para ${pData.userName}. Bot assumindo.`);
+                pData.isBot = true;
+                pData.botTakeoverTimeout = null;
+                
+                broadcast_game_update(io, roomId); // Notify that player is now a bot
+
+                // Se era a vez dele, o bot deve começar a jogar
+                if (game.current_player === Number(pNum)) {
+                    process_bot_turn(io, roomId);
+                }
+             }, 15000); // 15 seconds delay
           }
           // No Lobby, mantemos os dados para permitir reconexão rápida (ex: refresh)
           // O host pode expulsar se o jogador não retornar.
@@ -270,6 +280,13 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
           game.players_connected.splice(oldIdx, 1);
         }
 
+        // Cancel pending bot takeover
+        if (pData.botTakeoverTimeout) {
+            console.log(`Bot takeover cancelled for ${pData.userName} (join)`);
+            clearTimeout(pData.botTakeoverTimeout);
+            pData.botTakeoverTimeout = null;
+        }
+
         // Atualiza socket
         pData.socketId = socket.id;
         pData.isBot = false; // Jogador voltou, para de ser BOT
@@ -363,6 +380,13 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
       const oldIdx = game.players_connected.indexOf(oldSocketId);
       if (oldIdx !== -1) {
         game.players_connected.splice(oldIdx, 1);
+      }
+
+      // Cancel pending bot takeover
+      if (pData.botTakeoverTimeout) {
+          console.log(`Bot takeover cancelled for ${pData.userName} (rejoin)`);
+          clearTimeout(pData.botTakeoverTimeout);
+          pData.botTakeoverTimeout = null;
       }
 
       // Atualiza o socket ID

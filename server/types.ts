@@ -7,6 +7,7 @@ export interface PlayerData {
   userName: string;
   playerId: string;
   isBot?: boolean;
+  botTakeoverTimeout?: NodeJS.Timeout | null;
 }
 
 export type ServerResponse = { error?: string; success?: boolean };

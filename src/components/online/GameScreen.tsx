@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment, useRef } from "react";
 import { Dot, Hand, ShoppingCart, Skull, Trash } from "lucide-react";
 import { LayoutGroup, MotionConfig, motion } from "framer-motion";
 import { calculate_score } from "../../../common/utils/scoring";
@@ -23,6 +23,9 @@ import { useMobileCheck } from "../../hooks/useMobileCheck";
 import CurrentGamePoints from "../game-ui/CurrentGamePoints";
 import { ConnectionOverlay } from "./ConnectionOverlay";
 import TookDeadPile from "../game-ui/TookDeadPile";
+import { EventBalloon } from "../game-ui/EventBalloon";
+import { EventBar } from "../game-ui/EventBar";
+import Portal from "../ui/Portal";
 
 // --- TELA PRINCIPAL ---
 
@@ -34,6 +37,12 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     teamId: number;
     index: number;
   } | null>(null);
+
+  // Refs and state for player positions (for portals)
+  const playerRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [playerPositions, setPlayerPositions] = useState<
+    Record<string, { x: number; y: number }>
+  >({});
 
   // Computed Values
   const my_player_id = game.my_player_number ?? 1;
@@ -78,6 +87,33 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   const { isMobile } = useMobileCheck();
   const { opponentHeight, startDrag } = useScreenDrag(35);
   useGameAudio(game, isMyTurn);
+
+  // Effect to calculate player positions for portal
+  useEffect(() => {
+    const calculatePositions = () => {
+      const newPositions: Record<string, { x: number; y: number }> = {};
+      Object.keys(playerRefs.current).forEach((id) => {
+        const el = playerRefs.current[id];
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          newPositions[id] = {
+            x: rect.left + rect.width / 2, // Center of the element
+            y: rect.top, // Top of the element
+          };
+        }
+      });
+      setPlayerPositions(newPositions);
+    };
+
+    // Calculate on mount and on any game state change that might move players
+    calculatePositions();
+
+    // Optional: Recalculate on window resize
+    window.addEventListener("resize", calculatePositions);
+    return () => {
+      window.removeEventListener("resize", calculatePositions);
+    };
+  }, [game.players_data, opponentHeight]); // Re-calculate if players or layout changes
 
   // Auto-clear error after 3 seconds
   useEffect(() => {
@@ -175,6 +211,36 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           id="game-screen"
           className="h-screen w-screen bg-[#0f2e1a] text-white overflow-hidden flex flex-col select-none relative font-sans"
         >
+          {/* == PORTAL RENDERER FOR EVENTS == */}
+          {!isMobile && (
+            <Portal>
+              {/* Event Balloons (for info/success messages) */}
+              {Object.entries(playerPositions).map(([id, pos]) => {
+                const playerEvent = [...(game.recentEvents || [])]
+                  .reverse()
+                  .find((e) => e.playerId === Number(id) && e.type === "info");
+
+                if (playerEvent) {
+                  // Determine team
+                  const eventPlayerId = playerEvent.playerId!;
+                  const myTeam = my_player_id % 2;
+                  const eventPlayerTeam = eventPlayerId % 2;
+                  const team = myTeam === eventPlayerTeam ? "mine" : "opponent";
+
+                  return (
+                    <EventBalloon
+                      key={playerEvent.id}
+                      message={playerEvent.message}
+                      team={team}
+                      x={pos.x}
+                      y={pos.y}
+                    />
+                  );
+                }
+                return null;
+              })}
+            </Portal>
+          )}
           {/* Connection Overlay (Only for Online Game) */}
           {game.roomId !== "LOCAL_DEBUG" && <ConnectionOverlay />}
 
@@ -218,6 +284,9 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                   meld={meld}
                   scale="scale-90 md:scale-100"
                   enterFrom={activePlayerDirection}
+                  teamId={opponent_team}
+                  meldIndex={idx}
+                  lastMeldUpdate={game.lastMeldUpdate}
                 />
               ))}
               <div className="absolute text-center w-full h-full flex items-center justify-center pointer-events-none">
@@ -238,8 +307,8 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
             onMouseDown={startDrag}
             onTouchStart={startDrag}
             className="md:h-[5%] bg-white/5 backdrop-blur-md
-         px-2 md:px-8 border-y border-white/5 shadow-2xl z-30 shrink-0
-          cursor-grab active:cursor-grabbing select-none active:bg-white/10 transition-colors group overflow-hidden"
+           px-2 md:px-8 border-y border-white/5 shadow-2xl z-30 shrink-0
+            cursor-grab active:cursor-grabbing select-none active:bg-white/10 transition-colors group"
           >
             <div className="flex h-full items-center justify-between">
               {isMobile ? (
@@ -256,7 +325,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                     />
                     <div
                       className="bg-red-900 text-white text-xs font-black
-                  px-0.5 flex items-center justify-center rounded-md border border-white/20"
+                    px-0.5 flex items-center justify-center rounded-md border border-white/20"
                     >
                       <Skull size={14} /> : {game.dead_piles_count}
                     </div>
@@ -301,22 +370,36 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                     </div>
                   </div>
 
-                  {/* CENTER: TURN INFO */}
+                  {/* CENTER: TURN INFO OR EVENT BAR */}
 
-                  <div className="flex flex-col items-center bg-black/40 backdrop-blur-sm px-3 py-1 rounded-lg border border-white/10 shadow-lg mx-1">
-                    <span
-                      className={`text-[8px] font-black ${
-                        isMyTurn
-                          ? "text-yellow-400 animate-pulse"
-                          : "text-white/40"
-                      } uppercase tracking-widest`}
-                    >
-                      {isMyTurn ? "SUA VEZ" : "VEZ DELES"}
-                    </span>
+                  <div className="flex flex-col items-center bg-black/40 backdrop-blur-sm px-3 py-1 rounded-lg border border-white/10 shadow-lg mx-1 min-w-[80px] h-[38px] justify-center relative overflow-hidden">
+                    {game.recentEvents && game.recentEvents.length > 0 ? (
+                      <EventBar
+                        message={
+                          game.recentEvents[game.recentEvents.length - 1]
+                            .message
+                        }
+                        type={
+                          game.recentEvents[game.recentEvents.length - 1].type
+                        }
+                      />
+                    ) : (
+                      <>
+                        <span
+                          className={`text-[8px] font-black ${
+                            isMyTurn
+                              ? "text-yellow-400 animate-pulse"
+                              : "text-white/40"
+                          } uppercase tracking-widest`}
+                        >
+                          {isMyTurn ? "SUA VEZ" : "VEZ DELES"}
+                        </span>
 
-                    <span className="text-[9px] text-gray-400 uppercase font-bold tracking-tight mt-0.5">
-                      {game.turn_phase === "DRAW" ? "COMPRA" : "JOGA"}
-                    </span>
+                        <span className="text-[9px] text-gray-400 uppercase font-bold tracking-tight mt-0.5">
+                          {game.turn_phase === "DRAW" ? "COMPRA" : "JOGA"}
+                        </span>
+                      </>
+                    )}
                   </div>
                   {/* TIME DELES (ELES) */}
 
@@ -376,57 +459,61 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               ) : (
                 /* DESKTOP: JOGADORES */
                 <div className="flex h-full gap-2 items-center w-full justify-between overflow-x-auto scrollbar-hide">
-                  {Object.entries(game.players_data).map(([id, p]) => (
-                    <>
-                      {" "}
-                      <div
-                        key={`${id}_${p.userName}`}
-                        className={`relative shrink-0 flex items-center justify-center px-3 py-1 
-                    md:px-2 md:py-0.5 rounded-lg border transition-all ${
-                      Number(id) === game.current_player
-                        ? "border-yellow-400/80 bg-yellow-500/20 ring-1 ring-yellow-400/50 animate-pulse shadow-[0_0_10px_rgba(250,204,21,0.3)]"
-                        : "border-white/5 bg-black/20"
-                    }`}
-                      >
-                        <span
-                          className={`flex text-[10px] md:text-sm font-black uppercase ${
-                            Number(id) % 2 === my_player_id % 2
-                              ? "text-blue-300"
-                              : "text-red-300"
-                          }`}
+                  {Object.entries(game.players_data).map(([id, p]) => {
+                    return (
+                      <Fragment key={`${id}_${p.userName}`}>
+                        {" "}
+                        <div
+                          ref={(el) => {
+                            playerRefs.current[id] = el;
+                          }}
+                          className={`relative shrink-0 flex items-center justify-center px-3 py-1 
+                      md:px-2 md:py-0.5 rounded-lg border transition-all ${
+                        Number(id) === game.current_player
+                          ? "border-yellow-400/80 bg-yellow-500/20 ring-1 ring-yellow-400/50 animate-pulse shadow-[0_0_10px_rgba(250,204,21,0.3)]"
+                          : "border-white/5 bg-black/20"
+                      }`}
                         >
-                          {p.userName.substring(0, 8)}
-                          <span className="text-gray-500 mx-1">
-                            <Hand size={16} />{" "}
+                          <span
+                            className={`flex text-[10px] md:text-sm font-black uppercase ${
+                              Number(id) % 2 === my_player_id % 2
+                                ? "text-blue-300"
+                                : "text-red-300"
+                            }`}
+                          >
+                            {p.userName.substring(0, 8)}
+                            <span className="text-gray-500 mx-1">
+                              <Hand size={16} />{" "}
+                            </span>
                           </span>
-                        </span>
-                        <span className="text-[10px] md:text-sm font-mono font-bold text-white">
-                          {typeof game.hands[Number(id)] === "number"
-                            ? (game.hands[Number(id)] as number)
-                            : (game.hands[Number(id)] as Card[])?.length || 0}
-                        </span>
-                        <span className="flex items-center">
-                          <>
-                            {" "}
-                            {game.turn_phase === "DRAW" &&
-                              Number(id) === game.current_player && (
-                                <>
-                                  <Dot size={16} />{" "}
-                                  <ShoppingCart size={16} fill="white" />
-                                </>
-                              )}
-                            {game.turn_phase === "ACTION" &&
-                              Number(id) === game.current_player && (
-                                <>
-                                  <Dot size={16} />{" "}
-                                  <Trash size={16} fill="white" />
-                                </>
-                              )}
-                          </>
-                        </span>
-                      </div>
-                    </>
-                  ))}
+                          <span className="text-[10px] md:text-sm font-mono font-bold text-white">
+                            {typeof game.hands[Number(id)] === "number"
+                              ? (game.hands[Number(id)] as number)
+                              : (game.hands[Number(id)] as Card[])?.length || 0}
+                          </span>
+                          <span className="flex items-center">
+                            <>
+                              {" "}
+                              {game.turn_phase === "DRAW" &&
+                                Number(id) === game.current_player && (
+                                  <>
+                                    <Dot size={16} />{" "}
+                                    <ShoppingCart size={16} fill="white" />
+                                  </>
+                                )}
+                              {game.turn_phase === "ACTION" &&
+                                Number(id) === game.current_player && (
+                                  <>
+                                    <Dot size={16} />{" "}
+                                    <Trash size={16} fill="white" />
+                                  </>
+                                )}
+                            </>
+                          </span>
+                        </div>
+                      </Fragment>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -439,7 +526,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           >
             <div
               className="flex-1 flex flex-wrap content-start md:gap-x-4
-         gap-y-2 md:gap-y-8 overflow-y-auto scrollbar-hide pt-2 pb-20"
+           gap-y-2 md:gap-y-8 overflow-y-auto scrollbar-hide pt-2 pb-20"
             >
               {game.team_melds[my_team].map((meld, idx) => {
                 // Logic: Can interact if (Draw Phase & Discard Avail) OR (Action Phase & Hand Cards Selected)
@@ -466,6 +553,9 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                     onMouseLeave={() => setHoveredMeld(null)}
                     scale="scale-90 md:scale-100"
                     enterFrom={activePlayerDirection}
+                    teamId={my_team}
+                    meldIndex={idx}
+                    lastMeldUpdate={game.lastMeldUpdate}
                   />
                 );
               })}
@@ -501,7 +591,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           <footer
             id="game-footer"
             className="h-36 md:h-[20%] bg-linear-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md px-2 pb-2 z-40
-         relative w-full flex items-end justify-between gap-2 md:gap-6 pointer-events-none"
+           relative w-full flex items-end justify-between gap-2 md:gap-6 pointer-events-none"
           >
             {/*  DESKTOP LEFT: DECK PILE */}
             {!isMobile && (
@@ -520,7 +610,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                 <div
                   title="Quantidade de mortos"
                   className={`z-50 w-fit px-2 py-1 text-xs bg-red-600 text-white font-black 
-              flex items-center justify-center rounded-full shadow-lg border border-white/20`}
+                flex items-center justify-center rounded-full shadow-lg border border-white/20`}
                 >
                   <Skull size={16} />: {game.dead_piles_count}{" "}
                   <span className="font-light">{"/2"}</span>
@@ -573,8 +663,8 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               <div
                 id="error-toast"
                 className="absolute -top-16 left-1/2 -translate-x-1/2 bg-red-600/90 backdrop-blur
-             text-white px-6 py-2 rounded-md text-sm font-black shadow-2xl
-              flex items-center gap-3 border border-white/20 z-100"
+               text-white px-6 py-2 rounded-md text-sm font-black shadow-2xl
+                flex items-center gap-3 border border-white/20 z-100"
               >
                 <span>⚠️ {game.last_error}</span>
                 <button

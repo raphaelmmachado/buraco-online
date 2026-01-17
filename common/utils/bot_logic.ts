@@ -62,6 +62,7 @@ export const find_meld_in_hand = (
   }
 
   // 2. Tenta sequências COM CURINGA (mesmo naipe)
+  // LÓGICA MELHORADA: Tenta encontrar o MAIOR jogo possível (Cluster) usando o curinga como ponte
   if (wildcards.length > 0) {
       for (const wc of wildcards) {
           const hand_without_wc = hand.filter(c => c.id !== wc.id);
@@ -69,8 +70,41 @@ export const find_meld_in_hand = (
 
           for (const suitName in suits_clean) {
               const cards = sort_cards(suits_clean[suitName]);
-              if (cards.length < 2) continue; 
+              if (cards.length < 2) continue;
 
+              // A. Tenta ponte inteligente (CLUSTERING)
+              // Agrupa cartas que estão próximas (distância <= 2, ou seja, buraco de 1 carta que o curinga resolve)
+              // Ex: 3,4,5 ... 7,8,9 -> Gap entre 5 e 7 é 2. Curinga resolve. Cluster: 3,4,5,7,8,9
+              let current_cluster: Card[] = [cards[0]];
+              
+              for (let i = 0; i < cards.length - 1; i++) {
+                  const curr_rank = RANK_MAP[cards[i].value];
+                  const next_rank = RANK_MAP[cards[i+1].value];
+                  
+                  if (curr_rank && next_rank && (next_rank - curr_rank) <= 2) {
+                      current_cluster.push(cards[i+1]);
+                  } else {
+                      // Cluster quebrou. Testa o cluster atual se for grande o suficiente
+                      if (current_cluster.length >= 2) {
+                          const attempt = [...current_cluster, wc];
+                          const validation = get_sequence_details(attempt);
+                          if (validation.is_valid) {
+                              all_potential_melds.push({ cards: organize_meld(attempt), validation: validation as ValidSequence });
+                          }
+                      }
+                      current_cluster = [cards[i+1]];
+                  }
+              }
+              // Testa o último cluster
+              if (current_cluster.length >= 2) {
+                  const attempt = [...current_cluster, wc];
+                  const validation = get_sequence_details(attempt);
+                  if (validation.is_valid) {
+                      all_potential_melds.push({ cards: organize_meld(attempt), validation: validation as ValidSequence });
+                  }
+              }
+
+              // B. Fallback: Força bruta em trincas (para casos onde o cluster falha ou é complexo)
               for (let i = 0; i < cards.length - 1; i++) {
                   for (let j = i + 1; j < cards.length; j++) {
                       const attempt = [cards[i], cards[j], wc];
@@ -649,10 +683,20 @@ export const choose_discard = (
       }
   });
   
-  const chosen: Card | null = best_card;
-  if (chosen) {
-      console.log(`[BOT LOGIC] Discard choice: ${(chosen as any).value}${(chosen as any).suit.icon} (Score: ${min_score.toFixed(1)})`);
-  }
-
-  return chosen || pool[0]; 
-};
+    const chosen: Card | null = best_card;
+  
+    if (chosen) {
+  
+        const c = chosen as Card;
+  
+        console.log(`[BOT LOGIC] Discard choice: ${c.value}${c.suit.icon} (Score: ${min_score.toFixed(1)})`);
+  
+    }
+  
+  
+  
+    return chosen || pool[0]; 
+  
+  };
+  
+  

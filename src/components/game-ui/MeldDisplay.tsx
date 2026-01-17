@@ -1,9 +1,10 @@
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState, useEffect, useRef } from "react";
 import { AnimatePresence } from "framer-motion";
 import { organize_meld } from "../../../common/utils/sort_cards";
+import { validate_sequence } from "../../../common/utils/rules_logic";
 import { MeldCard } from "./MeldCard";
 import { MeldBadge } from "./MeldBadge";
-import type { Card } from "../../../common/types/card";
+import type { Card, Suit } from "../../../common/types/card";
 import type { ScreenDirection } from "../../utils/animation_utils";
 
 interface MeldDisplayProps {
@@ -15,6 +16,9 @@ interface MeldDisplayProps {
   scale?: string; // e.g. "scale-75 md:scale-100"
   interactive?: boolean;
   enterFrom?: ScreenDirection;
+  teamId: number;
+  meldIndex: number;
+  lastMeldUpdate: { teamId: number; meldIndex: number; comboSize: number; suit?: Suit } | null;
 }
 
 export const MeldDisplay = memo(
@@ -27,9 +31,11 @@ export const MeldDisplay = memo(
     scale = "scale-75 md:scale-100",
     interactive = false,
     enterFrom = "bottom",
+    teamId,
+    meldIndex,
+    lastMeldUpdate,
   }: MeldDisplayProps) => {
     // Memoize the expensive organization logic
-    // Only re-run if the meld array itself changes (reference change)
     const organizedCards = useMemo(() => organize_meld(meld), [meld]);
 
     return (
@@ -38,7 +44,7 @@ export const MeldDisplay = memo(
           onClick={onClick}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
-          className={`relative group flex flex-col  ${
+          className={`relative group flex flex-col overflow-visible ${
             interactive
               ? "cursor-pointer origin-top-left transition-transform"
               : "origin-left"

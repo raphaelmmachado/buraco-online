@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { io, Socket } from "socket.io-client";
-import type { Card } from "../../common/types/card";
+import type { Card, Suit } from "../../common/types/card";
 import { SERVER_ADDRESS } from "../../common/const/server-address";
 
 import { type ScoreResult } from "../../common/utils/scoring";
@@ -22,6 +22,7 @@ interface IncomingServerState {
   >;
   last_drawn_card_id: string | null;
   has_taken_dead_pile: [boolean, boolean];
+  cardsPlayedThisTurn?: number;
   final_score: {
     team_1: number;
     team_2: number;
@@ -57,6 +58,19 @@ interface GameState {
   mode: "1v1" | "2v2";
   isMuted: boolean;
   showAnimations: boolean;
+  recentEvents: {
+    id: string;
+    message: string;
+    playerId?: number;
+    type: "info" | "success" | "warning" | "error" | "combo";
+  }[];
+  lastMeldUpdate: {
+    teamId: number;
+    meldIndex: number;
+    comboSize: number;
+    suit?: Suit;
+    addedCardCount?: number;
+  } | null;
 
   deck_count: number;
   discard_pile: Card[];
@@ -67,6 +81,7 @@ interface GameState {
   turn_phase: "DRAW" | "ACTION" | "DISCARD";
   current_player: number;
   last_drawn_card_id: string | null;
+  cardsPlayedThisTurn: number;
   final_score: {
     team_1: number;
     team_2: number;
@@ -96,6 +111,18 @@ interface GameActions {
   sort_hand: () => void;
   toggleMute: () => void;
   toggleAnimations: () => void;
+  addEvent: (
+    message: string,
+    type?: "info" | "success" | "warning" | "error",
+    playerId?: number
+  ) => void;
+  setLastMeldUpdate: (
+    teamId: number,
+    meldIndex: number,
+    comboSize: number,
+    suit?: Suit,
+    addedCardCount?: number
+  ) => void;
 
   set_server_state: (server_data: IncomingServerState) => void;
 }
@@ -127,6 +154,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   showAnimations: localStorage.getItem("baralho_show_animations") !== "false",
   players_data: {},
   mode: "1v1",
+  recentEvents: [],
+  lastMeldUpdate: null,
 
   deck_count: 0,
   discard_pile: [],
@@ -137,9 +166,33 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   turn_phase: "DRAW",
   current_player: 1,
   last_drawn_card_id: null,
+  cardsPlayedThisTurn: 0,
   final_score: null,
 
   clear_error: () => set({ last_error: null }),
+
+  addEvent: (message, type = "info", playerId) => {
+    const id = Math.random().toString(36).substring(7);
+    set((state) => ({
+      recentEvents: [...state.recentEvents, { id, message, type, playerId }],
+    }));
+
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+      set((state) => ({
+        recentEvents: state.recentEvents.filter((e) => e.id !== id),
+      }));
+    }, 3000);
+  },
+
+  setLastMeldUpdate: (teamId, meldIndex, comboSize, suit, addedCardCount) => {
+    set({
+      lastMeldUpdate: { teamId, meldIndex, comboSize, suit, addedCardCount },
+    });
+    setTimeout(() => {
+      set({ lastMeldUpdate: null });
+    }, 1500); // Effect signal lasts 1.5 seconds
+  },
 
   toggleMute: () =>
     set((state) => {
@@ -198,7 +251,9 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       dead_piles_count: 0,
       players_data: {},
       final_score: null,
-      last_error: null
+      last_error: null,
+      recentEvents: [],
+      lastMeldUpdate: null,
     });
   },
 
@@ -240,7 +295,9 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
           dead_piles_count: 0,
           players_data: {},
           final_score: null,
-          last_error: null
+          last_error: null,
+          recentEvents: [],
+          lastMeldUpdate: null
         });
       });
 
@@ -259,7 +316,9 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
           dead_piles_count: 0,
           players_data: {},
           final_score: null,
-          last_error: null
+          last_error: null,
+          recentEvents: [],
+          lastMeldUpdate: null
         });
       });
 
@@ -404,6 +463,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       hands: server_data.hands,
       players_data: server_data.players_data,
       last_drawn_card_id: server_data.last_drawn_card_id,
+      cardsPlayedThisTurn: server_data.cardsPlayedThisTurn || 0,
       final_score: server_data.final_score,
       last_error: null,
     });

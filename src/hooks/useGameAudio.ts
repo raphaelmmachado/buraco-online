@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef } from "react";
-import start_sound from "../assets/sound/start.mp3";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import start_sound from "../assets/sound/your-turn.mp3";
 import pounding_card_sound from "../assets/sound/pounding.mp3";
 import flick_card_sound from "../assets/sound/flick-card.mp3";
 import flip_card_sound from "../assets/sound/flipcard.mp3";
 import card_placement_sound from "../assets/sound/card-placement.mp3";
 import cards_sound from "../assets/sound/cards-sound.mp3";
+import card_drop_sound from "../assets/sound/card_drop.mp3";
 import { type GameAdapterInterface } from "../components/game-ui/useLocalGameAdapter";
 import { useGameStore } from "../store/useGameStore";
 
@@ -21,24 +22,28 @@ export const useGameAudio = (game: GameAdapterInterface, isMyTurn: boolean) => {
       flip: new Audio(flip_card_sound),
       placement: new Audio(card_placement_sound),
       discardPile: new Audio(cards_sound),
+      cardDrop: new Audio(card_drop_sound),
     }),
-    []
+    [],
   );
 
   // Helper to safely play sound
-  const playSound = (audio: HTMLAudioElement) => {
-    if (isMuted) return; // Silent mode
-    // console.log("🔊 Playing Sound:", audio.src);
-    audio.currentTime = 0; // Rewind to start for rapid playback
-    audio.play().catch((e) => console.warn("Audio play blocked:", e));
-  };
+  const playSound = useCallback(
+    (audio: HTMLAudioElement) => {
+      if (isMuted) return; // Silent mode
+      audio.currentTime = 0; // Rewind to start for rapid playback
+      audio.play().catch((e) => console.warn("Audio play blocked:", e));
+    },
+    [isMuted],
+  );
 
   // State trackers to prevent sounds on mount
   const isMounted = useRef(false);
   const prevDeckLen = useRef(game.deck_count);
   const prevDeadPileLen = useRef(game.dead_piles_count);
-  const prevMeldsStr = useRef(JSON.stringify(game.team_melds)); // Deep compare string trick
   const prevDiscardLen = useRef(game.discard_pile?.length || 0);
+  const prevLastMeldUpdate = useRef(game.lastMeldUpdate);
+  const prevCardsPlayed = useRef(game.cardsPlayedThisTurn);
 
   // Notification & Start Sound
   useEffect(() => {
@@ -50,9 +55,20 @@ export const useGameAudio = (game: GameAdapterInterface, isMyTurn: boolean) => {
         });
       }
     }
-  }, [isMyTurn, sfx]);
+  }, [isMyTurn, sfx, playSound]);
 
-  // SFX Triggers
+  // Combo Audio Effect (Hook is ready for when user provides the new sound)
+  useEffect(() => {
+    if (
+      game.lastMeldUpdate &&
+      game.lastMeldUpdate !== prevLastMeldUpdate.current
+    ) {
+      // TODO: Play special combo sound here when it's added
+    }
+    prevLastMeldUpdate.current = game.lastMeldUpdate;
+  }, [game.lastMeldUpdate, sfx]);
+
+  // SFX Triggers for regular actions
   useEffect(() => {
     if (!isMounted.current) {
       isMounted.current = true;
@@ -71,24 +87,34 @@ export const useGameAudio = (game: GameAdapterInterface, isMyTurn: boolean) => {
     }
     prevDeckLen.current = game.deck_count;
 
-    // Meld Change (Card placed)
-    const currentMeldsStr = JSON.stringify(game.team_melds);
-    if (currentMeldsStr !== prevMeldsStr.current) {
-      playSound(sfx.flick);
-      prevMeldsStr.current = currentMeldsStr;
+    // Card Placed (Detected via cardsPlayedThisTurn counter)
+    if (game.cardsPlayedThisTurn > prevCardsPlayed.current) {
+      // If we have a special combo/meld update, we might want to skip this generic sound
+      // or play it alongside. For now, we play it.
+      if (!game.lastMeldUpdate) {
+        playSound(sfx.flick);
+      }
     }
+    prevCardsPlayed.current = game.cardsPlayedThisTurn;
 
-    // Discard Pile Pickup (Size decreased)
+    // Discard Pile Change
     const currentDiscardLen = game.discard_pile?.length || 0;
+    // Discard Pile Pickup (Size decreased)
     if (currentDiscardLen < prevDiscardLen.current) {
       playSound(sfx.discardPile);
+    }
+    // Card Dropped on Pile (Size increased)
+    if (currentDiscardLen > prevDiscardLen.current) {
+      playSound(sfx.cardDrop);
     }
     prevDiscardLen.current = currentDiscardLen;
   }, [
     game.dead_piles_count,
     game.deck_count,
-    game.team_melds,
+    game.cardsPlayedThisTurn,
     game.discard_pile,
     sfx,
+    game.lastMeldUpdate,
+    playSound,
   ]);
 };

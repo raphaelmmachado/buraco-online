@@ -1,6 +1,6 @@
 import { useGameStoreBots as useLocalStore } from "../../store/useGameStoreBots";
 import { useMemo } from "react";
-import type { Card } from "../../../common/types/card";
+import type { Card, Suit } from "../../../common/types/card";
 import type { ScoreResult } from "../../../common/utils/scoring";
 
 // This interface mirrors the one in useGameStore (Online)
@@ -32,6 +32,21 @@ export interface GameAdapterInterface {
   } | null;
   last_error: string | null;
   showAnimations: boolean;
+  recentEvents: {
+    id: string;
+    message: string;
+    playerId?: number;
+    type: "info" | "success" | "warning" | "error" | "combo";
+  }[];
+  lastMeldUpdate: {
+    teamId: number;
+    meldIndex: number;
+    comboSize: number;
+    suit?: Suit;
+    addedCardCount?: number;
+    timestamp?: number;
+  } | null;
+  cardsPlayedThisTurn: number;
 
   // Actions
   draw_card: () => void;
@@ -50,19 +65,20 @@ export interface GameAdapterInterface {
 export const useLocalGameAdapter = (): GameAdapterInterface => {
   const local = useLocalStore();
 
-  const adapter = useMemo(() => {
-    // Mock Players Data
-    const players_data: Record<number, { socketId: string; userName: string }> =
-      {
-        1: { socketId: "local-1", userName: "Você" },
-        2: { socketId: "local-2", userName: "Bot 1" },
-      };
+  const players_data = useMemo(() => {
+    const data: Record<number, { socketId: string; userName: string }> = {
+      1: { socketId: "local-1", userName: "Você" },
+      2: { socketId: "local-2", userName: "Bot 1" },
+    };
 
     if (local.mode === "2v2") {
-      players_data[3] = { socketId: "local-3", userName: "Bot 2" };
-      players_data[4] = { socketId: "local-4", userName: "Bot 3" };
+      data[3] = { socketId: "local-3", userName: "Bot 2" };
+      data[4] = { socketId: "local-4", userName: "Bot 3" };
     }
+    return data;
+  }, [local.mode]);
 
+  const adapter = useMemo(() => {
     return {
       // State
       status: local.status,
@@ -94,6 +110,9 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
         : null,
       last_error: local.last_error,
       showAnimations: local.showAnimations,
+      recentEvents: local.recentEvents,
+      lastMeldUpdate: local.lastMeldUpdate,
+      cardsPlayedThisTurn: local.cardsPlayedThisTurn,
 
       // Actions Mapped
       draw_card: local.draw_card_from_deck,
@@ -111,7 +130,7 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       clear_error: local.clear_error,
       toggleAnimations: local.toggleAnimations,
     };
-  }, [local]);
+  }, [local, players_data]);
 
   return adapter;
 };

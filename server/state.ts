@@ -1,6 +1,8 @@
 import { type Card } from "../common/types/card";
 import { type ScoreResult } from "../common/utils/scoring";
 import { type PlayerData, type GameMode, type TeamID, type PlayerID } from "./types";
+import * as fs from "fs";
+import * as path from "path";
 
 export interface ServerGameState {
   mode: GameMode;
@@ -16,6 +18,7 @@ export interface ServerGameState {
   players_connected: string[];
   players_data: Record<PlayerID, PlayerData>;
   last_drawn_card_id: string | null;
+  cardsPlayedThisTurn?: number; // Added to match frontend expectations
   final_score: {
     team_1: number;
     team_2: number;
@@ -26,4 +29,47 @@ export interface ServerGameState {
 }
 
 // In-memory database
-export const games: Record<string, ServerGameState> = {};
+export let games: Record<string, ServerGameState> = {};
+
+// Persistence Logic
+const STORAGE_FILE = path.resolve(process.cwd(), "game_storage.json");
+
+// Throttle save to prevent disk hammering
+let saveTimeout: NodeJS.Timeout | null = null;
+
+export const saveState = () => {
+  if (saveTimeout) return;
+  
+  saveTimeout = setTimeout(() => {
+    try {
+      // Serialize games, excluding circular refs like Timeouts
+      const serialized = JSON.stringify(games, (key, value) => {
+        if (key === "disconnectTimeout") return undefined;
+        return value;
+      });
+      fs.writeFileSync(STORAGE_FILE, serialized, "utf-8");
+      // console.log("💾 Game state saved to disk.");
+    } catch (error) {
+      console.error("Failed to save game state:", error);
+    }
+    saveTimeout = null;
+  }, 1000); // Save at most once per second
+};
+
+export const loadState = () => {
+  try {
+    if (fs.existsSync(STORAGE_FILE)) {
+      const data = fs.readFileSync(STORAGE_FILE, "utf-8");
+      const loaded = JSON.parse(data);
+      games = loaded;
+      console.log(`📂 Loaded ${Object.keys(games).length} games from disk.`);
+      
+      // Clean up stale games or reset timeouts if needed?
+      // For now, we just load them. Clients will try to reconnect.
+    }
+  } catch (error) {
+    console.error("Failed to load game state:", error);
+    // Start with empty state if load fails
+    games = {};
+  }
+};

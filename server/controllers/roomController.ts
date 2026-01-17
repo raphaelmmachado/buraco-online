@@ -1,5 +1,5 @@
 import { Server, Socket } from "socket.io";
-import { games } from "../state";
+import { games, saveState } from "../state";
 import { create_deck, distribute_cards } from "../../common/utils/game_logic";
 import { sort_cards } from "../../common/utils/sort_cards";
 import { get_player_id_by_socket } from "../services/gameService";
@@ -53,6 +53,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
             game.disconnectTimeout = setTimeout(() => {
               console.log(`Tempo esgotado. Deletando sala ${roomId}.`);
               delete games[roomId];
+              saveState();
             }, timeoutDuration);
           }
         } else {
@@ -203,6 +204,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
                 console.log(`[AUTO-CLEANUP] Host ${userName} criando nova sala. Deletando sala zombie ${oldRoomId}.`);
                 if (oldGame.disconnectTimeout) clearTimeout(oldGame.disconnectTimeout);
                 delete games[oldRoomId];
+                saveState();
                 // Prossegue para criar a nova sala...
             } else {
                 // SALA ATIVA: Não permitimos criar outra
@@ -237,6 +239,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
           last_drawn_card_id: null,
           final_score: null,
         };
+        saveState();
       }
 
       const game = games[roomId];
@@ -430,6 +433,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
     // Close all sockets in the room? Or let client handle it.
     // Ideally, let client handle the redirect.
     delete games[roomId];
+    saveState();
   });
 
   socket.on("leave_game", ({ roomId }: { roomId: string }) => {
@@ -478,6 +482,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
         game.disconnectTimeout = setTimeout(() => {
           console.log(`Tempo esgotado (leave). Deletando sala ${roomId}.`);
           delete games[roomId];
+          saveState();
         }, timeoutDuration);
       }
     } else {

@@ -4,8 +4,12 @@ import { createServer } from "http";
 import express from "express";
 import { registerRoomHandlers } from "./controllers/roomController";
 import { registerGameHandlers } from "./controllers/gameController";
+import { loadState } from "./state";
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+
+// Load persisted state immediately
+loadState();
 
 // Configuração do Express para responder ao Health Check do Render
 const app = express();

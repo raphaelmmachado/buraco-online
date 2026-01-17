@@ -1,5 +1,5 @@
 import { Server } from "socket.io";
-import { games } from "../state";
+import { games, saveState } from "../state";
 import {
   analyze_discard_pickup,
   choose_discard,
@@ -20,6 +20,9 @@ import { type PlayerID } from "../types";
 export const broadcast_game_update = (io: Server, roomId: string) => {
   const game = games[roomId];
   if (!game) return;
+
+  // Persist state on every update
+  saveState();
 
   // Envia para cada socket individualmente o seu estado filtrado
   game.players_connected.forEach((socketId) => {

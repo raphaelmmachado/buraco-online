@@ -4,7 +4,7 @@
 // =============================================================================
 
 import { create } from "zustand";
-import type { Card, Suit } from "../../common/types/card";
+import type { Card } from "../../common/types/card";
 import { distribute_cards, create_deck } from "../../common/utils/game_logic";
 import { sort_cards, organize_meld } from "../../common/utils/sort_cards";
 import {
@@ -37,16 +37,8 @@ interface GameState {
     id: string;
     message: string;
     playerId?: number;
-    type: "info" | "success" | "warning" | "error" | "combo";
+    type: "info" | "success" | "warning" | "error";
   }[];
-  lastMeldUpdate: {
-    teamId: TeamID;
-    meldIndex: number;
-    comboSize: number;
-    suit: Suit;
-    addedCardCount: number;
-    timestamp: number;
-  } | null;
   cardsPlayedThisTurn: number;
 }
 
@@ -66,15 +58,8 @@ interface GameActions {
   toggleAnimations: () => void;
   addEvent: (
     message: string,
-    type?: "info" | "success" | "warning" | "error" | "combo",
+    type?: "info" | "success" | "warning" | "error",
     playerId?: number
-  ) => void;
-  setLastMeldUpdate: (
-    teamId: TeamID,
-    meldIndex: number,
-    comboSize: number,
-    suit: Suit,
-    addedCardCount: number
   ) => void;
   internal_can_beat: () => boolean;
   internal_handle_empty_hand: (type: "DIRECT" | "INDIRECT") => void;
@@ -102,7 +87,6 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
   last_error: null,
   showAnimations: localStorage.getItem("baralho_show_animations") !== "false",
   recentEvents: [],
-  lastMeldUpdate: null,
   cardsPlayedThisTurn: 0,
 
   clear_error: () => set({ last_error: null }),
@@ -119,22 +103,6 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         recentEvents: state.recentEvents.filter((e) => e.id !== id),
       }));
     }, 3000);
-  },
-
-  setLastMeldUpdate: (teamId, meldIndex, comboSize, suit, addedCardCount) => {
-    set({
-      lastMeldUpdate: {
-        teamId,
-        meldIndex,
-        comboSize,
-        suit,
-        addedCardCount,
-        timestamp: Date.now(),
-      },
-    });
-    setTimeout(() => {
-      set({ lastMeldUpdate: null });
-    }, 1500); // Combo effect lasts 1.5 seconds
   },
 
   toggleAnimations: () => {
@@ -170,7 +138,6 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       final_score: null,
       last_error: null,
       recentEvents: [],
-      lastMeldUpdate: null,
     });
   },
 
@@ -290,12 +257,6 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
 
     get().addEvent("Pegou o lixo", "info", current_player);
 
-    // TRIGGER CONFETTI FOR NEW MELD FROM DISCARD
-    const addedCount = potential_meld.length; // All cards in the new meld count as 'added' visually
-    const newMeldIndex = team_melds[team_id].length;
-    const meldSuit = potential_meld.find((c) => c.value !== "2")?.suit || potential_meld[0].suit;
-    get().setLastMeldUpdate(team_id, newMeldIndex, addedCount, meldSuit, addedCount);
-
     set({
       hands: { ...hands, [current_player]: new_hand },
       team_melds: { ...team_melds, [team_id]: new_melds },
@@ -375,15 +336,6 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
 
     get().addEvent("Pegou o lixo", "info", current_player);
 
-    // TRIGGER CONFETTI FOR ADD TO MELD FROM DISCARD
-    // Cards added = Bridge cards + Top Discard (1) + Rest of Discard (which goes to hand, not meld, so technically only bridge+top go to meld)
-    // However, for "Juice", showing the size of the addition to the meld makes sense.
-    // proposed_meld includes target_meld + bridge + top_card.
-    // So added = bridge + top_card.
-    const addedCount = bridge_cards.length + 1;
-    const meldSuit = proposed_meld.find((c) => c.value !== "2")?.suit || proposed_meld[0].suit;
-    get().setLastMeldUpdate(team_id, meld_index, addedCount, meldSuit, addedCount);
-
     set({
       hands: { ...hands, [current_player]: new_hand },
       team_melds: { ...team_melds, [team_id]: new_melds },
@@ -452,17 +404,8 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         ? organized_meld
         : sort_cards(proposed_meld);
 
-    // TRIGGER CONFETTI ALWAYS
-    const comboSize = cards_to_add.length;
-    const meldSuit = proposed_meld.find((c) => c.value !== "2")?.suit || proposed_meld[0].suit;
-    get().setLastMeldUpdate(team_id, meld_index, comboSize, meldSuit, comboSize);
-
     if (target_meld.length < 7 && proposed_meld.length >= 7) {
       get().addEvent("Canastra!", "success", current_player);
-    } else if (cards_to_add.length >= 3) {
-      const msgs = ["Combo!", "Super!", "Hyper!", "Ultra!", "MONSTER!"];
-      const msg = msgs[Math.min(comboSize - 3, 4)];
-      get().addEvent(`${msg} (${comboSize}x)`, "combo", current_player);
     }
 
     set({
@@ -524,22 +467,12 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         ? organized_meld
         : sort_cards(cards);
 
-    // TRIGGER CONFETTI ALWAYS
-    const comboSize = cards.length;
-    const newMeldIndex = team_melds[team_id].length;
-    const meldSuit = cards.find((c) => c.value !== "2")?.suit || cards[0].suit;
-    get().setLastMeldUpdate(team_id, newMeldIndex, comboSize, meldSuit, comboSize);
-
     if (
       validation.canastra_type === "CLEAN" ||
       validation.canastra_type === "KING" ||
       validation.canastra_type === "ACE"
     ) {
       get().addEvent("Canastra!", "success", current_player);
-    } else if (cards.length >= 4) {
-      const msgs = ["Bom Começo", "Ótimo!", "Incrível!", "Espetacular!"];
-      const msg = msgs[Math.min(comboSize - 4, 3)];
-      get().addEvent(`${msg} (${comboSize}x)`, "combo", current_player);
     }
 
     set({

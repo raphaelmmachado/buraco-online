@@ -42,7 +42,6 @@ export const useGameAudio = (game: GameAdapterInterface, isMyTurn: boolean) => {
   const prevDeckLen = useRef(game.deck_count);
   const prevDeadPileLen = useRef(game.dead_piles_count);
   const prevDiscardLen = useRef(game.discard_pile?.length || 0);
-  const prevLastMeldUpdate = useRef(game.lastMeldUpdate);
   const prevCardsPlayed = useRef(game.cardsPlayedThisTurn);
 
   // Notification & Start Sound
@@ -56,17 +55,6 @@ export const useGameAudio = (game: GameAdapterInterface, isMyTurn: boolean) => {
       }
     }
   }, [isMyTurn, sfx, playSound]);
-
-  // Combo Audio Effect (Hook is ready for when user provides the new sound)
-  useEffect(() => {
-    if (
-      game.lastMeldUpdate &&
-      game.lastMeldUpdate !== prevLastMeldUpdate.current
-    ) {
-      // TODO: Play special combo sound here when it's added
-    }
-    prevLastMeldUpdate.current = game.lastMeldUpdate;
-  }, [game.lastMeldUpdate, sfx]);
 
   // SFX Triggers for regular actions
   useEffect(() => {
@@ -89,11 +77,7 @@ export const useGameAudio = (game: GameAdapterInterface, isMyTurn: boolean) => {
 
     // Card Placed (Detected via cardsPlayedThisTurn counter)
     if (game.cardsPlayedThisTurn > prevCardsPlayed.current) {
-      // If we have a special combo/meld update, we might want to skip this generic sound
-      // or play it alongside. For now, we play it.
-      if (!game.lastMeldUpdate) {
-        playSound(sfx.flick);
-      }
+      playSound(sfx.flick);
     }
     prevCardsPlayed.current = game.cardsPlayedThisTurn;
 
@@ -114,7 +98,6 @@ export const useGameAudio = (game: GameAdapterInterface, isMyTurn: boolean) => {
     game.cardsPlayedThisTurn,
     game.discard_pile,
     sfx,
-    game.lastMeldUpdate,
     playSound,
   ]);
 };

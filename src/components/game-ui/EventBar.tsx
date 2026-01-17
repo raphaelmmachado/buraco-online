@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 interface EventBarProps {
   message: string;
-  type: "info" | "success" | "warning" | "error" | "combo";
+  type: "info" | "success" | "warning" | "error";
 }
 
 export const EventBar = ({ message, type }: EventBarProps) => {
@@ -11,7 +11,6 @@ export const EventBar = ({ message, type }: EventBarProps) => {
     success: "text-green-300",
     warning: "text-yellow-300",
     error: "text-red-300",
-    combo: "text-orange-400",
   };
 
   return (

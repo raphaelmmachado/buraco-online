@@ -86,13 +86,17 @@ export const useGameBots = () => {
             ...store.team_melds[2].flat(),
             ...store.dead_piles.flat()
         ];
+        
+        // Desperate if deck is low (game ending soon)
+        const is_desperate = store.deck.length < 15;
+
         for (let i = 0; i < team_melds.length; i++) {
             const card_to_add = find_card_to_add(
                 my_hand, 
                 team_melds[i], 
                 has_taken, 
                 has_clean,
-                false, // is_desperate default (can be improved later)
+                is_desperate, 
                 all_played_cards_for_add
             );
             if (card_to_add) {

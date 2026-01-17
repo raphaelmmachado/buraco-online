@@ -123,6 +123,7 @@ export const DiscardCard = ({
       )}
 
       <motion.div
+        key={card.id} // Force re-mount on card change to trigger animation
         {...animationProps}
         onClick={onClick}
         className={`

@@ -10,7 +10,7 @@ export const MeldBadge = ({ meld }: { meld: CardType[] }) => {
 
   switch (type) {
     case "CLEAN":
-      color = "bg-blue-600";
+      color = "bg-blue-600 shadow-[0_0_15px_rgba(37,99,235,0.6)]";
       label = "Limpa";
       break;
     case "DIRTY":
@@ -18,11 +18,13 @@ export const MeldBadge = ({ meld }: { meld: CardType[] }) => {
       label = "Suja";
       break;
     case "KING":
-      color = "bg-green-600";
+      color =
+        "bg-green-600 shadow-[0_0_20px_rgba(22,163,74,0.8)] animate-pulse";
       label = "Excelente!";
       break;
     case "ACE":
-      color = "bg-purple-600";
+      color =
+        "bg-purple-600 shadow-[0_0_25px_rgba(147,51,234,0.9)] animate-bounce";
       label = "Perfeita!";
       break;
     default:

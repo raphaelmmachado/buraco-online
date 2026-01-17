@@ -1,9 +1,17 @@
+import { Suspense, lazy } from "react";
 import { useGameStoreBots } from "../store/useGameStoreBots";
 import { useGameBots } from "../hooks/useGameBots";
-import { GameScreen } from "./online/GameScreen";
 import { useLocalGameAdapter } from "./game-ui/useLocalGameAdapter";
 import { StyledButton } from "./ui/StyledButton";
+import { LoadingScreen } from "./ui/LoadingScreen";
 import { User, Users, ArrowLeft } from "lucide-react";
+
+// Dynamic Import for Heavy GameScreen
+const GameScreen = lazy(() =>
+  import("./online/GameScreen").then((module) => ({
+    default: module.GameScreen,
+  }))
+);
 
 export const LocalGame = ({ onBack }: { onBack?: () => void }) => {
   const store = useGameStoreBots();
@@ -99,8 +107,8 @@ export const LocalGame = ({ onBack }: { onBack?: () => void }) => {
   };
 
   return (
-    <>
+    <Suspense fallback={<LoadingScreen />}>
       <GameScreen game={gameAdapterWithBack} />
-    </>
+    </Suspense>
   );
 };

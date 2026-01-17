@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { io, Socket } from "socket.io-client";
-import type { Card, Suit } from "../../common/types/card";
+import type { Card } from "../../common/types/card";
 import { SERVER_ADDRESS } from "../../common/const/server-address";
 
 import { type ScoreResult } from "../../common/utils/scoring";
@@ -22,7 +22,6 @@ interface IncomingServerState {
   >;
   last_drawn_card_id: string | null;
   has_taken_dead_pile: [boolean, boolean];
-  cardsPlayedThisTurn?: number;
   final_score: {
     team_1: number;
     team_2: number;
@@ -49,7 +48,7 @@ interface GameState {
   rooms: RoomInfo[];
   totalOnline: number;
   onlineNames: string[];
-  last_error: string | null;
+  last_error: null | string;
   connectionStatus: "CONNECTED" | "DISCONNECTED" | "CONNECTING" | "RECONNECTING";
   players_data: Record<
     number,
@@ -62,16 +61,10 @@ interface GameState {
     id: string;
     message: string;
     playerId?: number;
-    type: "info" | "success" | "warning" | "error" | "combo";
+    type: "info" | "success" | "warning" | "error";
   }[];
-  lastMeldUpdate: {
-    teamId: number;
-    meldIndex: number;
-    comboSize: number;
-    suit?: Suit;
-    addedCardCount?: number;
-  } | null;
 
+  cardsPlayedThisTurn: number;
   deck_count: number;
   discard_pile: Card[];
   hands: Record<number, Card[] | number>;
@@ -81,7 +74,6 @@ interface GameState {
   turn_phase: "DRAW" | "ACTION" | "DISCARD";
   current_player: number;
   last_drawn_card_id: string | null;
-  cardsPlayedThisTurn: number;
   final_score: {
     team_1: number;
     team_2: number;
@@ -116,13 +108,6 @@ interface GameActions {
     type?: "info" | "success" | "warning" | "error",
     playerId?: number
   ) => void;
-  setLastMeldUpdate: (
-    teamId: number,
-    meldIndex: number,
-    comboSize: number,
-    suit?: Suit,
-    addedCardCount?: number
-  ) => void;
 
   set_server_state: (server_data: IncomingServerState) => void;
 }
@@ -155,8 +140,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   players_data: {},
   mode: "1v1",
   recentEvents: [],
-  lastMeldUpdate: null,
 
+  cardsPlayedThisTurn: 0,
   deck_count: 0,
   discard_pile: [],
   hands: {} as Record<number, Card[] | number>,
@@ -166,7 +151,6 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   turn_phase: "DRAW",
   current_player: 1,
   last_drawn_card_id: null,
-  cardsPlayedThisTurn: 0,
   final_score: null,
 
   clear_error: () => set({ last_error: null }),
@@ -183,15 +167,6 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         recentEvents: state.recentEvents.filter((e) => e.id !== id),
       }));
     }, 3000);
-  },
-
-  setLastMeldUpdate: (teamId, meldIndex, comboSize, suit, addedCardCount) => {
-    set({
-      lastMeldUpdate: { teamId, meldIndex, comboSize, suit, addedCardCount },
-    });
-    setTimeout(() => {
-      set({ lastMeldUpdate: null });
-    }, 1500); // Effect signal lasts 1.5 seconds
   },
 
   toggleMute: () =>
@@ -253,7 +228,6 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       final_score: null,
       last_error: null,
       recentEvents: [],
-      lastMeldUpdate: null,
     });
   },
 
@@ -297,7 +271,6 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
           final_score: null,
           last_error: null,
           recentEvents: [],
-          lastMeldUpdate: null
         });
       });
 
@@ -318,7 +291,6 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
           final_score: null,
           last_error: null,
           recentEvents: [],
-          lastMeldUpdate: null
         });
       });
 
@@ -463,7 +435,6 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       hands: server_data.hands,
       players_data: server_data.players_data,
       last_drawn_card_id: server_data.last_drawn_card_id,
-      cardsPlayedThisTurn: server_data.cardsPlayedThisTurn || 0,
       final_score: server_data.final_score,
       last_error: null,
     });

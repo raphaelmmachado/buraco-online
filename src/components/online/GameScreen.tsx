@@ -284,9 +284,6 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                   meld={meld}
                   scale="scale-90 md:scale-100"
                   enterFrom={activePlayerDirection}
-                  teamId={opponent_team}
-                  meldIndex={idx}
-                  lastMeldUpdate={game.lastMeldUpdate}
                 />
               ))}
               <div className="absolute text-center w-full h-full flex items-center justify-center pointer-events-none">
@@ -553,9 +550,6 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                     onMouseLeave={() => setHoveredMeld(null)}
                     scale="scale-90 md:scale-100"
                     enterFrom={activePlayerDirection}
-                    teamId={my_team}
-                    meldIndex={idx}
-                    lastMeldUpdate={game.lastMeldUpdate}
                   />
                 );
               })}

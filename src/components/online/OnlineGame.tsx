@@ -1,7 +1,13 @@
+import { Suspense, lazy } from "react";
 import { useGameStore } from "../../store/useGameStore";
-import { GameScreen } from "./GameScreen";
 import { HomeScreen } from "./HomeScreen";
 import { LobbyScreen } from "./LobbyScreen";
+import { LoadingScreen } from "../ui/LoadingScreen";
+
+// Dynamic Import
+const GameScreen = lazy(() =>
+  import("./GameScreen").then((module) => ({ default: module.GameScreen }))
+);
 
 /**
  * This component acts as a router, displaying the correct screen
@@ -13,7 +19,11 @@ export const OnlineGame = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
 
   // The 'FINISHED' status can be handled here later, maybe showing a summary screen.
   if (status === "PLAYING" || status === "FINISHED") {
-    return <GameScreen game={store} />;
+    return (
+      <Suspense fallback={<LoadingScreen />}>
+        <GameScreen game={store} />
+      </Suspense>
+    );
   }
 
   if (status === "LOBBY") {

@@ -1,6 +1,6 @@
 import { useGameStoreBots as useLocalStore } from "../../store/useGameStoreBots";
 import { useMemo } from "react";
-import type { Card, Suit } from "../../../common/types/card";
+import type { Card } from "../../../common/types/card";
 import type { ScoreResult } from "../../../common/utils/scoring";
 
 // This interface mirrors the one in useGameStore (Online)
@@ -20,7 +20,7 @@ export interface GameAdapterInterface {
   hands: Record<number, Card[] | number>;
   team_melds: { 1: Card[][]; 2: Card[][] };
   dead_piles_count: number;
-  has_taken_dead_pile?: [boolean, boolean]; // Added optional prop
+  has_taken_dead_pile?: [boolean, boolean];
   turn_phase: "DRAW" | "ACTION" | "DISCARD";
   current_player: number;
   last_drawn_card_id: string | null;
@@ -32,21 +32,13 @@ export interface GameAdapterInterface {
   } | null;
   last_error: string | null;
   showAnimations: boolean;
+  cardsPlayedThisTurn: number;
   recentEvents: {
     id: string;
     message: string;
     playerId?: number;
-    type: "info" | "success" | "warning" | "error" | "combo";
+    type: "info" | "success" | "warning" | "error";
   }[];
-  lastMeldUpdate: {
-    teamId: number;
-    meldIndex: number;
-    comboSize: number;
-    suit?: Suit;
-    addedCardCount?: number;
-    timestamp?: number;
-  } | null;
-  cardsPlayedThisTurn: number;
 
   // Actions
   draw_card: () => void;
@@ -96,7 +88,7 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       has_taken_dead_pile: [
         local.has_taken_dead_pile[1],
         local.has_taken_dead_pile[2],
-      ] as [boolean, boolean], // Map record to tuple
+      ] as [boolean, boolean],
       turn_phase: local.turn_phase,
       current_player: local.current_player,
       last_drawn_card_id: local.last_drawn_card_id,
@@ -110,9 +102,8 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
         : null,
       last_error: local.last_error,
       showAnimations: local.showAnimations,
-      recentEvents: local.recentEvents,
-      lastMeldUpdate: local.lastMeldUpdate,
       cardsPlayedThisTurn: local.cardsPlayedThisTurn,
+      recentEvents: local.recentEvents,
 
       // Actions Mapped
       draw_card: local.draw_card_from_deck,
@@ -123,8 +114,7 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       pick_up_discard_add_to_meld: local.pick_up_discard_add_to_meld,
       startGame: local.start_game,
       leaveGame: () => {
-        // Reset local store if needed, or just handle navigation in parent
-        window.location.reload(); // Simple brute force for now, or we can add a reset action to local store
+        window.location.reload();
       },
       sort_hand: local.sort_my_hand,
       clear_error: local.clear_error,

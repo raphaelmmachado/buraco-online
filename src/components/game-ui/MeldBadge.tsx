@@ -18,13 +18,11 @@ export const MeldBadge = ({ meld }: { meld: CardType[] }) => {
       label = "Suja";
       break;
     case "KING":
-      color =
-        "bg-green-600 shadow-[0_0_20px_rgba(22,163,74,0.8)] animate-pulse";
+      color = "bg-green-600 shadow-[0_0_20px_rgba(22,163,74,0.8)]";
       label = "Excelente!";
       break;
     case "ACE":
-      color =
-        "bg-purple-600 shadow-[0_0_25px_rgba(147,51,234,0.9)] animate-bounce";
+      color = "bg-purple-600 shadow-[0_0_25px_rgba(147,51,234,0.9)]";
       label = "Perfeita!";
       break;
     default:

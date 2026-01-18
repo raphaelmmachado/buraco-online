@@ -11,6 +11,16 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 // Load persisted state immediately
 loadState();
 
+// Global Error Handlers to debug crashes
+process.on("uncaughtException", (err) => {
+  console.error("CRITICAL ERROR: Uncaught Exception:", err);
+  // Optional: saveState() sync here? Risk of corruption.
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("CRITICAL ERROR: Unhandled Rejection at:", promise, "reason:", reason);
+});
+
 // Configuração do Express para responder ao Health Check do Render
 const app = express();
 
@@ -27,7 +37,7 @@ const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
   pingInterval: 5000,
-  pingTimeout: 30000,
+  pingTimeout: 60000,
   cors: {
     origin: "*",
     methods: ["GET", "POST"],

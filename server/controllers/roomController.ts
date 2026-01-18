@@ -9,57 +9,70 @@ import { type Card } from "../../common/types/card";
 
 export const registerRoomHandlers = (io: Server, socket: Socket) => {
   socket.on("disconnect", () => {
-    console.log("Desconectado:", socket.id);
-    // Remove o socket de todas as salas em que ele estava
-    for (const roomId in games) {
-      const game = games[roomId];
-      if (!game) continue;
+    try {
+      console.log("Desconectado:", socket.id);
+      // Remove o socket de todas as salas em que ele estava
+      for (const roomId in games) {
+        const game = games[roomId];
+        if (!game) continue;
 
-      const idx = game.players_connected.indexOf(socket.id);
-      if (idx !== -1) {
-        game.players_connected.splice(idx, 1);
-        console.log(`Socket ${socket.id} removido da lista de conexões da sala ${roomId}`);
+        const idx = game.players_connected.indexOf(socket.id);
+        if (idx !== -1) {
+          game.players_connected.splice(idx, 1);
+          saveState(); // Persist the disconnection immediately
+          console.log(
+            `Socket ${socket.id} removido da lista de conexões da sala ${roomId}`
+          );
 
-        // Se o jogo está rolando, transformamos o jogador em BOT
-        const playerEntry = Object.entries(game.players_data).find(
-          ([_, p]) => p.socketId === socket.id
-        );
+          // Se o jogo está rolando, transformamos o jogador em BOT
+          const playerEntry = Object.entries(game.players_data).find(
+            ([_, p]) => p.socketId === socket.id
+          );
 
-        if (playerEntry) {
-          const [pNum, pData] = playerEntry;
-          console.log(`Socket de ${pData.userName} (${pNum}) desconectado.`);
-          
-          if (game.status === "PLAYING") {
-             console.log(`Jogador ${pData.userName} (${pNum}) caiu. Aguardando reconexão.`);
-             // Não transformamos mais em BOT para evitar instabilidade no Render
+          if (playerEntry) {
+            const [pNum, pData] = playerEntry;
+            console.log(`Socket de ${pData.userName} (${pNum}) desconectado.`);
+
+            if (game.status === "PLAYING") {
+              console.log(
+                `Jogador ${pData.userName} (${pNum}) caiu. Aguardando reconexão.`
+              );
+              // Não transformamos mais em BOT para evitar instabilidade no Render
+            }
+            // No Lobby, mantemos os dados para permitir reconexão rápida (ex: refresh)
+            // O host pode expulsar se o jogador não retornar.
           }
-          // No Lobby, mantemos os dados para permitir reconexão rápida (ex: refresh)
-          // O host pode expulsar se o jogador não retornar.
-        }
 
-        // Verifica se ainda existem humanos CONECTADOS na sala
-        const anyHumanConnected = Object.values(game.players_data).some(p => 
-          !p.isBot && game.players_connected.includes(p.socketId)
-        );
+          // Verifica se ainda existem humanos CONECTADOS na sala
+          const anyHumanConnected = Object.values(game.players_data).some(
+            (p) => !p.isBot && game.players_connected.includes(p.socketId)
+          );
 
-        if (!anyHumanConnected) {
-          if (!game.disconnectTimeout) {
-            // Se estiver no LOBBY, deleta rápido (5s) para limpar a lista.
-            // Se estiver JOGANDO, dá 1 minuto de tolerância para reconexão.
-            const timeoutDuration = game.status === "LOBBY" ? 5000 : 60000;
-            
-            console.log(`Sala ${roomId} (${game.status}) sem humanos. Agendando deleção em ${timeoutDuration/1000}s.`);
-            
-            game.disconnectTimeout = setTimeout(() => {
-              console.log(`Tempo esgotado. Deletando sala ${roomId}.`);
-              delete games[roomId];
-              saveState();
-            }, timeoutDuration);
+          if (!anyHumanConnected) {
+            if (!game.disconnectTimeout) {
+              // Se estiver no LOBBY, deleta rápido (5s) para limpar a lista.
+              // Se estiver JOGANDO, dá 1 minuto de tolerância para reconexão.
+              const timeoutDuration = game.status === "LOBBY" ? 5000 : 60000;
+
+              console.log(
+                `Sala ${roomId} (${
+                  game.status
+                }) sem humanos. Agendando deleção em ${timeoutDuration / 1000}s.`
+              );
+
+              game.disconnectTimeout = setTimeout(() => {
+                console.log(`Tempo esgotado. Deletando sala ${roomId}.`);
+                delete games[roomId];
+                saveState();
+              }, timeoutDuration);
+            }
+          } else {
+            broadcast_game_update(io, roomId);
           }
-        } else {
-          broadcast_game_update(io, roomId);
         }
       }
+    } catch (err) {
+      console.error("Error in disconnect handler:", err);
     }
   });
 

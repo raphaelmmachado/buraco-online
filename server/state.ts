@@ -47,7 +47,10 @@ export const saveState = () => {
         if (key === "disconnectTimeout") return undefined;
         return value;
       });
-      fs.writeFileSync(STORAGE_FILE, serialized, "utf-8");
+      
+      fs.writeFile(STORAGE_FILE, serialized, "utf-8", (err) => {
+        if (err) console.error("Failed to save game state:", err);
+      });
       // console.log("💾 Game state saved to disk.");
     } catch (error) {
       console.error("Failed to save game state:", error);
@@ -62,6 +65,13 @@ export const loadState = () => {
       const data = fs.readFileSync(STORAGE_FILE, "utf-8");
       const loaded = JSON.parse(data);
       games = loaded;
+      
+      // Reset volatile state on load
+      for (const roomId in games) {
+        games[roomId].players_connected = [];
+        games[roomId].disconnectTimeout = null;
+      }
+
       console.log(`📂 Loaded ${Object.keys(games).length} games from disk.`);
       
       // Clean up stale games or reset timeouts if needed?

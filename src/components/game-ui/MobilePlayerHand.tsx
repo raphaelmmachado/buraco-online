@@ -28,13 +28,14 @@ export const MobilePlayerHand = ({
       {/* Scrollable Container */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 w-full overflow-x-auto flex items-end px-4 pb-2 gap-[-10px] snap-x snap-mandatory scrollbar-hide"
+        className="flex-1 w-full overflow-x-auto flex items-end px-4 pb-2 gap-[-10px]
+         snap-x snap-mandatory scrollbar-hide"
         style={{
           paddingRight: "50%", // Space for the last card to be centered or visible
           paddingLeft: "20px",
         }}
       >
-        <div className="flex items-center -space-x-10">
+        <div className="flex items-center -space-x-6">
           {" "}
           {/* Negative margin for overlap */}
           <AnimatePresence mode="popLayout">
@@ -61,7 +62,7 @@ export const MobilePlayerHand = ({
                     isSelected={isSelected}
                     isLastDrawn={isLastDrawn}
                     onClick={() => onCardClick(card.id)}
-                    className="w-16 h-24 shadow-md"
+                    className="w-16 h-24 shadow-md p-1"
                   />
                 </motion.div>
               );

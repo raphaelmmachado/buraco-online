@@ -58,10 +58,13 @@ export const getAnimationOrigin = (
     case "bottom":
       return { x: 0, y: offset };
     case "top":
-      return { x: 0, y: -offset };
+      // Vem de cima (parceiro/oponente frente): Geralmente virado 180 ou 0 dependendo se é carta fechada
+      return { x: 0, y: -offset }; 
     case "left":
+      // Vem da esquerda: x negativo, y centrado (0)
       return { x: -offset, y: 0 };
     case "right":
+      // Vem da direita: x positivo, y centrado (0)
       return { x: offset, y: 0 };
   }
 };

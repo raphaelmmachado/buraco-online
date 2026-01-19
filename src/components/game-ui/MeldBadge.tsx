@@ -1,7 +1,10 @@
+import { motion } from "framer-motion";
 import { type Card as CardType } from "../../../common/types/card";
 import { calculate_meld_score } from "../../../common/utils/scoring";
+import { useGameStore } from "../../store/useGameStore";
 
 export const MeldBadge = ({ meld }: { meld: CardType[] }) => {
+  const showAnimations = useGameStore((s) => s.showAnimations);
   const { score, type, length } = calculate_meld_score(meld);
   if (length < 3) return null;
 
@@ -32,15 +35,25 @@ export const MeldBadge = ({ meld }: { meld: CardType[] }) => {
 
   return (
     <div className="flex flex-col items-center z-20">
-      <span
+      <motion.span
+        key={label} // Animate on change
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={showAnimations ? { type: "spring", stiffness: 500, damping: 20 } : { duration: 0 }}
         className={`w-full ${color} text-center text-xs md:text-sm
          text-white font-black p-1 rounded-md rounded-tl-none rounded-tr-none shadow-lg uppercase tracking-widest border border-white/10`}
       >
         {label}
-      </span>
-      <span className="text-xs text-white font-black drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] mt-0.5">
+      </motion.span>
+      <motion.span 
+        key={score}
+        initial={{ scale: 1.5, color: "#ffff00" }}
+        animate={{ scale: 1, color: "#ffffff" }}
+        transition={showAnimations ? {} : { duration: 0 }}
+        className="text-xs text-white font-black drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] mt-0.5"
+      >
         {score} pts
-      </span>
+      </motion.span>
     </div>
   );
 };

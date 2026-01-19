@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
+import { useGameStore } from "../../store/useGameStore";
 
 interface EventBalloonProps {
   message: string;
@@ -19,6 +20,8 @@ export const EventBalloon = ({
   x, 
   y 
 }: EventBalloonProps) => {
+  const showAnimations = useGameStore((s) => s.showAnimations);
+
   const bgColors = {
     mine: "bg-blue-600",
     opponent: "bg-red-700",
@@ -42,15 +45,19 @@ export const EventBalloon = ({
       ? { opacity: 0, scale: 0.8 }
       : { opacity: 0, y: y - 50, scale: 0.9 };
 
-  const transition = isStatic
-      ? { type: "spring", stiffness: 300, damping: 20 } as const
-      : { type: "tween", ease: "easeOut", duration: 0.3 } as const;
+  const transition = !showAnimations 
+      ? { duration: 0 } 
+      : (isStatic
+          ? { type: "spring", stiffness: 300, damping: 20 }
+          : { type: "tween", ease: "easeOut", duration: 0.3 });
 
   // For exit transition on non-static, we handle it in the exit prop itself usually, 
   // but framer motion uses the 'transition' prop for both unless overridden.
   // The original code had delay in exit.
   
-  const exitTransition = !isStatic ? { duration: 0.3, delay: 2.5 } : undefined;
+  const exitTransition = !showAnimations 
+      ? { duration: 0 } 
+      : (!isStatic ? { duration: 0.3, delay: 2.5 } : undefined);
 
   return (
     <AnimatePresence mode="wait">

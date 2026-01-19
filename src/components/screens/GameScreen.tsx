@@ -20,6 +20,7 @@ import TookDeadPile from "../game-ui/TookDeadPile";
 import { EventBalloon } from "../game-ui/EventBalloon";
 import Portal from "../ui/Portal";
 import { TimerBalloon } from "../game-ui/TimerBalloon";
+import { TurnNotification } from "../game-ui/TurnNotification";
 
 // Layout Components
 import { GameSeparatorMobile } from "./layouts/GameSeparatorMobile";
@@ -230,6 +231,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           id="game-screen"
           className="h-screen w-screen bg-[#0f2e1a] text-white overflow-hidden flex flex-col select-none relative font-sans"
         >
+          <TurnNotification />
           {/* == PORTAL RENDERER FOR EVENTS == */}
           {!isMobile && (
             <Portal>

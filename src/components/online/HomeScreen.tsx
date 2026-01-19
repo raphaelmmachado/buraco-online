@@ -65,11 +65,11 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
 
   // Check for active session on mount
   const [activeSession] = useState<string | null>(() =>
-    localStorage.getItem("baralho_active_room")
+    localStorage.getItem("baralho_active_room"),
   );
 
   const [userName, setUserName] = useState(
-    () => localStorage.getItem("baralho_user_name") || ""
+    () => localStorage.getItem("baralho_user_name") || "",
   );
 
   const handleUserNameChange = (val: string) => {
@@ -188,7 +188,7 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
                 {activeTab === "OFFLINE" && (
                   <div className="absolute bottom-0 left-0 w-full h-[2px] bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.8)]"></div>
                 )}
-                🤖 Vs Bot
+                🤖 OFFLINE Vs Bot
               </button>
             </div>
 
@@ -277,8 +277,8 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
                     {totalOnline > 3
                       ? ` e mais ${totalOnline - 3}`
                       : totalOnline === 1
-                      ? ""
-                      : ""}
+                        ? ""
+                        : ""}
                     {totalOnline > 1 ? " estão " : " está "} online
                   </p>
                 )}
@@ -340,8 +340,8 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
                               isPlaying
                                 ? "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"
                                 : isFull
-                                ? "bg-red-500/50"
-                                : "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"
+                                  ? "bg-red-500/50"
+                                  : "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"
                             }`}
                           ></span>
                           <div>

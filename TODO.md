@@ -4,22 +4,9 @@ Este documento organiza as tarefas pendentes, priorizando a estabilidade e a exp
 
 ---
 
-## INTELIGENCIA DOS BOTS
-
-Os BOTS estão muito burros, parece que ficaram mais burros após as alterações de ontem.
-Eles simplesmente criam qualquer jogo que tiver na mão.
-Eles devem evitar criar varios jogos do mesmo naipes se as cartas forem muito próximas. por exemplo:
-
-- O BOT deve saber que existem coringas limpáveis. por exemplo seria OK ele criar 3-4-5-2-7-8-9 se o coringa for do mesmo naipe.
-- Ele pode sujar o jogo para pontuar se ele sabe que a carta que ele precisa já foram
-  usadas,por exemplo ele pode criar 2_paus-9-10-J-Q-K-A-copas se os dois 8_copas já foram usados (qualquer um pode ver as cartas baixadas) ou se já está no final do jogo (faltando menos de 15 cartas contando deck + morto).
+## [x] INTELIGENCIA DOS BOTS
 
 ## ✅ Concluído Recentemente
-
-- [x] **Estabilidade Online:** Impedir múltiplas salas por host e corrigir botão de encerrar sessão.
-- [x] **Gestão de Salas:** Sistema de Kick e Troca de Times (2v2).
-- [x] **Reconexão Inteligente:** Bot assume ao cair, jogador retoma ao voltar.
-- [x] **IA Defensiva:** Bot protege canastras limpas e evita descartes óbvios.
 
 ---
 
@@ -27,33 +14,13 @@ Eles devem evitar criar varios jogos do mesmo naipes se as cartas forem muito pr
 
 _Foco: Melhorar a sensação de jogar e o feedback visual._
 
-- [ ] **Event Ticker (Log de Ações na Barra Central)**
-
-- [ ] **Menu de Contexto & Marcadores Táticos**
-
-  - **Objetivo:** Abrir menu customizado (botão direito / long press) para colocar marcadores visuais nas cartas (icones ou uma fita na carta) (ex: "Lixo" ou "amarela", "Carta para o Amigo" ou "azul","Perigosa" ou "vermelha").
-  - **Complexidade:** Baixa.
-  - **Tempo Estimado:** 2 horas.
-  - **Objetivo:** Informar o jogador sobre o que aconteceu ("Oponente pegou o lixo", "Parceiro pegou o morto") sem usar pop-ups intrusivos.
-
-  - **Complexidade:** Baixa.
-  - **Tempo Estimado:** 2 - 3 horas.
-  - **Sugestão:** Usar a barra divisória central para exibir mensagens temporárias com transição suave.
-
-- [x] **Animações de Cartas (Básico)**
-  - **Objetivo:** Evitar o "teletransporte" de cartas.
-  - **Complexidade:** Média.
-  - **Tempo Estimado:** 4 horas.
-  - **Sugestão:** Usar `framer-motion` para animar a compra (Deck -> Mão) e o descarte (Mão -> Lixo).
-
----
+- [x] **Event Ticker (Log de Ações na Barra Central)**
 
 ## 2. Prioridade Média: Mecânicas de Jogo
 
 _Foco: Tornar a partida mais interessante e estratégica._
 
 - [ ] **Modo Campeonato (Condições de Vitória)**
-
   - **Objetivo:** Permitir configurar "Vence quem fizer 3000 pontos" ou "Melhor de 3 rodadas".
   - **Complexidade:** Média.
   - **Tempo Estimado:** 4 - 5 horas.
@@ -64,9 +31,9 @@ _Foco: Tornar a partida mais interessante e estratégica._
   - **Complexidade:** Alta.
   - **Tempo Estimado:** 6 - 8 horas.
   - **Estrutura Proposta:**
-    1.  _Early Game:_ Foco total em pegar o morto (baixa tudo).
-    2.  _Mid Game:_ Foco em limpar canastras e segurar jogo na mão.
-    3.  _End Game:_ Foco em bater se tiver canastra limpa.
+    1.  _Early Game:_ Foco total em formar canastras (de preferência limpas), checar as cartas que o amigo está jogando fora.
+    2.  _Mid Game:_ Foco em limpar canastras, e não dar o lixo.
+    3.  _End Game:_ Foco em soltar as cartas da mão antes que o jogo acabe.
 
 ---
 
@@ -75,12 +42,10 @@ _Foco: Tornar a partida mais interessante e estratégica._
 _Ideia para transformar a estética do jogo com visual CRT/Retro/Pixel Art._
 
 - [ ] **CRT Overlay & Shaders**
-
   - **Objetivo:** Criar camada global de pós-processamento simulando TV de tubo (Scanlines, Aberração Cromática, Curvatura).
   - **Complexidade:** Média (CSS avançado ou WebGL).
 
 - [ ] **Física "Jelly" (Gelatina)**
-
   - **Objetivo:** Cartas que balançam e esticam ao serem arrastadas, com tilt 3D e brilho holográfico.
   - **Complexidade:** Alta (exige `react-spring` ou `framer-motion` pesado).
 
@@ -94,13 +59,11 @@ _Ideia para transformar a estética do jogo com visual CRT/Retro/Pixel Art._
 _Estas ideias exigem refatoração profunda do núcleo (`common/`) ou da infraestrutura. Risco alto de introduzir bugs ou quebrar a lógica existente._
 
 - [ ] **Motor de Regras Customizáveis (House Rules)**
-
   - **A ideia:** Permitir opções no Lobby como "Vale Trinca", "Sem Morto", "Curinga vale na Real".
   - **O Perigo:** Exige reescrever `rules_logic.ts` (o cérebro do jogo) para aceitar parâmetros dinâmicos em vez de regras fixas. Um erro aqui quebra a validação de todo o jogo.
   - **Complexidade:** Muito Alta.
 
 - [ ] **Persistência em Banco de Dados (Redis/Postgres)**
-
   - **A ideia:** Salvar o estado do jogo em banco real, não na memória RAM.
   - **O Benefício:** Se o servidor reiniciar, as salas não morrem.
   - **O Custo:** Adiciona uma camada de infraestrutura (Docker/DB) que complica o deploy e o desenvolvimento local.

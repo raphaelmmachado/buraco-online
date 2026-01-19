@@ -8,7 +8,7 @@ import { User, Users, ArrowLeft } from "lucide-react";
 
 // Dynamic Import for Heavy GameScreen
 const GameScreen = lazy(() =>
-  import("./online/GameScreen").then((module) => ({
+  import("./screens/GameScreen").then((module) => ({
     default: module.GameScreen,
   }))
 );

@@ -20,6 +20,7 @@ interface IncomingServerState {
     number,
     { socketId: string; userName: string; isBot?: boolean; playerId: string }
   >;
+  turn_start_time?: number;
   last_drawn_card_id: string | null;
   has_taken_dead_pile: [boolean, boolean];
   final_score: {
@@ -73,6 +74,7 @@ interface GameState {
   has_taken_dead_pile: [boolean, boolean];
   turn_phase: "DRAW" | "ACTION" | "DISCARD";
   current_player: number;
+  turn_start_time?: number;
   last_drawn_card_id: string | null;
   final_score: {
     team_1: number;
@@ -427,6 +429,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       dead_piles_count: server_data.dead_piles_count,
       has_taken_dead_pile: server_data.has_taken_dead_pile || [false, false],
       current_player: server_data.current_player,
+      turn_start_time: server_data.turn_start_time,
       turn_phase: server_data.turn_phase,
       team_melds: {
         1: server_data.team_melds[1] || [],

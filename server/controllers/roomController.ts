@@ -3,9 +3,9 @@ import { games, saveState } from "../state";
 import { create_deck, distribute_cards } from "../../common/utils/game_logic";
 import { sort_cards } from "../../common/utils/sort_cards";
 import { get_player_id_by_socket } from "../services/gameService";
-import { broadcast_game_update, process_bot_turn } from "../services/botService";
+import { broadcast_game_update } from "../services/botService";
 import { type PlayerID, type GameMode } from "../types";
-import { type Card } from "../../common/types/card";
+import { startTurnTimer } from "../services/timerService";
 
 export const registerRoomHandlers = (io: Server, socket: Socket) => {
   socket.on("disconnect", () => {
@@ -425,6 +425,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
     }
 
     game.status = "PLAYING";
+    startTurnTimer(io, roomId);
     broadcast_game_update(io, roomId);
   });
 

@@ -17,6 +17,7 @@ export interface ServerGameState {
   current_player: number;
   players_connected: string[];
   players_data: Record<PlayerID, PlayerData>;
+  turn_start_time?: number;
   last_drawn_card_id: string | null;
   cardsPlayedThisTurn?: number; // Added to match frontend expectations
   final_score: {

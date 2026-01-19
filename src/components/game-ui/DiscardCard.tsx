@@ -60,19 +60,23 @@ export const DiscardCard = ({
   const isRed = card.suit.color === "red";
   // Se a carta vem de "mim" (bottom), usamos layoutId para transição mágica da mão.
   // Se vem de outros, usamos animação explícita de entrada.
+  // MAS sempre mantemos layoutId para permitir que a carta "voe" para a mão de quem pegar o lixo.
   const isFromMe = originDirection === "bottom";
-  const animationProps = isFromMe
-    ? { layoutId: card.id }
-    : {
-        initial: {
-          ...getAnimationOrigin(originDirection, 800),
-          opacity: 1,
-          scale: 1.2,
-          rotate: getStableNumber(card.id, -15, 10), // Mais rotação para descarte
-        },
-        animate: { x: 0, y: 0, opacity: 1, scale: 1, rotate: 0 },
-        // transition: removed to use MotionConfig context
-      };
+  
+  const animationProps = {
+    layoutId: card.id,
+    ...(isFromMe
+      ? {}
+      : {
+          initial: {
+            ...getAnimationOrigin(originDirection, 800),
+            opacity: 1,
+            scale: 1.2,
+            rotate: getStableNumber(card.id, -15, 10),
+          },
+          animate: { x: 0, y: 0, opacity: 1, scale: 1, rotate: 0 },
+        }),
+  };
 
   // Logic for layers
   const showLayer1 = quantity > 1;

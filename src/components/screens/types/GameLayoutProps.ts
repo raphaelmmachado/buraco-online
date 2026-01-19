@@ -1,3 +1,4 @@
+import { type MouseEventHandler, type TouchEventHandler } from "react";
 import { type GameAdapterInterface } from "../../game-ui/useLocalGameAdapter";
 import { type Card } from "../../../../common/types/card";
 import { type ScreenDirection } from "../../../utils/animation_utils";
@@ -25,7 +26,7 @@ export interface GameLayoutProps {
   onMeldClick: (teamId: number, meldIndex: number) => void;
   onNewMeldClick: () => void;
   toggleSelect: (id: string) => void;
-  startDrag: any; // Type from useScreenDrag (React.MouseEventHandler | React.TouchEventHandler)
+  startDrag: MouseEventHandler | TouchEventHandler; // Type from useScreenDrag (React.MouseEventHandler | React.TouchEventHandler)
 
   // Visual Logic
   hoveredMeld: { teamId: number; index: number } | null;

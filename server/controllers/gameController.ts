@@ -10,7 +10,6 @@ import {
   get_player_id_by_socket,
 } from "../services/gameService";
 import {
-  process_bot_turn,
   broadcast_game_update,
 } from "../services/botService";
 import { calculate_score } from "../../common/utils/scoring";
@@ -21,6 +20,7 @@ import {
 } from "../../common/utils/rules_logic";
 import { type Card } from "../../common/types/card";
 import { type PlayerID, type ServerResponse } from "../types";
+import { startTurnTimer, stopTurnTimer } from "../services/timerService";
 
 export const registerGameHandlers = (io: Server, socket: Socket) => {
   socket.on(
@@ -82,6 +82,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
             details_t1: t1_score,
             details_t2: t2_score,
           };
+          stopTurnTimer(roomId);
           broadcast_game_update(io, roomId);
           return;
         }
@@ -96,6 +97,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         game.hands[player_id] = sort_cards(player_hand);
         game.last_drawn_card_id = card.id;
         game.turn_phase = "ACTION";
+        startTurnTimer(io, roomId);
         broadcast_game_update(io, roomId);
       }
     }
@@ -213,6 +215,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         handle_empty_hand(game, player_id, "DIRECT");
       }
 
+      startTurnTimer(io, roomId);
       broadcast_game_update(io, roomId);
     }
   );
@@ -515,6 +518,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       if (updated_hand && updated_hand.length === 0) {
         handle_empty_hand(game, player_id, "DIRECT");
       }
+      startTurnTimer(io, roomId);
       broadcast_game_update(io, roomId);
     }
   );
@@ -574,6 +578,9 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         game.turn_phase = "DRAW";
         game.current_player = get_next_player(game.current_player, game.mode);
         game.last_drawn_card_id = null; // Limpa o destaque da carta comprada
+        startTurnTimer(io, roomId);
+      } else {
+        stopTurnTimer(roomId);
       }
 
       broadcast_game_update(io, roomId);

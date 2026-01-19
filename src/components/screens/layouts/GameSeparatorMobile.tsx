@@ -1,7 +1,10 @@
-import { Hand, Skull } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Skull, Clock } from "lucide-react";
 import { PileCard } from "../../game-ui/PileCard";
 import { DiscardCard } from "../../game-ui/DiscardCard";
 import { EventBar } from "../../game-ui/EventBar";
+import { PlayerTimerBadge } from "../../game-ui/PlayerTimerBadge";
+import { useGameStore } from "../../../store/useGameStore";
 import { type GameLayoutProps } from "../types/GameLayoutProps";
 import { type Card } from "../../../../common/types/card";
 
@@ -16,8 +19,33 @@ export const GameSeparatorMobile = ({
   discardOriginDirection,
   onDeckClick,
   onDiscardClick,
-  my_player_id
+  my_player_id,
+  playerRefs
 }: GameLayoutProps & { my_player_id: number }) => {
+  const turn_start_time = useGameStore((s) => s.turn_start_time);
+  const status = useGameStore((s) => s.status);
+  const duration = game.turn_phase === "DRAW" ? 30 : 60;
+  const [timeLeft, setTimeLeft] = useState(duration);
+
+  useEffect(() => {
+    const update = () => {
+        if (!turn_start_time || status !== "PLAYING") {
+            setTimeLeft(duration);
+            return;
+        }
+        const now = Date.now();
+        const elapsed = (now - turn_start_time) / 1000;
+        setTimeLeft(Math.max(0, duration - elapsed));
+    };
+
+    const timeoutId = setTimeout(update, 0);
+    const intervalId = setInterval(update, 500);
+
+    return () => {
+        clearTimeout(timeoutId);
+        clearInterval(intervalId);
+    };
+  }, [turn_start_time, status, duration]);
 
   return (
     <>
@@ -38,35 +66,26 @@ export const GameSeparatorMobile = ({
 
       {/* MEU TIME (NÓS) */}
       <div className="flex flex-col items-center leading-none px-1 gap-0.5">
-        <div className="flex flex-col md:flex-row  gap-1">
+        <div className="flex flex-col md:flex-row gap-1">
           {Object.entries(game.players_data)
             .filter(([id]) => Number(id) % 2 === my_player_id % 2)
             .map(([id, p]) => (
-              <div
+              <PlayerTimerBadge
                 key={id}
-                className={`flex items-center rounded px-1.5 py-0.5 shadow-sm transition-all ${
-                  Number(id) === game.current_player
-                    ? "bg-yellow-500/20 border border-yellow-400 ring-1 ring-yellow-400/50 animate-pulse"
-                    : "bg-blue-900/40 border border-blue-500/30"
-                }`}
-              >
-                <span
-                  className={`text-[9px] font-bold mr-1 opacity-80 ${
-                    Number(id) === game.current_player
-                      ? "text-yellow-100"
-                      : "text-blue-100"
-                  }`}
-                >
-                  {p.userName.substring(0, 8).toUpperCase()}
-                </span>
-
-                <span className="text-[9px] flex gap-x-1 items-center font-black text-white">
-                  <Hand size={12} />{" "}
-                  {typeof game.hands[Number(id)] === "number"
-                    ? (game.hands[Number(id)] as number)
-                    : (game.hands[Number(id)] as Card[])?.length || 0}
-                </span>
-              </div>
+                playerId={Number(id)}
+                userName={p.userName}
+                handSize={typeof game.hands[Number(id)] === "number"
+                  ? (game.hands[Number(id)] as number)
+                  : (game.hands[Number(id)] as Card[])?.length || 0}
+                isCurrentPlayer={Number(id) === game.current_player}
+                isMyTeam={true}
+                turnPhase={game.turn_phase}
+                innerRef={(el) => {
+                    if (playerRefs && playerRefs.current) {
+                        playerRefs.current[id] = el;
+                    }
+                }}
+              />
             ))}
         </div>
       </div>
@@ -79,19 +98,26 @@ export const GameSeparatorMobile = ({
             type={game.recentEvents[game.recentEvents.length - 1].type}
           />
         ) : (
-          <>
-            <span
-              className={`text-[8px] font-black ${
-                isMyTurn ? "text-yellow-400 animate-pulse" : "text-white/40"
-              } uppercase tracking-widest`}
-            >
-              {isMyTurn ? "SUA VEZ" : "VEZ DELES"}
-            </span>
+          <div className="flex flex-col items-center">
+            <div className="flex items-center gap-1">
+                 <span
+                    className={`text-[8px] font-black ${
+                        isMyTurn ? "text-yellow-400 animate-pulse" : "text-white/40"
+                    } uppercase tracking-widest`}
+                    >
+                    {isMyTurn ? "SUA VEZ" : "VEZ DELES"}
+                </span>
+                {status === "PLAYING" && (
+                     <span className={`text-[10px] font-black flex items-center gap-0.5 ${timeLeft < 15 ? 'text-red-500 animate-pulse' : 'text-yellow-500/80'}`}>
+                        <Clock size={8} /> {Math.ceil(timeLeft)}s
+                     </span>
+                )}
+            </div>
 
             <span className="text-[9px] text-gray-400 uppercase font-bold tracking-tight mt-0.5">
               {game.turn_phase === "DRAW" ? "COMPRA" : "JOGA"}
             </span>
-          </>
+          </div>
         )}
       </div>
 
@@ -101,31 +127,22 @@ export const GameSeparatorMobile = ({
           {Object.entries(game.players_data)
             .filter(([id]) => Number(id) % 2 !== my_player_id % 2)
             .map(([id, p]) => (
-              <div
+              <PlayerTimerBadge
                 key={id}
-                className={`flex items-center rounded px-1.5 py-0.5 shadow-sm transition-all ${
-                  Number(id) === game.current_player
-                    ? "bg-yellow-500/20 border border-yellow-400 ring-1 ring-yellow-400/50 animate-pulse"
-                    : "bg-red-900/40 border border-red-500/30"
-                }`}
-              >
-                <span
-                  className={`text-[9px] font-bold mr-1 opacity-80 ${
-                    Number(id) === game.current_player
-                      ? "text-yellow-100"
-                      : "text-red-100"
-                  }`}
-                >
-                  {p.userName.substring(0, 8).toUpperCase()}
-                </span>
-
-                <span className="text-[9px] flex gap-x-1 items-center font-black text-white">
-                  <Hand size={12} />{" "}
-                  {typeof game.hands[Number(id)] === "number"
-                    ? (game.hands[Number(id)] as number)
-                    : (game.hands[Number(id)] as Card[])?.length || 0}
-                </span>
-              </div>
+                playerId={Number(id)}
+                userName={p.userName}
+                handSize={typeof game.hands[Number(id)] === "number"
+                  ? (game.hands[Number(id)] as number)
+                  : (game.hands[Number(id)] as Card[])?.length || 0}
+                isCurrentPlayer={Number(id) === game.current_player}
+                isMyTeam={false}
+                turnPhase={game.turn_phase}
+                innerRef={(el) => {
+                    if (playerRefs && playerRefs.current) {
+                        playerRefs.current[id] = el;
+                    }
+                }}
+              />
             ))}
         </div>
       </div>

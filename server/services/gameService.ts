@@ -193,6 +193,7 @@ export const sanitize_state = (
     dead_piles_count: game.dead_piles.length, // Otimização: Apenas contagem
     turn_phase: game.turn_phase,
     current_player: game.current_player,
+    turn_start_time: game.turn_start_time,
     has_taken_dead_pile: game.has_taken_dead_pile,
     players_data: game.players_data,
     last_drawn_card_id: game.last_drawn_card_id,

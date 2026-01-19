@@ -19,6 +19,7 @@ import { ConnectionOverlay } from "./ConnectionOverlay";
 import TookDeadPile from "../game-ui/TookDeadPile";
 import { EventBalloon } from "../game-ui/EventBalloon";
 import Portal from "../ui/Portal";
+import { TimerBalloon } from "../game-ui/TimerBalloon";
 
 // Layout Components
 import { GameSeparatorMobile } from "./layouts/GameSeparatorMobile";
@@ -26,8 +27,6 @@ import { GameSeparatorDesktop } from "./layouts/GameSeparatorDesktop";
 import { GameFooterMobile } from "./layouts/GameFooterMobile";
 import { GameFooterDesktop } from "./layouts/GameFooterDesktop";
 import { type GameLayoutProps } from "./types/GameLayoutProps";
-
-// --- TELA PRINCIPAL ---
 
 export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   // State
@@ -259,6 +258,15 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                 }
                 return null;
               })}
+              
+              {/* Persistent Timer Balloon for Current Player */}
+              {(() => {
+                  const currentPos = playerPositions[game.current_player];
+                  if (currentPos && game.status === "PLAYING") {
+                      return <TimerBalloon x={currentPos.x} y={currentPos.y} />;
+                  }
+                  return null;
+              })()}
             </Portal>
           )}
           {/* Connection Overlay (Only for Online Game) */}

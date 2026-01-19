@@ -2,48 +2,72 @@ import { motion, AnimatePresence } from "framer-motion";
 
 interface EventBalloonProps {
   message: string;
-  team: "mine" | "opponent" | "neutral";
+  team?: "mine" | "opponent" | "neutral"; // Optional now
+  customColor?: string; // Allow overriding color (e.g. for timer)
+  isStatic?: boolean; // If true, stays in place instead of floating up/away
+  pulse?: boolean; // Optional pulsing effect
   x: number;
   y: number;
 }
 
-export const EventBalloon = ({ message, team, x, y }: EventBalloonProps) => {
+export const EventBalloon = ({ 
+  message, 
+  team = "neutral", 
+  customColor,
+  isStatic = false,
+  pulse = false,
+  x, 
+  y 
+}: EventBalloonProps) => {
   const bgColors = {
     mine: "bg-blue-600",
     opponent: "bg-red-700",
     neutral: "bg-gray-600",
   };
 
-  if (x === 0 && y === 0) {
-    return null; // Don't render if position is not calculated yet
-  }
+  const bgColor = customColor || bgColors[team];
+
+  if (x === 0 && y === 0) return null;
+
+  // Animation props
+  const initial = isStatic 
+      ? { opacity: 0, y: y - 50, scale: 0.8 }
+      : { opacity: 0, y: y, scale: 0.9 };
+
+  const animate = isStatic
+      ? { opacity: 1, y: y - 50, scale: 1 }
+      : { opacity: 1, y: y - 40, scale: 1 };
+      
+  const exit = isStatic
+      ? { opacity: 0, scale: 0.8 }
+      : { opacity: 0, y: y - 50, scale: 0.9 };
+
+  const transition = isStatic
+      ? { type: "spring", stiffness: 300, damping: 20 } as const
+      : { type: "tween", ease: "easeOut", duration: 0.3 } as const;
+
+  // For exit transition on non-static, we handle it in the exit prop itself usually, 
+  // but framer motion uses the 'transition' prop for both unless overridden.
+  // The original code had delay in exit.
+  
+  const exitTransition = !isStatic ? { duration: 0.3, delay: 2.5 } : undefined;
 
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       <motion.div
-        initial={{ opacity: 0, y: y, scale: 0.9 }}
-        animate={{
-          opacity: 1,
-          y: y - 40, // Animate upwards from the given y
-          scale: 1,
-          transition: { type: "tween", ease: "easeOut", duration: 0.3 },
-        }}
-        exit={{
-          opacity: 0,
-          y: y - 50,
-          scale: 0.9,
-          transition: { duration: 0.3, delay: 2.5 }, // Stays for 2.5s before fading
-        }}
-        // Use fixed position to render relative to the viewport
+        key={isStatic ? "static-balloon" : message}
+        initial={initial}
+        animate={{ ...animate, transition: transition as never }}
+        exit={{ ...exit, transition: (exitTransition || transition) as never }}
         style={{
           position: "fixed",
-          top: 0, // y is already handling the vertical position
-          left: x, // x is centered already
+          top: 0,
+          left: x,
         }}
-        className={`z-50 pointer-events-none whitespace-nowrap -translate-x-1/2 px-3 py-1 rounded-full shadow-lg border border-white/10 text-xs font-semibold text-white ${bgColors[team]}`}
+        className={`z-50 pointer-events-none whitespace-nowrap -translate-x-1/2 px-3 py-1 rounded-full shadow-lg border border-white/10 text-xs font-black text-white ${bgColor} ${pulse ? 'animate-pulse' : ''}`}
       >
         {message}
-        {/* Arrow pointing down, as it will be above the element */}
+        {/* Arrow */}
         <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 bg-inherit border-b border-r border-white/10"></div>
       </motion.div>
     </AnimatePresence>

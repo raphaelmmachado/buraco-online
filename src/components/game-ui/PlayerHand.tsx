@@ -69,6 +69,15 @@ export const PlayerHand = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(1000);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  
+  // Track previous count to detect "Dealing" (0 -> Many)
+  const [prevCount, setPrevCount] = useState(0);
+  const [isDealing, setIsDealing] = useState(false);
+
+  if (cards.length !== prevCount) {
+    setIsDealing(prevCount === 0 && cards.length > 0);
+    setPrevCount(cards.length);
+  }
 
   useEffect(() => {
     const updateWidth = () => {
@@ -158,7 +167,7 @@ export const PlayerHand = ({
             margin: isOverflowing ? "0 40px" : "0 auto",
           }}
         >
-          <AnimatePresence>
+          <AnimatePresence mode="popLayout">
             {cards.map((card, i) => {
               const isSelected = selectedCardIds.includes(card.id);
               const isHovered = hoveredIndex === i;
@@ -188,8 +197,9 @@ export const PlayerHand = ({
               return (
                 <motion.div
                   key={card.id}
+                  layoutId={card.id}
                   layout
-                  initial={{ opacity: 0, y: 50, scale: 0.8 }}
+                  initial={{ opacity: 0, y: 200, scale: 0.5, x: 0 }}
                   animate={{
                     opacity: 1,
                     x,
@@ -197,8 +207,8 @@ export const PlayerHand = ({
                     rotate: rotation,
                     scale: scale,
                   }}
+                  transition={{ delay: isDealing ? i * 0.04 : 0 }}
                   exit={{ opacity: 0, y: 20, scale: 0.5 }}
-                  // transition removed to use MotionConfig context
                   className="absolute origin-bottom pointer-events-auto"
                   style={{
                     bottom: `${bottomPos}px`,

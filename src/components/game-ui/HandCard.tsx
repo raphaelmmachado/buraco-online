@@ -28,7 +28,6 @@ export const HandCard = ({
 
   return (
     <motion.div
-      layoutId={card.id}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}

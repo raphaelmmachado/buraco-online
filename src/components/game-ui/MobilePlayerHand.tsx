@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { type Card as CardType } from "../../../common/types/card";
 import { HandCard } from "./HandCard";
@@ -19,9 +19,15 @@ export const MobilePlayerHand = ({
   onSortHand,
 }: MobilePlayerHandProps) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Track dealing
+  const [prevCount, setPrevCount] = useState(0);
+  const [isDealing, setIsDealing] = useState(false);
 
-  // Scroll to end on new card (optional, but nice)
-  // Or maybe keep position? Let's just keep position for now to avoid jumping.
+  if (cards.length !== prevCount) {
+    setIsDealing(prevCount === 0 && cards.length > 0);
+    setPrevCount(cards.length);
+  }
 
   return (
     <div className="flex-1 w-full h-full relative flex flex-col pointer-events-auto">
@@ -39,20 +45,24 @@ export const MobilePlayerHand = ({
           {" "}
           {/* Negative margin for overlap */}
           <AnimatePresence mode="popLayout">
-            {cards.map((card) => {
+            {cards.map((card, i) => {
               const isSelected = selectedCardIds.includes(card.id);
               const isLastDrawn = card.id === lastDrawnCardId;
 
               return (
                 <motion.div
                   key={card.id}
+                  layoutId={card.id}
                   layout
-                  initial={{ opacity: 0, x: 20, scale: 0.8 }}
+                  initial={{ opacity: 0, x: -100, scale: 0.5 }}
                   animate={{
                     opacity: 1,
                     x: 0,
                     scale: 1,
                     y: isSelected ? -8 : 0,
+                  }}
+                  transition={{
+                    delay: isDealing ? i * 0.04 : 0,
                   }}
                   exit={{ opacity: 0, scale: 0.5 }}
                   className={`relative shrink-0 snap-center pointer-events-auto`}

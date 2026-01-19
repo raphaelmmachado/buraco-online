@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { type Card as CardType } from "../../../common/types/card";
 import { HandCard } from "./HandCard";
+import { useGameStore } from "../../store/useGameStore";
 
 interface PlayerHandProps {
   cards: CardType[];
@@ -69,6 +70,7 @@ export const PlayerHand = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(1000);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const showAnimations = useGameStore((s) => s.showAnimations);
   
   // Track previous count to detect "Dealing" (0 -> Many)
   const [prevCount, setPrevCount] = useState(0);
@@ -190,6 +192,12 @@ export const PlayerHand = ({
                 scale = HAND_CONFIG.interaction.hoverScale;
               }
 
+              const isLastDrawn = card.id === lastDrawnCardId;
+
+              const initialPos = isLastDrawn
+                ? { opacity: 0, x: -600, y: 0, scale: 0.6, rotate: -20 } // Vem do Deck (Esquerda)
+                : { opacity: 0, x: 0, y: 200, scale: 0.5 }; // Deal (Baixo)
+
               const bottomPos = isMobile
                 ? HAND_CONFIG.position.bottomOffsetMobile
                 : HAND_CONFIG.position.bottomOffsetDesktop;
@@ -199,7 +207,7 @@ export const PlayerHand = ({
                   key={card.id}
                   layoutId={card.id}
                   layout
-                  initial={{ opacity: 0, y: 200, scale: 0.5, x: 0 }}
+                  initial={initialPos}
                   animate={{
                     opacity: 1,
                     x,
@@ -207,8 +215,11 @@ export const PlayerHand = ({
                     rotate: rotation,
                     scale: scale,
                   }}
-                  transition={{ delay: isDealing ? i * 0.04 : 0 }}
-                  exit={{ opacity: 0, y: 20, scale: 0.5 }}
+                  transition={showAnimations ? { 
+                      type: "spring", stiffness: 350, damping: 25,
+                      delay: isDealing ? i * 0.04 : 0 
+                  } : { duration: 0 }}
+                  exit={{ opacity: 0, y: -200, scale: 0.5, rotate: 10 }} // Vai para o lixo (geralmente direita ou cima)
                   className="absolute origin-bottom pointer-events-auto"
                   style={{
                     bottom: `${bottomPos}px`,

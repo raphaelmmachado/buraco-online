@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { type Card as CardType } from "../../../common/types/card";
 import { HandCard } from "./HandCard";
+import { useGameStore } from "../../store/useGameStore";
 
 interface MobilePlayerHandProps {
   cards: CardType[];
@@ -19,6 +20,7 @@ export const MobilePlayerHand = ({
   onSortHand,
 }: MobilePlayerHandProps) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const showAnimations = useGameStore((s) => s.showAnimations);
   
   // Track dealing
   const [prevCount, setPrevCount] = useState(0);
@@ -48,23 +50,31 @@ export const MobilePlayerHand = ({
             {cards.map((card, i) => {
               const isSelected = selectedCardIds.includes(card.id);
               const isLastDrawn = card.id === lastDrawnCardId;
+              
+              // Se foi a última comprada, vem do Deck (Cima Esquerda aprox). 
+              // Se for deal inicial, vem da esquerda lateral.
+              const initialPos = isLastDrawn 
+                 ? { opacity: 0, x: -100, y: -200, scale: 0.4, rotate: -45 }
+                 : { opacity: 0, x: -50, scale: 0.5 };
 
               return (
                 <motion.div
                   key={card.id}
                   layoutId={card.id}
                   layout
-                  initial={{ opacity: 0, x: -100, scale: 0.5 }}
+                  initial={initialPos}
                   animate={{
                     opacity: 1,
                     x: 0,
-                    scale: 1,
                     y: isSelected ? -8 : 0,
+                    scale: 1,
+                    rotate: 0
                   }}
-                  transition={{
+                  transition={showAnimations ? {
+                    type: "spring", stiffness: 400, damping: 25,
                     delay: isDealing ? i * 0.04 : 0,
-                  }}
-                  exit={{ opacity: 0, scale: 0.5 }}
+                  } : { duration: 0 }}
+                  exit={{ opacity: 0, scale: 0.5, y: -50 }} // Exit to discard usually
                   className={`relative shrink-0 snap-center pointer-events-auto`}
                 >
                   <HandCard

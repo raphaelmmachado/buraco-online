@@ -1,5 +1,5 @@
 import "./style.css";
-import { OnlineGame } from "./components/online/OnlineGame";
+import { OnlineGame } from "./components/screens/OnlineGame";
 import { LocalGame } from "./components/LocalGame";
 import { useState } from "react";
 

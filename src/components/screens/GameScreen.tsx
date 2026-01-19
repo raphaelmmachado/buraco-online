@@ -1,18 +1,12 @@
-import { useState, useEffect, Fragment, useRef } from "react";
-import { Dot, Hand, ShoppingCart, Skull, Trash } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { LayoutGroup, MotionConfig, motion } from "framer-motion";
 import { calculate_score } from "../../../common/utils/scoring";
-import { type Card } from "../../../common/types/card";
 import { getPlayerDirection } from "../../utils/animation_utils";
 // UI Components
 import { MeldDisplay } from "../game-ui/MeldDisplay";
 import { GameMenu } from "../game-ui/GameMenu";
 import { HowToPlay } from "../game-ui/HowToPlay";
 import { FinishScreen } from "./FinishScreen";
-import { PlayerHand } from "../game-ui/PlayerHand";
-import { MobilePlayerHand } from "../game-ui/MobilePlayerHand";
-import { PileCard } from "../game-ui/PileCard";
-import { DiscardCard } from "../game-ui/DiscardCard";
 import { type GameAdapterInterface } from "../game-ui/useLocalGameAdapter";
 
 // Custom Hooks
@@ -24,8 +18,14 @@ import CurrentGamePoints from "../game-ui/CurrentGamePoints";
 import { ConnectionOverlay } from "./ConnectionOverlay";
 import TookDeadPile from "../game-ui/TookDeadPile";
 import { EventBalloon } from "../game-ui/EventBalloon";
-import { EventBar } from "../game-ui/EventBar";
 import Portal from "../ui/Portal";
+
+// Layout Components
+import { GameSeparatorMobile } from "./layouts/GameSeparatorMobile";
+import { GameSeparatorDesktop } from "./layouts/GameSeparatorDesktop";
+import { GameFooterMobile } from "./layouts/GameFooterMobile";
+import { GameFooterDesktop } from "./layouts/GameFooterDesktop";
+import { type GameLayoutProps } from "./types/GameLayoutProps";
 
 // --- TELA PRINCIPAL ---
 
@@ -63,7 +63,6 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     !!topDiscardCard && selectedCards.includes(topDiscardCard.id);
 
   // Calculate direction for discard animation
-  // The top card of the discard pile always comes from the previous player (who just finished their turn)
   const numPlayers = Object.keys(game.players_data).length; // 2 or 4
   const previousPlayerId =
     game.current_player === 1 ? numPlayers : game.current_player - 1;
@@ -74,8 +73,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     numPlayers === 4 ? "2v2" : "1v1"
   );
 
-  // Calculate direction for Meld Entry animations (who is playing now?)
-  // New cards appearing in Melds will come from this direction
+  // Calculate direction for Meld Entry animations
   const activePlayerDirection = getPlayerDirection(
     game.current_player,
     my_player_id,
@@ -105,15 +103,12 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
       setPlayerPositions(newPositions);
     };
 
-    // Calculate on mount and on any game state change that might move players
     calculatePositions();
-
-    // Optional: Recalculate on window resize
     window.addEventListener("resize", calculatePositions);
     return () => {
       window.removeEventListener("resize", calculatePositions);
     };
-  }, [game.players_data, opponentHeight]); // Re-calculate if players or layout changes
+  }, [game.players_data, opponentHeight]);
 
   // Auto-clear error after 3 seconds
   useEffect(() => {
@@ -153,7 +148,6 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
 
   const handleDiscardClick = () => {
     if (canDraw && topDiscardCard) {
-      // Toggle selection of the top discard card
       toggleSelect(topDiscardCard.id);
     } else if (canAction && selectedCards.length === 1) {
       game.discard_card(selectedCards[0]);
@@ -168,9 +162,6 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
       game.add_to_meld(selectedCards, meldIndex);
       setSelectedCards([]);
     } else if (canDraw && isDiscardSelected) {
-      // Pick up discard and add to meld
-      // We must filter out the discard card ID from the selected cards list passed to the store
-      // because the store expects only HAND cards in the "bridge" list
       const handCardsForMeld = selectedCards.filter(
         (id) => id !== topDiscardCard?.id
       );
@@ -179,9 +170,6 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     }
   };
 
-  // Logic for "New Meld" Button visibility
-  // Case 1: Normal Action Phase - Select 3+ cards from hand
-  // Case 2: Draw Phase (Pick Up) - Select Discard + 2+ cards from hand
   const showNewMeldAction = canAction && selectedCards.length >= 3;
   const showNewMeldPickUp =
     canDraw && isDiscardSelected && selectedCards.length >= 3;
@@ -196,6 +184,38 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
       game.pick_up_discard_new_meld(handCardsForMeld);
     }
     setSelectedCards([]);
+  };
+
+  // Prepare Props Object
+  const layoutProps: GameLayoutProps = {
+    game,
+    selectedCards,
+    isMyTurn,
+    canDraw,
+    canAction,
+    myScore,
+    oppScore,
+    myTeam: my_team,
+    opponentTeam: opponent_team,
+    opponentHeight,
+    myTeamHasTaken,
+    oppTeamHasTaken,
+    onDeckClick: handleDeckClick,
+    onDiscardClick: handleDiscardClick,
+    onMeldClick: handleMeldClick,
+    onNewMeldClick: handleNewMeldClick,
+    toggleSelect,
+    onCardClick: toggleSelect, // Alias for toggleSelect in props if needed
+    startDrag,
+    hoveredMeld,
+    setHoveredMeld,
+    showNewMeldAction,
+    showNewMeldPickUp,
+    isDiscardSelected,
+    topDiscardCard,
+    discardOriginDirection,
+    activePlayerDirection,
+    playerRefs,
   };
 
   return (
@@ -309,209 +329,9 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           >
             <div className="flex h-full items-center justify-between">
               {isMobile ? (
-                <>
-                  {/* MOBILE: DECK ON LEFT */}
-                  <div className="relative h-full py-1 flex flex-col-reverse gap-y-1 items-center shrink-0 no-drag">
-                    <PileCard
-                      onClick={handleDeckClick}
-                      active={canDraw}
-                      mini={true}
-                      quantity={game.deck_count}
-                      draw_phase={game.turn_phase === "DRAW"}
-                      dead_piles={game.dead_piles_count}
-                    />
-                    <div
-                      className="bg-red-900 text-white text-xs font-black
-                    px-0.5 flex items-center justify-center rounded-md border border-white/20"
-                    >
-                      <Skull size={14} /> : {game.dead_piles_count}
-                    </div>
-                  </div>
-
-                  {/* MEU TIME (NÓS) */}
-
-                  <div className="flex flex-col items-center leading-none px-1 gap-0.5">
-                    <div className="flex flex-col md:flex-row  gap-1">
-                      {Object.entries(game.players_data)
-
-                        .filter(([id]) => Number(id) % 2 === my_player_id % 2)
-
-                        .map(([id, p]) => (
-                          <div
-                            key={id}
-                            className={`flex items-center rounded px-1.5 py-0.5 shadow-sm transition-all ${
-                              Number(id) === game.current_player
-                                ? "bg-yellow-500/20 border border-yellow-400 ring-1 ring-yellow-400/50 animate-pulse"
-                                : "bg-blue-900/40 border border-blue-500/30"
-                            }`}
-                          >
-                            <span
-                              className={`text-[9px] font-bold mr-1 opacity-80 ${
-                                Number(id) === game.current_player
-                                  ? "text-yellow-100"
-                                  : "text-blue-100"
-                              }`}
-                            >
-                              {p.userName.substring(0, 8).toUpperCase()}
-                            </span>
-
-                            <span className="text-[9px] flex gap-x-1 items-center font-black text-white">
-                              <Hand size={12} />{" "}
-                              {typeof game.hands[Number(id)] === "number"
-                                ? (game.hands[Number(id)] as number)
-                                : (game.hands[Number(id)] as Card[])?.length ||
-                                  0}
-                            </span>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-
-                  {/* CENTER: TURN INFO OR EVENT BAR */}
-
-                  <div className="flex flex-col items-center bg-black/40 backdrop-blur-sm px-3 py-1 rounded-lg border border-white/10 shadow-lg mx-1 min-w-[80px] h-[38px] justify-center relative overflow-hidden">
-                    {game.recentEvents && game.recentEvents.length > 0 ? (
-                      <EventBar
-                        message={
-                          game.recentEvents[game.recentEvents.length - 1]
-                            .message
-                        }
-                        type={
-                          game.recentEvents[game.recentEvents.length - 1].type
-                        }
-                      />
-                    ) : (
-                      <>
-                        <span
-                          className={`text-[8px] font-black ${
-                            isMyTurn
-                              ? "text-yellow-400 animate-pulse"
-                              : "text-white/40"
-                          } uppercase tracking-widest`}
-                        >
-                          {isMyTurn ? "SUA VEZ" : "VEZ DELES"}
-                        </span>
-
-                        <span className="text-[9px] text-gray-400 uppercase font-bold tracking-tight mt-0.5">
-                          {game.turn_phase === "DRAW" ? "COMPRA" : "JOGA"}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                  {/* TIME DELES (ELES) */}
-
-                  <div className="flex flex-col items-center leading-none px-1 gap-0.5">
-                    <div className="flex flex-col md:flex-row gap-1">
-                      {Object.entries(game.players_data)
-
-                        .filter(([id]) => Number(id) % 2 !== my_player_id % 2)
-
-                        .map(([id, p]) => (
-                          <div
-                            key={id}
-                            className={`flex items-center rounded px-1.5 py-0.5 shadow-sm transition-all ${
-                              Number(id) === game.current_player
-                                ? "bg-yellow-500/20 border border-yellow-400 ring-1 ring-yellow-400/50 animate-pulse"
-                                : "bg-red-900/40 border border-red-500/30"
-                            }`}
-                          >
-                            <span
-                              className={`text-[9px] font-bold mr-1 opacity-80 ${
-                                Number(id) === game.current_player
-                                  ? "text-yellow-100"
-                                  : "text-red-100"
-                              }`}
-                            >
-                              {p.userName.substring(0, 8).toUpperCase()}
-                            </span>
-
-                            <span className="text-[9px] flex gap-x-1 items-center font-black text-white">
-                              <Hand size={12} />{" "}
-                              {typeof game.hands[Number(id)] === "number"
-                                ? (game.hands[Number(id)] as number)
-                                : (game.hands[Number(id)] as Card[])?.length ||
-                                  0}
-                            </span>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-
-                  {/* MOBILE: DISCARD ON RIGHT */}
-                  <div className="relative h-full py-1 flex items-center shrink-0 no-drag">
-                    <DiscardCard
-                      card={game.discard_pile[0]}
-                      quantity={game.discard_pile.length}
-                      onClick={handleDiscardClick}
-                      mini={true}
-                      isActionable={
-                        canDraw || (canAction && selectedCards.length === 1)
-                      }
-                      highlight={isDiscardSelected || hoveredMeld !== null}
-                      subtleHighlight={canAction && selectedCards.length === 1}
-                      originDirection={discardOriginDirection}
-                    />
-                  </div>
-                </>
+                <GameSeparatorMobile {...layoutProps} my_player_id={my_player_id} />
               ) : (
-                /* DESKTOP: JOGADORES */
-                <div className="flex h-full gap-2 items-center w-full justify-between overflow-x-auto scrollbar-hide">
-                  {Object.entries(game.players_data).map(([id, p]) => {
-                    return (
-                      <Fragment key={`${id}_${p.userName}`}>
-                        {" "}
-                        <div
-                          ref={(el) => {
-                            playerRefs.current[id] = el;
-                          }}
-                          className={`relative shrink-0 flex items-center justify-center px-3 py-1 
-                      md:px-2 md:py-0.5 rounded-lg border transition-all ${
-                        Number(id) === game.current_player
-                          ? "border-yellow-400/80 bg-yellow-500/20 ring-1 ring-yellow-400/50 animate-pulse shadow-[0_0_10px_rgba(250,204,21,0.3)]"
-                          : "border-white/5 bg-black/20"
-                      }`}
-                        >
-                          <span
-                            className={`flex text-[10px] md:text-sm font-black uppercase ${
-                              Number(id) % 2 === my_player_id % 2
-                                ? "text-blue-300"
-                                : "text-red-300"
-                            }`}
-                          >
-                            {p.userName.substring(0, 8)}
-                            <span className="text-gray-500 mx-1">
-                              <Hand size={16} />{" "}
-                            </span>
-                          </span>
-                          <span className="text-[10px] md:text-sm font-mono font-bold text-white">
-                            {typeof game.hands[Number(id)] === "number"
-                              ? (game.hands[Number(id)] as number)
-                              : (game.hands[Number(id)] as Card[])?.length || 0}
-                          </span>
-                          <span className="flex items-center">
-                            <>
-                              {" "}
-                              {game.turn_phase === "DRAW" &&
-                                Number(id) === game.current_player && (
-                                  <>
-                                    <Dot size={16} />{" "}
-                                    <ShoppingCart size={16} fill="white" />
-                                  </>
-                                )}
-                              {game.turn_phase === "ACTION" &&
-                                Number(id) === game.current_player && (
-                                  <>
-                                    <Dot size={16} />{" "}
-                                    <Trash size={16} fill="white" />
-                                  </>
-                                )}
-                            </>
-                          </span>
-                        </div>
-                      </Fragment>
-                    );
-                  })}
-                </div>
+                <GameSeparatorDesktop {...layoutProps} my_player_id={my_player_id} />
               )}
             </div>
           </motion.section>
@@ -587,70 +407,11 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
             className="h-36 md:h-[20%] bg-linear-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md px-2 pb-2 z-40
            relative w-full flex items-end justify-between gap-2 md:gap-6 pointer-events-none"
           >
-            {/*  DESKTOP LEFT: DECK PILE */}
-            {!isMobile && (
-              <div className="flex flex-col items-center gap-2 shrink-0 pb-1 relative pointer-events-auto">
-                <PileCard
-                  onClick={handleDeckClick}
-                  active={canDraw}
-                  mini={isMobile}
-                  quantity={game.deck_count}
-                  dead_piles={game.dead_piles_count}
-                  draw_phase={game.turn_phase === "DRAW"}
-                />
-
-                {/* Contadores */}
-                {/* contador de mortos */}
-                <div
-                  title="Quantidade de mortos"
-                  className={`z-50 w-fit px-2 py-1 text-xs bg-red-600 text-white font-black 
-                flex items-center justify-center rounded-full shadow-lg border border-white/20`}
-                >
-                  <Skull size={16} />: {game.dead_piles_count}{" "}
-                  <span className="font-light">{"/2"}</span>
-                </div>
-              </div>
-            )}
-
-            {/* CENTER: PLAYER HAND */}
             {isMobile ? (
-              <MobilePlayerHand
-                cards={(game.hands[my_player_id] as Card[]) || []}
-                selectedCardIds={selectedCards}
-                lastDrawnCardId={game.last_drawn_card_id}
-                onCardClick={toggleSelect}
-                onSortHand={game.sort_hand}
-              />
+              <GameFooterMobile {...layoutProps} my_player_id={my_player_id} />
             ) : (
-              <PlayerHand
-                cards={(game.hands[my_player_id] as Card[]) || []}
-                selectedCardIds={selectedCards}
-                lastDrawnCardId={game.last_drawn_card_id}
-                onCardClick={toggleSelect}
-                onSortHand={game.sort_hand}
-                isMobile={false}
-              />
+              <GameFooterDesktop {...layoutProps} my_player_id={my_player_id} />
             )}
-            {/* RIGHT: DISCARD PILE */}
-            {!isMobile && (
-              <div className="shrink-0 pb-1 relative pointer-events-auto">
-                <DiscardCard
-                  card={game.discard_pile[0]}
-                  quantity={game.discard_pile.length}
-                  onClick={handleDiscardClick}
-                  isActionable={
-                    canDraw || (canAction && selectedCards.length === 1)
-                  }
-                  highlight={isDiscardSelected || hoveredMeld !== null}
-                  subtleHighlight={canAction && selectedCards.length === 1}
-                  mini={isMobile}
-                  originDirection={discardOriginDirection}
-                />
-                {/* Morto Contador */}
-              </div>
-            )}
-
-            {/* ADICIONE AQUI UM TOASTER para informar jogadas - por exemplo: Jogador['nome do jogador'] pegou o morto */}
 
             {/* ERROR TOAST */}
             {game.last_error && (

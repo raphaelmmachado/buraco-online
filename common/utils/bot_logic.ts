@@ -39,7 +39,9 @@ export const find_meld_in_hand = (
   hand: Card[],
   team_melds: Card[][] = [],
   has_taken_dead_pile: boolean = false,
-  has_clean_canastra: boolean = false
+  has_clean_canastra: boolean = false,
+  is_desperate_to_close: boolean = false,
+  is_2v2: boolean = false
 ): Card[] | null => {
   const all_potential_melds: PotentialMeld[] = [];
   const suits = group_by_suit(hand);
@@ -53,7 +55,7 @@ export const find_meld_in_hand = (
     for (let len = cards.length; len >= 3; len--) {
         for (let i = 0; i <= cards.length - len; i++) {
             const sub = cards.slice(i, i + len);
-            const validation = get_sequence_details(sub); // Use get_sequence_details for full info
+            const validation = get_sequence_details(sub); 
             if (validation.is_valid) {
                 all_potential_melds.push({ cards: sub, validation: validation as ValidSequence });
             }
@@ -62,7 +64,6 @@ export const find_meld_in_hand = (
   }
 
   // 2. Tenta sequências COM CURINGA (mesmo naipe)
-  // LÓGICA MELHORADA: Tenta encontrar o MAIOR jogo possível (Cluster) usando o curinga como ponte
   if (wildcards.length > 0) {
       for (const wc of wildcards) {
           const hand_without_wc = hand.filter(c => c.id !== wc.id);
@@ -73,8 +74,6 @@ export const find_meld_in_hand = (
               if (cards.length < 2) continue;
 
               // A. Tenta ponte inteligente (CLUSTERING)
-              // Agrupa cartas que estão próximas (distância <= 2, ou seja, buraco de 1 carta que o curinga resolve)
-              // Ex: 3,4,5 ... 7,8,9 -> Gap entre 5 e 7 é 2. Curinga resolve. Cluster: 3,4,5,7,8,9
               let current_cluster: Card[] = [cards[0]];
               
               for (let i = 0; i < cards.length - 1; i++) {
@@ -84,7 +83,6 @@ export const find_meld_in_hand = (
                   if (curr_rank && next_rank && (next_rank - curr_rank) <= 2) {
                       current_cluster.push(cards[i+1]);
                   } else {
-                      // Cluster quebrou. Testa o cluster atual se for grande o suficiente
                       if (current_cluster.length >= 2) {
                           const attempt = [...current_cluster, wc];
                           const validation = get_sequence_details(attempt);
@@ -95,7 +93,6 @@ export const find_meld_in_hand = (
                       current_cluster = [cards[i+1]];
                   }
               }
-              // Testa o último cluster
               if (current_cluster.length >= 2) {
                   const attempt = [...current_cluster, wc];
                   const validation = get_sequence_details(attempt);
@@ -104,11 +101,11 @@ export const find_meld_in_hand = (
                   }
               }
 
-              // B. Fallback: Força bruta em trincas (para casos onde o cluster falha ou é complexo)
+              // B. Fallback: Força bruta em trincas
               for (let i = 0; i < cards.length - 1; i++) {
                   for (let j = i + 1; j < cards.length; j++) {
                       const attempt = [cards[i], cards[j], wc];
-                      const validation = get_sequence_details(attempt); // Use get_sequence_details
+                      const validation = get_sequence_details(attempt); 
                       if (validation.is_valid) {
                           all_potential_melds.push({ cards: organize_meld(attempt), validation: validation as ValidSequence });
                       }
@@ -118,8 +115,7 @@ export const find_meld_in_hand = (
       }
   }
 
-  // Now, evaluate all potential melds and choose the best one
-  const bestMeld = evaluate_potential_melds(all_potential_melds, hand, team_melds, has_taken_dead_pile, has_clean_canastra);
+  const bestMeld = evaluate_potential_melds(all_potential_melds, hand, team_melds, has_taken_dead_pile, has_clean_canastra, is_desperate_to_close, is_2v2);
 
   return bestMeld ? bestMeld.cards : null;
 };
@@ -171,7 +167,9 @@ const evaluate_potential_melds = (
   currentHand: Card[],
   team_melds: Card[][],
   hasTakenDeadPile: boolean,
-  hasCleanCanastra: boolean
+  hasCleanCanastra: boolean,
+  isDesperate: boolean = false,
+  is_2v2: boolean = false
 ): PotentialMeld | null => {
   let bestMeld: PotentialMeld | null = null;
   let highestScore = -Infinity;
@@ -194,7 +192,15 @@ const evaluate_potential_melds = (
       score -= 20;
     }
 
-    // 2. Soft Lock Prevention
+    // 2. 2v2 & New Dirty Meld Penalty
+    // Se for um NOVO jogo (não está na mesa) e for SUJO, em 2v2 penaliza fortemente 
+    // para esperar o parceiro ou a carta natural.
+    if (is_2v2 && !validation.is_clean && !isDesperate) {
+        score -= 300; // Penalidade pesada
+        console.log(`[BOT LOGIC] Penalty applied for starting new dirty meld in 2v2.`);
+    }
+
+    // 3. Soft Lock Prevention
     const remainingHand = remove_cards_from_hand(currentHand, cards);
     if (hasTakenDeadPile && !hasCleanCanastra && remainingHand.length < 2) {
       score -= 1000;
@@ -284,7 +290,8 @@ export const find_card_to_add = (
     has_taken_dead_pile: boolean,
     has_clean_canastra: boolean = false,
     is_desperate_to_close: boolean = false,
-    all_played_cards: Card[] = []
+    all_played_cards: Card[] = [],
+    is_2v2: boolean = false
 ): Card | null => {
   const target_suit = meld.find(c => c.value !== "2")?.suit.name;
   if (!target_suit) return null;
@@ -298,7 +305,7 @@ export const find_card_to_add = (
       const wildcard = meld.find(c => c.value === "2" && c.suit.name !== target_suit);
       if (wildcard) {
           console.log(`[BOT LOGIC] REJECTED adding to meld: It's a dirty canasta with an off-suit joker, making it uncleanable. Better to start a new meld.`);
-          return null; // Don't add cards to a dead-end canasta
+          return null; 
       }
   }
 
@@ -324,12 +331,6 @@ export const find_card_to_add = (
         // SOFT LOCK PROTECTION
         if (has_taken_dead_pile && !has_clean_canastra) {
             const is_now_canastra = validation.is_valid && (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE');
-            // Se jogar esta carta me deixar com 1 na mão (que terei que descartar), e não for pra bater com canastra, REJEITA.
-            if (!is_now_canastra && hand.length < 2) { // hand.length < 2 significa que já só tem 1 carta (estranho, mas possível se algo falhou)
-                 console.log(`[BOT LOGIC] Card ${card.value} rejected: Already at minimum hand size (1).`);
-                 continue;
-            }
-            // Se jogar esta carta me deixar com 1 na mão (hand.length-1 === 1), e não for pra bater com canastra, REJEITA.
             if (!is_now_canastra && hand.length === 2) {
                  console.log(`[BOT LOGIC] Card ${card.value} rejected to avoid soft lock (Hand would become 1).`);
                  continue;
@@ -340,75 +341,85 @@ export const find_card_to_add = (
         // Se o jogo era limpo, e vai ficar sujo com essa carta...
         if (is_currently_clean && !validation.is_clean) {
             
-            // REGRA DE OURO 1: NUNCA sujar uma Canastra Limpa já feita (7+ cartas)
-            // Não importa se precisa de morto ou bater, estragar 200/400 pontos para virar 100 é proibido.
+            // REGRA ABSOLUTA: NUNCA sujar uma Canastra Limpa já feita (7+ cartas)
             if (meld.length >= 7) {
-                console.log(`[BOT LOGIC] REJECTED ${card.value}: Would dirty a Clean Canastra!`);
+                console.log(`[BOT LOGIC] REJECTED ${card.value}: STRICT - Never dirty a finished Clean Canastra!`);
                 continue;
             }
 
+            // NOVA REGRA: Coringa de naipe diferente SÓ EM DESESPERO
+            if (card.value === "2" && card.suit.name !== target_suit) {
+                 if (!is_desperate_to_close) {
+                     console.log(`[BOT LOGIC] REJECTED ${card.value}: Off-suit joker allowed ONLY in desperation.`);
+                     continue;
+                 }
+            }
+
             // EXCEÇÃO 1: Joker Limpável (Mesmo Naipe)
-            // Se o curinga for do mesmo naipe, ele pode virar carta limpa depois. É aceitável.
             if (card.value === "2" && card.suit.name === target_suit) {
+                 // REGRA DE PACIÊNCIA: Quase Canastra
+                 // Se falta pouco para canastra (tem 6+ cartas), NÃO use o coringa.
+                 // Espere a carta natural para garantir os 200 pontos da limpa direto.
+                 // Usar o coringa agora transformaria em suja (100 pts) temporariamente.
+                 if (meld.length >= 6 && !is_desperate_to_close) {
+                     console.log(`[BOT LOGIC] REJECTED ${card.value}: Patience! Waiting for natural card to complete Clean Canastra (Size: ${meld.length}).`);
+                     continue;
+                 }
+
                  console.log(`[BOT LOGIC] ALLOWED ${card.value}: Same-suit joker is cleanable.`);
                  return card;
             }
 
             // EXCEÇÃO 2: Cartas Mortas (Impossível Limpar)
-            // Se as cartas necessárias para completar a sequência natural já foram jogadas (estão no lixo/mesa),
-            // então não adianta esperar. Pode sujar.
+            // Se as cartas para fechar a sequência natural já saíram, pode sujar (se < 7 cartas)
             const meld_details = get_sequence_details(meld);
             if (meld_details.is_valid && all_played_cards.length > 0) {
                  const rank_needed_start = meld_details.start_weight - 1;
                  const rank_needed_end = meld_details.end_weight + 1;
                  
-                 let start_blocked = rank_needed_start < 3; // Blocked if needed is below 3 (impossible)
-                 let end_blocked = rank_needed_end > 14; // Blocked if needed is above Ace (impossible)
+                 let start_blocked = rank_needed_start < 1; 
+                 let end_blocked = rank_needed_end > 14; 
 
                  if (!start_blocked) {
-                     // Check if all copies of the needed start card are played
-                     const start_needed_card_val = Object.keys(RANK_MAP).find(k => RANK_MAP[k] === rank_needed_start);
-                     if (start_needed_card_val) {
-                         const copies_played = all_played_cards.filter(c => c.value === start_needed_card_val && c.suit.name === target_suit).length;
-                         // In Buraco there are 2 decks, so 2 copies of each card.
-                         // But wait, the BOT might have one in hand?
-                         // all_played_cards usually includes discard + table. Hand is separate.
-                         // We should check: (copies_played + copies_in_hand) >= 2
-                         const copies_in_hand = hand.filter(c => c.value === start_needed_card_val && c.suit.name === target_suit).length;
-                         if (copies_played + copies_in_hand >= 2) start_blocked = true;
+                     const start_val = Object.keys(RANK_MAP).find(k => RANK_MAP[k] === rank_needed_start);
+                     if (start_val) {
+                         const played = all_played_cards.filter(c => c.value === start_val && c.suit.name === target_suit).length;
+                         const in_hand = hand.filter(c => c.value === start_val && c.suit.name === target_suit).length;
+                         if (played + in_hand >= 2) start_blocked = true;
                      }
                  }
 
                  if (!end_blocked) {
-                     const end_needed_card_val = Object.keys(RANK_MAP).find(k => RANK_MAP[k] === rank_needed_end);
-                     if (end_needed_card_val) {
-                         const copies_played = all_played_cards.filter(c => c.value === end_needed_card_val && c.suit.name === target_suit).length;
-                         const copies_in_hand = hand.filter(c => c.value === end_needed_card_val && c.suit.name === target_suit).length;
-                         if (copies_played + copies_in_hand >= 2) end_blocked = true;
+                     const end_val = Object.keys(RANK_MAP).find(k => RANK_MAP[k] === rank_needed_end);
+                     if (end_val) {
+                         const played = all_played_cards.filter(c => c.value === end_val && c.suit.name === target_suit).length;
+                         const in_hand = hand.filter(c => c.value === end_val && c.suit.name === target_suit).length;
+                         if (played + in_hand >= 2) end_blocked = true;
                      }
                  }
 
-                 // If purely a sequence extension (not internal hole fill, which 2 usually isn't in simple validation),
-                 // and both ends are blocked, then it's impossible to clean naturally.
                  if (start_blocked && end_blocked) {
-                      console.log(`[BOT LOGIC] ALLOWED ${card.value}: Dirtying because natural growth is blocked (Dead Cards).`);
+                      console.log(`[BOT LOGIC] ALLOWED ${card.value}: Dirtying because natural growth is impossible (Dead Cards).`);
                       return card;
                  }
             }
 
+            // REGRA: ESPERAR PARCEIRO (2v2)
+            // No modo 2v2, se o jogo é limpo e < 7, o bot evita sujar para dar chance ao parceiro.
+            if (is_2v2 && !is_desperate_to_close) {
+                console.log(`[BOT LOGIC] REJECTED ${card.value}: Waiting for partner to clean/complement naturally (2v2 mode).`);
+                continue;
+            }
 
-            // REGRA DE OURO 2: PRIORIDADE AOS 200 PONTOS (Clean Canastra)
-            // A obsessão pelo morto não paga a diferença de pontos de uma limpa (200) para uma suja (100).
-            // A menos que estejamos desesperados (fim de jogo ou perdendo feio - is_desperate_to_close),
-            // preferimos segurar o curinga e tentar comprar a carta limpa.
+            // Se não for desespero nem carta morta, preserva o jogo limpo.
             if (!is_desperate_to_close) {
                  console.log(`[BOT LOGIC] REJECTED ${card.value}: Saving clean meld for potential 200pts bonus.`);
                  continue;
             }
 
-            // Regra de Desespero: Se estou desesperado (batida final ou perdendo muito), PODE SUJAR!
+            // Regra de Desespero
             if (is_desperate_to_close) {
-                console.log(`[BOT LOGIC] Dirtying clean meld with ${card.value} because DESPERATE to close/dead pile.`);
+                console.log(`[BOT LOGIC] Dirtying clean meld with ${card.value} because DESPERATE.`);
                 return card; 
             }
         }
@@ -537,6 +548,42 @@ export const analyze_discard_pickup = (
         // Regra: Pegar lixo para novo jogo exige jogo LIMPO (sem curinga)
         // A validação 'is_clean' já garante isso, mas reforçando:
         if (validation.is_valid && validation.is_clean) {
+          // NOVA REGRA: Evitar dividir sequências do mesmo naipe (Dream of 1000 points)
+          const new_meld_details = get_sequence_details(attempt);
+          if (!new_meld_details.is_valid) continue; // Should be valid, but required for TS type narrowing
+
+          let is_split_risk = false;
+
+          for (const existing_meld of team_melds) {
+            const target_suit = existing_meld.find(c => c.value !== "2")?.suit.name;
+            if (target_suit === top_discard.suit.name) {
+              const existing_details = get_sequence_details(existing_meld);
+              if (existing_details.is_valid) {
+                const gap = Math.min(
+                  Math.abs(new_meld_details.start_weight - existing_details.end_weight),
+                  Math.abs(existing_details.start_weight - new_meld_details.end_weight)
+                );
+                
+                // Check if existing is a "dead end" (uncleanable dirty canasta)
+                // If it is, we don't mind splitting because we can't merge cleanly anyway/it's already 'bad'.
+                // But if it's small (clean or dirty) or large clean, we want to preserve it.
+                const is_existing_dead_end = existing_meld.length >= 7 && 
+                                             !existing_details.is_clean && 
+                                             existing_meld.some(c => c.value === '2' && c.suit.name !== target_suit);
+
+                // Se o gap é pequeno (ex: 1 a 4), e o jogo existente não é um "dead end",
+                // NÃO abre um novo jogo separado. Espera para unir.
+                if (gap > 0 && gap <= 4 && !is_existing_dead_end) {
+                   console.log(`[BOT LOGIC] Pickup Rejected: Avoiding split sequence in ${target_suit} (Gap: ${gap}). Preservation for long canastra.`);
+                   is_split_risk = true;
+                   break;
+                }
+              }
+            }
+          }
+
+          if (is_split_risk) continue;
+
           // Proteção contra Soft Lock
           if (has_taken_dead_pile && !has_clean_canastra) {
               const is_now_canastra = validation.is_valid && (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE');

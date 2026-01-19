@@ -194,9 +194,11 @@ export const PlayerHand = ({
 
               const isLastDrawn = card.id === lastDrawnCardId;
 
-              const initialPos = isLastDrawn
-                ? { opacity: 0, x: -600, y: 0, scale: 0.6, rotate: -20 } // Vem do Deck (Esquerda)
-                : { opacity: 0, x: 0, y: 200, scale: 0.5 }; // Deal (Baixo)
+              const initialPos = !showAnimations 
+                ? false // Disable initial animation
+                : (isLastDrawn
+                    ? { opacity: 0, x: -600, y: 0, scale: 0.6, rotate: -20 } // Vem do Deck (Esquerda)
+                    : { opacity: 0, x: 0, y: 200, scale: 0.5 }); // Deal (Baixo)
 
               const bottomPos = isMobile
                 ? HAND_CONFIG.position.bottomOffsetMobile
@@ -205,8 +207,8 @@ export const PlayerHand = ({
               return (
                 <motion.div
                   key={card.id}
-                  layoutId={card.id}
-                  layout
+                  layoutId={showAnimations ? card.id : undefined}
+                  layout={showAnimations}
                   initial={initialPos}
                   animate={{
                     opacity: 1,

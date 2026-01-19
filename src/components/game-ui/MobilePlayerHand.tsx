@@ -53,15 +53,17 @@ export const MobilePlayerHand = ({
               
               // Se foi a última comprada, vem do Deck (Cima Esquerda aprox). 
               // Se for deal inicial, vem da esquerda lateral.
-              const initialPos = isLastDrawn 
-                 ? { opacity: 0, x: -100, y: -200, scale: 0.4, rotate: -45 }
-                 : { opacity: 0, x: -50, scale: 0.5 };
+              const initialPos = !showAnimations 
+                ? false 
+                : (isLastDrawn 
+                    ? { opacity: 0, x: -100, y: -200, scale: 0.4, rotate: -45 }
+                    : { opacity: 0, x: -50, scale: 0.5 });
 
               return (
                 <motion.div
                   key={card.id}
-                  layoutId={card.id}
-                  layout
+                  layoutId={showAnimations ? card.id : undefined}
+                  layout={showAnimations}
                   initial={initialPos}
                   animate={{
                     opacity: 1,

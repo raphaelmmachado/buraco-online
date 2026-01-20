@@ -2,9 +2,9 @@ import { Server, Socket } from "socket.io";
 import { games, saveState } from "../state";
 import { create_deck, distribute_cards } from "../../common/utils/game_logic";
 import { sort_cards } from "../../common/utils/sort_cards";
-import { get_player_id_by_socket } from "../services/gameService";
+import { get_player_id_by_socket, start_next_round, start_new_match } from "../services/gameService";
 import { broadcast_game_update } from "../services/botService";
-import { type PlayerID, type GameMode } from "../types";
+import { type PlayerID, type GameMode, type WinCondition } from "../types";
 import { startTurnTimer } from "../services/timerService";
 
 export const registerRoomHandlers = (io: Server, socket: Socket) => {
@@ -251,6 +251,8 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
           players_data: {},
           last_drawn_card_id: null,
           final_score: null,
+          cumulative_score: { team_1: 0, team_2: 0 },
+          round_count: 1,
         };
         saveState();
       }
@@ -404,7 +406,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
     }
   );
 
-  socket.on("action_start_game", ({ roomId }: { roomId: string }) => {
+  socket.on("action_start_game", ({ roomId, winCondition }: { roomId: string, winCondition?: WinCondition }) => {
     const game = games[roomId];
     if (!game) return;
 
@@ -424,7 +426,36 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
       return;
     }
 
-    game.status = "PLAYING";
+    if (game.status !== "LOBBY") {
+        start_new_match(game);
+    } else {
+        game.status = "PLAYING";
+    }
+
+    if (winCondition) {
+        game.win_condition = winCondition;
+    }
+    
+    startTurnTimer(io, roomId);
+    broadcast_game_update(io, roomId);
+  });
+
+  socket.on("action_next_round", ({ roomId }: { roomId: string }) => {
+    const game = games[roomId];
+    if (!game) return;
+
+    const player_id = get_player_id_by_socket(game, socket.id);
+    if (player_id !== 1) {
+        socket.emit("error_msg", "Apenas o dono da sala pode iniciar a próxima rodada.");
+        return;
+    }
+
+    if (game.status !== "ROUND_OVER") {
+        socket.emit("error_msg", "A rodada ainda não acabou.");
+        return;
+    }
+
+    start_next_round(game);
     startTurnTimer(io, roomId);
     broadcast_game_update(io, roomId);
   });

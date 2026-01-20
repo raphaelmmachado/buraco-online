@@ -26,15 +26,6 @@ _Foco: Tornar a partida mais interessante e estratégica._
   - **Tempo Estimado:** 4 - 5 horas.
   - **Detalhes:** Exige criar um estado persistente de `cumulative_score` no servidor que não zera ao fim da rodada (`handle_empty_hand`), apenas reseta o baralho.
 
-- [ ] **IA v2: Máquina de Estados (Bot Estratégico)**
-  - **Objetivo:** Fazer o bot parar de ser apenas "ganancioso".
-  - **Complexidade:** Alta.
-  - **Tempo Estimado:** 6 - 8 horas.
-  - **Estrutura Proposta:**
-    1.  _Early Game:_ Foco total em formar canastras (de preferência limpas), checar as cartas que o amigo está jogando fora.
-    2.  _Mid Game:_ Foco em limpar canastras, e não dar o lixo.
-    3.  _End Game:_ Foco em soltar as cartas da mão antes que o jogo acabe.
-
 ---
 
 ## 3. Redesign Visual Radical (Estilo Balatro) 🎨

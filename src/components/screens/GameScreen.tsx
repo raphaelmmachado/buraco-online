@@ -8,6 +8,7 @@ import { GameMenu } from "../game-ui/GameMenu";
 import { HowToPlay } from "../game-ui/HowToPlay";
 import { FinishScreen } from "./FinishScreen";
 import { type GameAdapterInterface } from "../game-ui/useLocalGameAdapter";
+import { OpponentsHandsLayer } from "../game-ui/OpponentsHandsLayer";
 
 // Custom Hooks
 import { useWakeLock } from "../../hooks/useWakeLock";
@@ -32,6 +33,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   // State
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [showOpponentHands, setShowOpponentHands] = useState(true);
   const [hoveredMeld, setHoveredMeld] = useState<{
     teamId: number;
     index: number;
@@ -235,6 +237,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           id="game-screen"
           className="h-screen w-screen bg-[#0f2e1a] text-white overflow-hidden flex flex-col select-none relative font-sans"
         >
+          <OpponentsHandsLayer game={game} visible={showOpponentHands} />
           {/* == PORTAL RENDERER FOR EVENTS == */}
           {!isMobile && (
             <Portal>
@@ -290,6 +293,8 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               showAnimations={game.showAnimations}
               toggleAnimations={game.toggleAnimations}
               onOpenHowToPlay={() => setShowHowToPlay(true)}
+              showOpponentHands={showOpponentHands}
+              toggleOpponentHands={() => setShowOpponentHands(!showOpponentHands)}
             />
           </div>
 

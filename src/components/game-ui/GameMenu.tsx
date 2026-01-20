@@ -7,6 +7,8 @@ import {
   Zap,
   ZapOff,
   HelpCircle,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useGameStore } from "../../store/useGameStore";
 
@@ -16,6 +18,8 @@ interface GameMenuProps {
   onLeave?: () => void;
   showAnimations?: boolean;
   toggleAnimations?: () => void;
+  showOpponentHands?: boolean;
+  toggleOpponentHands?: () => void;
 }
 
 export const GameMenu = ({
@@ -23,6 +27,8 @@ export const GameMenu = ({
   onLeave,
   showAnimations,
   toggleAnimations,
+  showOpponentHands,
+  toggleOpponentHands,
 }: GameMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const toggleMute = useGameStore((state) => state.toggleMute);
@@ -58,6 +64,18 @@ export const GameMenu = ({
             >
               {showAnimations ? <Zap size={16} /> : <ZapOff size={16} />}
               {showAnimations ? "Animações: ON" : "Animações: OFF"}
+            </button>
+          )}
+
+          {toggleOpponentHands && (
+            <button
+              onClick={() => {
+                toggleOpponentHands();
+              }}
+              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-bold text-slate-300 hover:bg-white/10 hover:text-white transition-all"
+            >
+              {showOpponentHands ? <Eye size={16} /> : <EyeOff size={16} />}
+              {showOpponentHands ? "Mãos: ON" : "Mãos: OFF"}
             </button>
           )}
 

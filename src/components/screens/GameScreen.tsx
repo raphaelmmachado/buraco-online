@@ -233,11 +233,11 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
       }
     >
       <LayoutGroup>
+        <OpponentsHandsLayer game={game} visible={showOpponentHands} />
         <main
           id="game-screen"
           className="h-screen w-screen bg-[#0f2e1a] text-white overflow-hidden flex flex-col select-none relative font-sans"
         >
-          <OpponentsHandsLayer game={game} visible={showOpponentHands} />
           {/* == PORTAL RENDERER FOR EVENTS == */}
           {!isMobile && (
             <Portal>

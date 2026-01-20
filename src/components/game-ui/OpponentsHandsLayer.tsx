@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { type GameAdapterInterface } from "./useLocalGameAdapter";
 import { getPlayerDirection, type ScreenDirection } from "../../utils/animation_utils";
 import { CardBack } from "./CardBack";
+import Portal from "../ui/Portal";
 
 interface OpponentsHandsLayerProps {
   game: GameAdapterInterface;
@@ -40,16 +41,18 @@ export const OpponentsHandsLayer = ({ game, visible }: OpponentsHandsLayerProps)
   if (!visible) return null;
 
   return (
-    <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
-      {othersHands.map((hand) => (
-        <OpponentHand
-          key={hand.id}
-          count={hand.count}
-          direction={hand.direction}
-          isTeammate={hand.isTeammate}
-        />
-      ))}
-    </div>
+    <Portal>
+      <div className="fixed inset-0 pointer-events-none z-[100]">
+        {othersHands.map((hand) => (
+          <OpponentHand
+            key={hand.id}
+            count={hand.count}
+            direction={hand.direction}
+            isTeammate={hand.isTeammate}
+          />
+        ))}
+      </div>
+    </Portal>
   );
 };
 
@@ -82,30 +85,44 @@ const OpponentHand = ({ count, direction, isTeammate }: OpponentHandProps) => {
   // Just a simple row/column for now
   
   const getContainerStyle = (): React.CSSProperties => {
+    // Strategy:
+    // 1. Position at the center of the edge (top: 50%, left: 0 for left hand).
+    // 2. Center the element itself (translate -50%, -50%).
+    // 3. Rotate.
+    // 4. Adjust "Tuck" (Peek) using translateY in the LOCAL axis after rotation.
+    //    - Card Height (56px) is the dimension perpendicular to the edge.
+    //    - We start centered (28px visible).
+    //    - We want ~15px visible.
+    //    - Need to push "Out" by ~13px (approx 25% of 56px).
+    //    - After 90deg rotation (CW), Y points Left (Out). So translateY(25%).
+    //    - After -90deg rotation (CCW), Y points Right (Out). So translateY(25%).
+
     switch (direction) {
       case "top":
         return {
-          top: "-30px", // Pull up to show only tip
+          top: "0", 
           left: "50%",
-          transform: "translateX(-50%)",
+          transform: "translate(-50%, -75%)", 
           display: "flex",
           justifyContent: "center",
-          gap: `${-spacing}px`, // Overlap
+          gap: `${-spacing}px`, 
         };
       case "left":
         return {
-          left: "-30px",
-          top: "40%", // Slightly above center to avoid footer overlap
-          transform: "translateY(-50%) rotate(90deg)",
+          left: "0",
+          top: "50%", 
+          transformOrigin: "center center",
+          transform: "translate(-50%, -50%) rotate(90deg) translateY(25%)", 
           display: "flex",
           justifyContent: "center",
           gap: `${-spacing}px`,
         };
       case "right":
         return {
-          right: "-30px",
-          top: "40%",
-          transform: "translateY(-50%) rotate(-90deg)",
+          right: "0",
+          top: "50%",
+          transformOrigin: "center center",
+          transform: "translate(50%, -50%) rotate(-90deg) translateY(25%)",
           display: "flex",
           justifyContent: "center",
           gap: `${-spacing}px`,
@@ -116,15 +133,15 @@ const OpponentHand = ({ count, direction, isTeammate }: OpponentHandProps) => {
   };
 
   return (
-    <div style={getContainerStyle()} className="absolute pointer-events-auto filter drop-shadow-md">
+    <div style={getContainerStyle()} className="absolute pointer-events-auto filter drop-shadow-md z-0 transition-transform duration-300">
        {Array.from({ length: count }).map((_, i) => (
          <div 
             key={i} 
             style={{ 
                 width: cardWidth, 
                 height: cardHeight,
-                // Simple fan rotation effect could go here
-                transform: `translateY(${i % 2 === 0 ? 0 : 2}px)` // Little jiggle
+                transform: `translateY(${i % 2 === 0 ? 0 : 4}px) rotate(${ (i - count/2) * 2 }deg)`, // Leve leque
+                transformOrigin: "top center",
             }}
          >
             <CardBack color={color} />

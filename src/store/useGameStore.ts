@@ -5,10 +5,14 @@ import { SERVER_ADDRESS } from "../../common/const/server-address";
 
 import { type ScoreResult } from "../../common/utils/scoring";
 
+export type WinCondition = 
+  | { type: "POINTS"; value: number }
+  | { type: "ROUNDS"; value: number };
+
 // 1. O QUE CHEGA DO SERVIDOR
 interface IncomingServerState {
   mode: "1v1" | "2v2";
-  status: "LOBBY" | "PLAYING" | "FINISHED";
+  status: "LOBBY" | "PLAYING" | "ROUND_OVER" | "FINISHED";
   deck_count: number;
   discard_pile: Card[];
   hands: Record<number, Card[] | number>;
@@ -29,6 +33,9 @@ interface IncomingServerState {
     details_t1: ScoreResult;
     details_t2: ScoreResult;
   } | null;
+  cumulative_score?: { team_1: number; team_2: number };
+  round_count?: number;
+  win_condition?: WinCondition;
 }
 
 export interface RoomInfo {
@@ -45,7 +52,7 @@ interface GameState {
   roomId: string;
   my_player_number: number | null;
   my_player_name: string | null;
-  status: "IDLE" | "LOBBY" | "PLAYING" | "FINISHED";
+  status: "IDLE" | "LOBBY" | "PLAYING" | "ROUND_OVER" | "FINISHED";
   rooms: RoomInfo[];
   totalOnline: number;
   onlineNames: string[];
@@ -82,6 +89,9 @@ interface GameState {
     details_t1: ScoreResult;
     details_t2: ScoreResult;
   } | null;
+  cumulative_score: { team_1: number; team_2: number };
+  round_count: number;
+  win_condition?: WinCondition;
 }
 
 interface GameActions {
@@ -98,7 +108,8 @@ interface GameActions {
   pick_up_discard_new_meld: (card_ids: string[]) => void;
   pick_up_discard_add_to_meld: (meld_index: number, card_ids: string[]) => void;
   kickPlayer: (playerId: number) => void;
-  startGame: () => void;
+  startGame: (winCondition?: WinCondition) => void;
+  nextRound: () => void;
   leaveGame: () => void;
   closeRoom: () => void;
   switchTeam: () => void;
@@ -154,6 +165,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   current_player: 1,
   last_drawn_card_id: null,
   final_score: null,
+  cumulative_score: { team_1: 0, team_2: 0 },
+  round_count: 1,
 
   clear_error: () => set({ last_error: null }),
 
@@ -439,6 +452,9 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       players_data: server_data.players_data,
       last_drawn_card_id: server_data.last_drawn_card_id,
       final_score: server_data.final_score,
+      cumulative_score: server_data.cumulative_score || { team_1: 0, team_2: 0 },
+      round_count: server_data.round_count || 1,
+      win_condition: server_data.win_condition,
       last_error: null,
     });
   },
@@ -513,8 +529,13 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     );
   },
 
-  startGame: () => {
+  startGame: (winCondition) => {
     const { roomId } = get();
-    socket.emit("action_start_game", { roomId });
+    socket.emit("action_start_game", { roomId, winCondition });
+  },
+
+  nextRound: () => {
+    const { roomId } = get();
+    socket.emit("action_next_round", { roomId });
   },
 }));

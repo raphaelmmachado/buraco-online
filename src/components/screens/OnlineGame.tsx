@@ -18,7 +18,7 @@ export const OnlineGame = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
   const status = store.status;
 
   // The 'FINISHED' status can be handled here later, maybe showing a summary screen.
-  if (status === "PLAYING" || status === "FINISHED") {
+  if (status === "PLAYING" || status === "FINISHED" || status === "ROUND_OVER") {
     return (
       <Suspense fallback={<LoadingScreen />}>
         <GameScreen game={store} />

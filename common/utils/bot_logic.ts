@@ -324,6 +324,13 @@ export const find_card_to_add = (
   }
 
   for (const card of candidates) {
+    // NOVA REGRA (IMPOSTA PELO USUÁRIO): BOTS PROIBIDOS DE USAR CORINGA DE NAIPE DIFERENTE
+    // Isso evita estragar jogos com coringas que não podem ser limpos ou que sujam desnecessariamente.
+    if (card.value === "2" && card.suit.name !== target_suit) {
+        console.log(`[BOT LOGIC] REJECTED ${card.value}: Off-suit joker PROHIBITED by strict rule.`);
+        continue;
+    }
+
     const attempt = [...meld, card];
     const validation = validate_sequence(attempt);
 
@@ -345,14 +352,6 @@ export const find_card_to_add = (
             if (meld.length >= 7) {
                 console.log(`[BOT LOGIC] REJECTED ${card.value}: STRICT - Never dirty a finished Clean Canastra!`);
                 continue;
-            }
-
-            // NOVA REGRA: Coringa de naipe diferente SÓ EM DESESPERO
-            if (card.value === "2" && card.suit.name !== target_suit) {
-                 if (!is_desperate_to_close) {
-                     console.log(`[BOT LOGIC] REJECTED ${card.value}: Off-suit joker allowed ONLY in desperation.`);
-                     continue;
-                 }
             }
 
             // EXCEÇÃO 1: Joker Limpável (Mesmo Naipe)
@@ -460,7 +459,8 @@ export const analyze_discard_pickup = (
     const target_suit = meld.find(c => c.value !== "2")?.suit.name;
     
     // Se a carta do lixo não é curinga e nem do naipe do jogo, ignora (otimização)
-    if (top_discard.value !== "2" && top_discard.suit.name !== target_suit) continue;
+    // NOVA REGRA: Coringa de naipe diferente PROIBIDO. Portanto, só aceita se for do mesmo naipe.
+    if (top_discard.suit.name !== target_suit) continue;
 
     const attempt = [...meld, top_discard];
     const validation = validate_sequence(attempt);

@@ -2,11 +2,12 @@ import { useGameStoreBots as useLocalStore } from "../../store/useGameStoreBots"
 import { useMemo } from "react";
 import type { Card } from "../../../common/types/card";
 import type { ScoreResult } from "../../../common/utils/scoring";
+import type { WinCondition } from "../../store/useGameStore";
 
 // This interface mirrors the one in useGameStore (Online)
 // We are making the Local Store look like the Online Store
 export interface GameAdapterInterface {
-  status: "IDLE" | "LOBBY" | "PLAYING" | "FINISHED";
+  status: "IDLE" | "LOBBY" | "PLAYING" | "ROUND_OVER" | "FINISHED";
   mode: "1v1" | "2v2";
 
   // State
@@ -30,6 +31,9 @@ export interface GameAdapterInterface {
     details_t1: ScoreResult;
     details_t2: ScoreResult;
   } | null;
+  cumulative_score: { team_1: number; team_2: number };
+  round_count: number;
+  win_condition?: WinCondition;
   last_error: string | null;
   showAnimations: boolean;
   cardsPlayedThisTurn: number;
@@ -47,7 +51,8 @@ export interface GameAdapterInterface {
   add_to_meld: (card_ids: string[], meld_index: number) => void;
   pick_up_discard_new_meld: (card_ids: string[]) => void;
   pick_up_discard_add_to_meld: (meld_index: number, card_ids: string[]) => void;
-  startGame: (mode?: "1v1" | "2v2") => void;
+  startGame: (winCondition?: WinCondition) => void;
+  nextRound: () => void;
   leaveGame: () => void;
   sort_hand: () => void;
   clear_error: () => void;
@@ -100,6 +105,9 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
             details_t2: local.final_score.team_2,
           }
         : null,
+      cumulative_score: local.cumulative_score || { team_1: 0, team_2: 0 },
+      round_count: local.round_count || 1,
+      win_condition: local.win_condition,
       last_error: local.last_error,
       showAnimations: local.showAnimations,
       cardsPlayedThisTurn: local.cardsPlayedThisTurn,
@@ -113,6 +121,7 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       pick_up_discard_new_meld: local.pick_up_discard_new_meld,
       pick_up_discard_add_to_meld: local.pick_up_discard_add_to_meld,
       startGame: local.start_game,
+      nextRound: local.next_round,
       leaveGame: () => {
         window.location.reload();
       },

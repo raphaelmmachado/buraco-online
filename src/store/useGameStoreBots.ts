@@ -13,13 +13,14 @@ import {
 } from "../../common/utils/rules_logic";
 
 import { calculate_score, type ScoreResult } from "../../common/utils/scoring";
+import { type WinCondition } from "./useGameStore";
 
 type PlayerID = 1 | 2 | 3 | 4;
 type TeamID = 1 | 2;
 type GameMode = "1v1" | "2v2";
 
 interface GameState {
-  status: "LOBBY" | "PLAYING" | "FINISHED";
+  status: "IDLE" | "LOBBY" | "PLAYING" | "ROUND_OVER" | "FINISHED";
   mode: GameMode;
   deck: Card[];
   discard_pile: Card[];
@@ -31,6 +32,9 @@ interface GameState {
   current_player: PlayerID;
   last_drawn_card_id: string | null;
   final_score: { team_1: ScoreResult; team_2: ScoreResult } | null;
+  cumulative_score: { team_1: number; team_2: number };
+  round_count: number;
+  win_condition?: WinCondition;
   last_error: string | null;
   showAnimations: boolean;
   recentEvents: {
@@ -43,7 +47,8 @@ interface GameState {
 }
 
 interface GameActions {
-  start_game: (mode?: GameMode) => void;
+  start_game: (config?: WinCondition | GameMode) => void;
+  next_round: () => void;
   draw_card_from_deck: () => void;
   discard_card: (card_id: string) => void;
   sort_my_hand: () => void;
@@ -84,6 +89,8 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
   current_player: 1,
   last_drawn_card_id: null,
   final_score: null,
+  cumulative_score: { team_1: 0, team_2: 0 },
+  round_count: 1,
   last_error: null,
   showAnimations: localStorage.getItem("baralho_show_animations") !== "false",
   recentEvents: [],
@@ -113,7 +120,16 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
     });
   },
 
-  start_game: (mode = "1v1") => {
+  start_game: (config) => {
+    let mode = get().mode;
+    let winCondition: WinCondition = { type: "POINTS", value: 3000 };
+
+    if (typeof config === "string") {
+      mode = config as GameMode;
+    } else if (config) {
+      winCondition = config as WinCondition;
+    }
+
     const full_deck = create_deck();
     const setup = distribute_cards(full_deck, mode);
 
@@ -136,8 +152,39 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       current_player: 1,
       last_drawn_card_id: null,
       final_score: null,
+      cumulative_score: { team_1: 0, team_2: 0 },
+      round_count: 1,
+      win_condition: winCondition,
       last_error: null,
       recentEvents: [],
+    });
+  },
+
+  next_round: () => {
+    const { mode, round_count } = get();
+    const full_deck = create_deck();
+    const setup = distribute_cards(full_deck, mode);
+
+    // Organiza as mãos automaticamente
+    const sorted_hands: Record<number, Card[]> = {};
+    Object.entries(setup.hands).forEach(([id, hand]) => {
+      sorted_hands[Number(id)] = sort_cards(hand);
+    });
+
+    set({
+      status: "PLAYING",
+      deck: setup.remaining_deck,
+      hands: sorted_hands,
+      dead_piles: setup.dead_piles,
+      has_taken_dead_pile: { 1: false, 2: false },
+      discard_pile: [],
+      team_melds: { 1: [], 2: [] },
+      turn_phase: "DRAW",
+      current_player: 1,
+      last_drawn_card_id: null,
+      final_score: null,
+      round_count: round_count + 1,
+      last_error: null,
     });
   },
 
@@ -162,9 +209,31 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
           false,
           !get().has_taken_dead_pile[2]
         );
+
+        const next_cumulative = {
+          team_1: get().cumulative_score.team_1 + t1_score.total_score,
+          team_2: get().cumulative_score.team_2 + t2_score.total_score,
+        };
+
+        const win_condition = get().win_condition;
+        let is_finished = false;
+        if (win_condition?.type === "POINTS") {
+          if (
+            next_cumulative.team_1 >= win_condition.value ||
+            next_cumulative.team_2 >= win_condition.value
+          ) {
+            is_finished = true;
+          }
+        } else if (win_condition?.type === "ROUNDS") {
+          if (get().round_count >= win_condition.value) {
+            is_finished = true;
+          }
+        }
+
         set({
-          status: "FINISHED",
+          status: is_finished ? "FINISHED" : "ROUND_OVER",
           final_score: { team_1: t1_score, team_2: t2_score },
+          cumulative_score: next_cumulative,
         });
         return;
       }
@@ -575,9 +644,31 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         team_id === 2,
         !has_taken_dead_pile[2]
       );
+
+      const next_cumulative = {
+        team_1: get().cumulative_score.team_1 + t1_score.total_score,
+        team_2: get().cumulative_score.team_2 + t2_score.total_score,
+      };
+
+      const win_condition = get().win_condition;
+      let is_finished = false;
+      if (win_condition?.type === "POINTS") {
+        if (
+          next_cumulative.team_1 >= win_condition.value ||
+          next_cumulative.team_2 >= win_condition.value
+        ) {
+          is_finished = true;
+        }
+      } else if (win_condition?.type === "ROUNDS") {
+        if (get().round_count >= win_condition.value) {
+          is_finished = true;
+        }
+      }
+
       set({
-        status: "FINISHED",
+        status: is_finished ? "FINISHED" : "ROUND_OVER",
         final_score: { team_1: t1_score, team_2: t2_score },
+        cumulative_score: next_cumulative,
       });
       return;
     }
@@ -607,9 +698,31 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         false,
         !get().has_taken_dead_pile[2]
       );
+
+      const next_cumulative = {
+        team_1: get().cumulative_score.team_1 + t1_score.total_score,
+        team_2: get().cumulative_score.team_2 + t2_score.total_score,
+      };
+
+      const win_condition = get().win_condition;
+      let is_finished = false;
+      if (win_condition?.type === "POINTS") {
+        if (
+          next_cumulative.team_1 >= win_condition.value ||
+          next_cumulative.team_2 >= win_condition.value
+        ) {
+          is_finished = true;
+        }
+      } else if (win_condition?.type === "ROUNDS") {
+        if (get().round_count >= win_condition.value) {
+          is_finished = true;
+        }
+      }
+
       set({
-        status: "FINISHED",
+        status: is_finished ? "FINISHED" : "ROUND_OVER",
         final_score: { team_1: t1_score, team_2: t2_score },
+        cumulative_score: next_cumulative,
       });
     }
   },

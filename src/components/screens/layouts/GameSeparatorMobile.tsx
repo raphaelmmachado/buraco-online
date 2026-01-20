@@ -20,7 +20,7 @@ export const GameSeparatorMobile = ({
   onDeckClick,
   onDiscardClick,
   my_player_id,
-  playerRefs
+  playerRefs,
 }: GameLayoutProps & { my_player_id: number }) => {
   const turn_start_time = useGameStore((s) => s.turn_start_time);
   const status = useGameStore((s) => s.status);
@@ -29,21 +29,21 @@ export const GameSeparatorMobile = ({
 
   useEffect(() => {
     const update = () => {
-        if (!turn_start_time || status !== "PLAYING") {
-            setTimeLeft(duration);
-            return;
-        }
-        const now = Date.now();
-        const elapsed = (now - turn_start_time) / 1000;
-        setTimeLeft(Math.max(0, duration - elapsed));
+      if (!turn_start_time || status !== "PLAYING") {
+        setTimeLeft(duration);
+        return;
+      }
+      const now = Date.now();
+      const elapsed = (now - turn_start_time) / 1000;
+      setTimeLeft(Math.max(0, duration - elapsed));
     };
 
     const timeoutId = setTimeout(update, 0);
     const intervalId = setInterval(update, 500);
 
     return () => {
-        clearTimeout(timeoutId);
-        clearInterval(intervalId);
+      clearTimeout(timeoutId);
+      clearInterval(intervalId);
     };
   }, [turn_start_time, status, duration]);
 
@@ -74,16 +74,18 @@ export const GameSeparatorMobile = ({
                 key={id}
                 playerId={Number(id)}
                 userName={p.userName}
-                handSize={typeof game.hands[Number(id)] === "number"
-                  ? (game.hands[Number(id)] as number)
-                  : (game.hands[Number(id)] as Card[])?.length || 0}
+                handSize={
+                  typeof game.hands[Number(id)] === "number"
+                    ? (game.hands[Number(id)] as number)
+                    : (game.hands[Number(id)] as Card[])?.length || 0
+                }
                 isCurrentPlayer={Number(id) === game.current_player}
                 isMyTeam={true}
                 turnPhase={game.turn_phase}
                 innerRef={(el) => {
-                    if (playerRefs && playerRefs.current) {
-                        playerRefs.current[id] = el;
-                    }
+                  if (playerRefs && playerRefs.current) {
+                    playerRefs.current[id] = el;
+                  }
                 }}
               />
             ))}
@@ -100,22 +102,24 @@ export const GameSeparatorMobile = ({
         ) : (
           <div className="flex flex-col items-center">
             <div className="flex items-center gap-1">
-                 <span
-                    className={`text-[8px] font-black ${
-                        isMyTurn ? "text-yellow-400 animate-pulse" : "text-white/40"
-                    } uppercase tracking-widest`}
-                    >
-                    {isMyTurn ? "SUA VEZ" : "VEZ DELES"}
-                </span>
-                {status === "PLAYING" && (
-                     <span className={`text-[10px] font-black flex items-center gap-0.5 ${timeLeft < 15 ? 'text-red-500 animate-pulse' : 'text-yellow-500/80'}`}>
-                        <Clock size={8} /> {Math.ceil(timeLeft)}s
-                     </span>
-                )}
+              <span
+                className={`text-[8px] font-black ${
+                  isMyTurn ? "text-yellow-400 animate-pulse" : "text-white/40"
+                } uppercase tracking-widest`}
+              >
+                {isMyTurn ? "SUA VEZ" : "VEZ DELES"}
+              </span>
             </div>
 
-            <span className="text-[9px] text-gray-400 uppercase font-bold tracking-tight mt-0.5">
-              {game.turn_phase === "DRAW" ? "COMPRA" : "JOGA"}
+            <span className="text-[9px] text-gray-400 font-bold tracking-tight mt-0.5">
+              {status === "PLAYING" && (
+                <span
+                  className={`text-[10px] font-black flex items-center gap-0.5 ${timeLeft < 15 ? "text-red-500 animate-pulse" : "text-white/40"}`}
+                >
+                  <Clock size={8} /> {Math.ceil(timeLeft)}s{" "}
+                  {game.turn_phase === "DRAW" ? "para COMPRAR" : "para JOGAR"}
+                </span>
+              )}
             </span>
           </div>
         )}
@@ -131,16 +135,18 @@ export const GameSeparatorMobile = ({
                 key={id}
                 playerId={Number(id)}
                 userName={p.userName}
-                handSize={typeof game.hands[Number(id)] === "number"
-                  ? (game.hands[Number(id)] as number)
-                  : (game.hands[Number(id)] as Card[])?.length || 0}
+                handSize={
+                  typeof game.hands[Number(id)] === "number"
+                    ? (game.hands[Number(id)] as number)
+                    : (game.hands[Number(id)] as Card[])?.length || 0
+                }
                 isCurrentPlayer={Number(id) === game.current_player}
                 isMyTeam={false}
                 turnPhase={game.turn_phase}
                 innerRef={(el) => {
-                    if (playerRefs && playerRefs.current) {
-                        playerRefs.current[id] = el;
-                    }
+                  if (playerRefs && playerRefs.current) {
+                    playerRefs.current[id] = el;
+                  }
                 }}
               />
             ))}

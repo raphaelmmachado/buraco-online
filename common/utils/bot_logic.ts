@@ -70,6 +70,9 @@ export const find_meld_in_hand = (
           const suits_clean = group_by_suit(hand_without_wc);
 
           for (const suitName in suits_clean) {
+              // STRICT RULE: Wildcard MUST match the suit of the sequence
+              if (wc.suit.name !== suitName) continue;
+
               const cards = sort_cards(suits_clean[suitName]);
               if (cards.length < 2) continue;
 
@@ -502,7 +505,8 @@ export const analyze_discard_pickup = (
       const target_suit = meld.find(c => c.value !== "2")?.suit.name;
 
       // Filtra candidatos da mão que podem ajudar
-      const candidates = hand.filter(c => c.suit.name === target_suit || c.value === "2");
+      // NOVA REGRA: Apenas cartas do mesmo naipe (incluindo coringas do mesmo naipe)
+      const candidates = hand.filter(c => c.suit.name === target_suit);
       
       for (const card of candidates) {
           const attempt = [...meld, card, top_discard];

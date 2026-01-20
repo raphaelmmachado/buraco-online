@@ -33,7 +33,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   // State
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
-  const [showOpponentHands, setShowOpponentHands] = useState(true);
+  const [showOpponentHands, setShowOpponentHands] = useState(false);
   const [hoveredMeld, setHoveredMeld] = useState<{
     teamId: number;
     index: number;
@@ -71,14 +71,14 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   const discardOriginDirection = getPlayerDirection(
     previousPlayerId,
     my_player_id,
-    numPlayers === 4 ? "2v2" : "1v1"
+    numPlayers === 4 ? "2v2" : "1v1",
   );
 
   // Calculate direction for Meld Entry animations
   const activePlayerDirection = getPlayerDirection(
     game.current_player,
     my_player_id,
-    Object.keys(game.players_data).length === 4 ? "2v2" : "1v1"
+    Object.keys(game.players_data).length === 4 ? "2v2" : "1v1",
   );
 
   // Hooks Integration
@@ -122,13 +122,18 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   }, [game.last_error]);
 
   // --- RENDER FINISH SCREEN ---
-  if ((game.status === "FINISHED" || game.status === "ROUND_OVER") && game.final_score) {
+  if (
+    (game.status === "FINISHED" || game.status === "ROUND_OVER") &&
+    game.final_score
+  ) {
     const isRoundOver = game.status === "ROUND_OVER";
     return (
       <FinishScreen
         finalScore={game.final_score}
         myTeam={my_team}
-        onPlayAgain={() => isRoundOver ? game.nextRound() : game.startGame(game.win_condition)}
+        onPlayAgain={() =>
+          isRoundOver ? game.nextRound() : game.startGame(game.win_condition)
+        }
         onLeave={game.leaveGame}
         isRoundOver={isRoundOver}
         cumulativeScore={game.cumulative_score}
@@ -141,7 +146,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   // --- HANDLERS ---
   const toggleSelect = (id: string) => {
     setSelectedCards((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
     );
   };
 
@@ -169,7 +174,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
       setSelectedCards([]);
     } else if (canDraw && isDiscardSelected) {
       const handCardsForMeld = selectedCards.filter(
-        (id) => id !== topDiscardCard?.id
+        (id) => id !== topDiscardCard?.id,
       );
       game.pick_up_discard_add_to_meld(meldIndex, handCardsForMeld);
       setSelectedCards([]);
@@ -185,7 +190,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
       game.meld_cards(selectedCards);
     } else if (showNewMeldPickUp) {
       const handCardsForMeld = selectedCards.filter(
-        (id) => id !== topDiscardCard?.id
+        (id) => id !== topDiscardCard?.id,
       );
       game.pick_up_discard_new_meld(handCardsForMeld);
     }
@@ -266,14 +271,14 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                 }
                 return null;
               })}
-              
+
               {/* Persistent Timer Balloon for Current Player */}
               {(() => {
-                  const currentPos = playerPositions[game.current_player];
-                  if (currentPos && game.status === "PLAYING") {
-                      return <TimerBalloon x={currentPos.x} y={currentPos.y} />;
-                  }
-                  return null;
+                const currentPos = playerPositions[game.current_player];
+                if (currentPos && game.status === "PLAYING") {
+                  return <TimerBalloon x={currentPos.x} y={currentPos.y} />;
+                }
+                return null;
               })()}
             </Portal>
           )}
@@ -294,7 +299,9 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               toggleAnimations={game.toggleAnimations}
               onOpenHowToPlay={() => setShowHowToPlay(true)}
               showOpponentHands={showOpponentHands}
-              toggleOpponentHands={() => setShowOpponentHands(!showOpponentHands)}
+              toggleOpponentHands={() =>
+                setShowOpponentHands(!showOpponentHands)
+              }
             />
           </div>
 
@@ -347,9 +354,15 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           >
             <div className="flex h-full items-center justify-between">
               {isMobile ? (
-                <GameSeparatorMobile {...layoutProps} my_player_id={my_player_id} />
+                <GameSeparatorMobile
+                  {...layoutProps}
+                  my_player_id={my_player_id}
+                />
               ) : (
-                <GameSeparatorDesktop {...layoutProps} my_player_id={my_player_id} />
+                <GameSeparatorDesktop
+                  {...layoutProps}
+                  my_player_id={my_player_id}
+                />
               )}
             </div>
           </motion.section>

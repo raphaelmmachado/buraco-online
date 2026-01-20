@@ -1,12 +1,12 @@
 import { type Card } from "../common/types/card";
 import { type ScoreResult } from "../common/utils/scoring";
-import { type PlayerData, type GameMode, type TeamID, type PlayerID } from "./types";
+import { type PlayerData, type GameMode, type TeamID, type PlayerID, type WinCondition } from "./types";
 import * as fs from "fs";
 import * as path from "path";
 
 export interface ServerGameState {
   mode: GameMode;
-  status: "LOBBY" | "PLAYING" | "FINISHED";
+  status: "LOBBY" | "PLAYING" | "ROUND_OVER" | "FINISHED";
   deck: Card[];
   discard_pile: Card[];
   dead_piles: Card[][];
@@ -17,6 +17,12 @@ export interface ServerGameState {
   current_player: number;
   players_connected: string[];
   players_data: Record<PlayerID, PlayerData>;
+  
+  // Championship State
+  win_condition?: WinCondition;
+  cumulative_score: { team_1: number; team_2: number };
+  round_count: number;
+
   turn_start_time?: number;
   last_drawn_card_id: string | null;
   cardsPlayedThisTurn?: number; // Added to match frontend expectations

@@ -1,7 +1,8 @@
 import { type ScoreResult } from "../../../common/utils/scoring";
 import { MELD_POINTS, BONUS_POINTS } from "../../../common/types/card";
 import { StyledButton } from "../ui/StyledButton";
-import { RotateCcw, LogOut } from "lucide-react";
+import { RotateCcw, LogOut, Trophy, Target, Hash } from "lucide-react";
+import { type WinCondition } from "../../store/useGameStore";
 
 interface FinishScreenProps {
   finalScore: {
@@ -10,30 +11,86 @@ interface FinishScreenProps {
     details_t1: ScoreResult;
     details_t2: ScoreResult;
   };
+  cumulativeScore?: { team_1: number; team_2: number };
+  roundCount?: number;
+  winCondition?: WinCondition;
+  isRoundOver?: boolean;
   myTeam: number;
   onPlayAgain: () => void;
   onLeave: () => void;
 }
 
-export const FinishScreen = ({ finalScore, myTeam, onPlayAgain, onLeave }: FinishScreenProps) => {
-  const isT1Winner = finalScore.team_1 > finalScore.team_2;
-  const isT2Winner = finalScore.team_2 > finalScore.team_1;
-  const isDraw = finalScore.team_1 === finalScore.team_2;
+export const FinishScreen = ({ 
+  finalScore, 
+  myTeam, 
+  onPlayAgain, 
+  onLeave,
+  cumulativeScore,
+  roundCount = 1,
+  winCondition,
+  isRoundOver = false
+}: FinishScreenProps) => {
+  // Logic for Winner of the MATCH (Cumulative) or ROUND (FinalScore)
+  // If isRoundOver, we care about round winner for visual pop, but general status for progress.
+  
+  const effectiveScore = cumulativeScore || { team_1: finalScore.team_1, team_2: finalScore.team_2 };
+  
+  const isT1Winner = effectiveScore.team_1 > effectiveScore.team_2;
+  const isT2Winner = effectiveScore.team_2 > effectiveScore.team_1;
+  const isDraw = effectiveScore.team_1 === effectiveScore.team_2;
 
   const amIWinner = (myTeam === 1 && isT1Winner) || (myTeam === 2 && isT2Winner);
+  
+  const title = isRoundOver 
+    ? `Fim da Rodada ${roundCount}` 
+    : (isDraw ? "Empate!" : amIWinner ? "Vitória!" : "Derrota");
+
+  const subtitle = isRoundOver 
+    ? "Pontuação Acumulada" 
+    : "Fim de Campeonato";
 
   return (
     <div className="h-screen w-screen bg-[#0f2e1a] text-white overflow-y-auto flex flex-col items-center py-10 px-4 font-sans">
       
       {/* HEADER: VICTORY / DEFEAT STATUS */}
       <div className={`w-full max-w-4xl p-8 text-center rounded-3xl border border-white/10 shadow-2xl mb-8 ${amIWinner ? 'bg-yellow-500/10 border-yellow-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
-        <h2 className={`text-6xl md:text-8xl font-black uppercase tracking-tighter mb-4 drop-shadow-lg ${amIWinner ? 'text-yellow-400' : 'text-slate-400'}`}>
-          {isDraw ? "Empate!" : amIWinner ? "Vitória!" : "Derrota"}
+        <h2 className={`text-5xl md:text-8xl font-black uppercase tracking-tighter mb-4 drop-shadow-lg ${amIWinner ? 'text-yellow-400' : 'text-slate-400'}`}>
+          {title}
         </h2>
-        <p className="text-white/60 uppercase tracking-[0.5em] text-sm font-bold">Fim de Jogo</p>
+        <div className="flex items-center justify-center gap-4">
+            <p className="text-white/60 uppercase tracking-[0.5em] text-sm font-bold">{subtitle}</p>
+            {winCondition && (
+                <div className="flex items-center gap-2 px-2 py-1 bg-black/20 rounded text-xs font-mono text-white/40">
+                    {winCondition.type === "POINTS" ? <Target size={12} /> : <Hash size={12} />}
+                    <span>
+                        {winCondition.type === "POINTS" ? `Meta: ${winCondition.value} pts` : `Melhor de ${winCondition.value}`}
+                    </span>
+                </div>
+            )}
+        </div>
       </div>
 
-      {/* CONTENT: SCORES COMPARISON */}
+      {/* CUMULATIVE SCORE DISPLAY (Only if Championship Mode) */}
+      {(cumulativeScore || isRoundOver) && (
+          <div className="flex gap-4 md:gap-12 mb-8 items-center justify-center">
+             <div className="text-center">
+                <span className={`block text-xs font-bold uppercase tracking-widest ${myTeam === 1 ? 'text-blue-400' : 'text-slate-500'}`}>NÓS</span>
+                <span className={`text-4xl md:text-6xl font-black tabular-nums ${effectiveScore.team_1 > effectiveScore.team_2 ? 'text-yellow-400' : 'text-white/50'}`}>
+                    {effectiveScore.team_1}
+                </span>
+             </div>
+             <div className="text-white/20 font-black text-2xl">VS</div>
+             <div className="text-center">
+                <span className={`block text-xs font-bold uppercase tracking-widest ${myTeam === 2 ? 'text-blue-400' : 'text-slate-500'}`}>ELES</span>
+                <span className={`text-4xl md:text-6xl font-black tabular-nums ${effectiveScore.team_2 > effectiveScore.team_1 ? 'text-yellow-400' : 'text-white/50'}`}>
+                    {effectiveScore.team_2}
+                </span>
+             </div>
+          </div>
+      )}
+
+      {/* CONTENT: ROUND DETAILS */}
+      <h3 className="text-white/40 uppercase tracking-widest text-xs font-bold mb-4">Detalhes da Rodada</h3>
       <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 mb-12">
         
         {/* TEAM 1 */}
@@ -56,10 +113,9 @@ export const FinishScreen = ({ finalScore, myTeam, onPlayAgain, onLeave }: Finis
                 )}
               </div>
             </div>
-            {isT1Winner && <span className="text-3xl animate-bounce">🏆</span>}
           </div>
           
-          <div className="text-7xl font-black text-white text-center py-4">{finalScore.team_1}</div>
+          <div className="text-5xl font-black text-white text-center py-4">+{finalScore.team_1}</div>
           
           <ScoreBreakdown result={finalScore.details_t1} />
         </div>
@@ -84,10 +140,9 @@ export const FinishScreen = ({ finalScore, myTeam, onPlayAgain, onLeave }: Finis
                 )}
               </div>
             </div>
-            {isT2Winner && <span className="text-3xl animate-bounce">🏆</span>}
           </div>
           
-          <div className="text-7xl font-black text-white text-center py-4">{finalScore.team_2}</div>
+          <div className="text-5xl font-black text-white text-center py-4">+{finalScore.team_2}</div>
           
           <ScoreBreakdown result={finalScore.details_t2} />
         </div>
@@ -101,9 +156,9 @@ export const FinishScreen = ({ finalScore, myTeam, onPlayAgain, onLeave }: Finis
           variant="primary"
           size="lg"
           fullWidth
-          icon={<RotateCcw size={20} />}
+          icon={isRoundOver ? <Trophy size={20} /> : <RotateCcw size={20} />}
         >
-          Jogar Novamente
+          {isRoundOver ? "Próxima Rodada" : "Jogar Novamente"}
         </StyledButton>
         
         <StyledButton

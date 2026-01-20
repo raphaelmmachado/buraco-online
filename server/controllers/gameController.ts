@@ -8,6 +8,7 @@ import {
   has_clean_canastra,
   get_team,
   get_player_id_by_socket,
+  check_championship_status,
 } from "../services/gameService";
 import {
   broadcast_game_update,
@@ -75,13 +76,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
             !t2_taken
           );
 
-          game.status = "FINISHED";
-          game.final_score = {
-            team_1: t1_score.total_score,
-            team_2: t2_score.total_score,
-            details_t1: t1_score,
-            details_t2: t2_score,
-          };
+          check_championship_status(game, t1_score.total_score, t2_score.total_score, t1_score, t2_score);
           stopTurnTimer(roomId);
           broadcast_game_update(io, roomId);
           return;

@@ -1,3 +1,4 @@
+import { create_deck, distribute_cards } from "../../common/utils/game_logic";
 import { calculate_score } from "../../common/utils/scoring";
 import { sort_cards } from "../../common/utils/sort_cards";
 import { validate_sequence } from "../../common/utils/rules_logic";
@@ -44,6 +45,122 @@ export const requires_clean_to_empty_hand = (
   return true;
 };
 
+export const check_championship_status = (
+  game: ServerGameState,
+  t1_round_score: number,
+  t2_round_score: number,
+  details_t1: ScoreResult,
+  details_t2: ScoreResult
+) => {
+  // Update cumulative score
+  if (!game.cumulative_score) {
+    game.cumulative_score = { team_1: 0, team_2: 0 };
+  }
+  game.cumulative_score.team_1 += t1_round_score;
+  game.cumulative_score.team_2 += t2_round_score;
+
+  game.final_score = {
+    team_1: t1_round_score,
+    team_2: t2_round_score,
+    details_t1: details_t1,
+    details_t2: details_t2,
+  };
+
+  if (!game.win_condition) {
+    // Classic mode: Game ends after one round
+    game.status = "FINISHED";
+    return;
+  }
+
+  const { type, value } = game.win_condition;
+  let isChampionshipOver = false;
+
+  if (type === "POINTS") {
+    if (
+      game.cumulative_score.team_1 >= value ||
+      game.cumulative_score.team_2 >= value
+    ) {
+        // Verifica se há empate acima da meta (ex: 3100 vs 3100). Se sim, continua mais uma rodada?
+        // Regra padrão: Quem tiver mais ganha. Se empate, joga mais uma.
+        if (game.cumulative_score.team_1 !== game.cumulative_score.team_2) {
+             isChampionshipOver = true;
+        }
+    }
+  } else if (type === "ROUNDS") {
+    // Current round is already finished, so check if we reached the limit
+    // round_count starts at 1
+    if (game.round_count >= value) {
+      isChampionshipOver = true;
+    }
+  }
+
+  if (isChampionshipOver) {
+    game.status = "FINISHED";
+  } else {
+    game.status = "ROUND_OVER";
+  }
+};
+
+export const start_next_round = (game: ServerGameState) => {
+    game.round_count += 1;
+    game.status = "PLAYING";
+    
+    // Create new deck and distribute
+    const deck = create_deck();
+    const setup = distribute_cards(deck, game.mode);
+
+    // Sort hands
+    const sorted_hands: Record<number, Card[]> = {};
+    Object.entries(setup.hands).forEach(([id, hand]) => {
+        sorted_hands[Number(id)] = sort_cards(hand);
+    });
+
+    // Reset Game State
+    game.deck = setup.remaining_deck;
+    game.discard_pile = [];
+    game.hands = sorted_hands;
+    game.team_melds = { 1: [], 2: [] };
+    game.dead_piles = setup.dead_piles;
+    game.has_taken_dead_pile = [false, false];
+    game.turn_phase = "DRAW";
+    game.current_player = 1; // Or rotate starter? For now, Player 1 starts always.
+    game.last_drawn_card_id = null;
+    game.final_score = null;
+    game.turn_start_time = Date.now();
+};
+
+export const start_new_match = (game: ServerGameState) => {
+    // Reset scores
+    game.cumulative_score = { team_1: 0, team_2: 0 };
+    game.round_count = 0; // Will be incremented to 1 by start_next_round logic effectively (or set to 1 here)
+    
+    // We can just reuse start_next_round logic if we manually set round_count to 0 first?
+    // Let's copy logic to be safe and explicit.
+    
+    game.round_count = 1;
+    game.status = "PLAYING";
+    
+    const deck = create_deck();
+    const setup = distribute_cards(deck, game.mode);
+
+    const sorted_hands: Record<number, Card[]> = {};
+    Object.entries(setup.hands).forEach(([id, hand]) => {
+        sorted_hands[Number(id)] = sort_cards(hand);
+    });
+
+    game.deck = setup.remaining_deck;
+    game.discard_pile = [];
+    game.hands = sorted_hands;
+    game.team_melds = { 1: [], 2: [] };
+    game.dead_piles = setup.dead_piles;
+    game.has_taken_dead_pile = [false, false];
+    game.turn_phase = "DRAW";
+    game.current_player = 1;
+    game.last_drawn_card_id = null;
+    game.final_score = null;
+    game.turn_start_time = Date.now();
+};
+
 export const handle_empty_hand = (
   game: ServerGameState,
   player_id: PlayerID,
@@ -84,13 +201,7 @@ export const handle_empty_hand = (
       !t2_taken
     );
 
-    game.status = "FINISHED";
-    game.final_score = {
-      team_1: t1_score.total_score,
-      team_2: t2_score.total_score,
-      details_t1: t1_score,
-      details_t2: t2_score,
-    };
+    check_championship_status(game, t1_score.total_score, t2_score.total_score, t1_score, t2_score);
     return;
   }
 
@@ -122,13 +233,7 @@ export const handle_empty_hand = (
       !t2_taken
     );
 
-    game.status = "FINISHED";
-    game.final_score = {
-      team_1: t1_score.total_score,
-      team_2: t2_score.total_score,
-      details_t1: t1_score,
-      details_t2: t2_score,
-    };
+    check_championship_status(game, t1_score.total_score, t2_score.total_score, t1_score, t2_score);
   }
 };
 
@@ -198,5 +303,8 @@ export const sanitize_state = (
     players_data: game.players_data,
     last_drawn_card_id: game.last_drawn_card_id,
     final_score: game.final_score,
+    cumulative_score: game.cumulative_score,
+    round_count: game.round_count,
+    win_condition: game.win_condition,
   };
 };

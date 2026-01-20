@@ -120,13 +120,18 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   }, [game.last_error]);
 
   // --- RENDER FINISH SCREEN ---
-  if (game.status === "FINISHED" && game.final_score) {
+  if ((game.status === "FINISHED" || game.status === "ROUND_OVER") && game.final_score) {
+    const isRoundOver = game.status === "ROUND_OVER";
     return (
       <FinishScreen
         finalScore={game.final_score}
         myTeam={my_team}
-        onPlayAgain={() => game.startGame(game.mode)}
+        onPlayAgain={() => isRoundOver ? game.nextRound() : game.startGame(game.win_condition)}
         onLeave={game.leaveGame}
+        isRoundOver={isRoundOver}
+        cumulativeScore={game.cumulative_score}
+        roundCount={game.round_count}
+        winCondition={game.win_condition}
       />
     );
   }

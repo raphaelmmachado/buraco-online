@@ -1,5 +1,6 @@
 import { useGameStore } from "../../store/useGameStore";
 import { Users, Bot, Loader2, Wifi, WifiOff } from "lucide-react";
+import { useState } from "react";
 
 const ConnectionBadge = () => {
     const connectionStatus = useGameStore((state) => state.connectionStatus);
@@ -74,6 +75,89 @@ const TeamList = ({
       )}
     </div>
   );
+
+const GameConfig = ({ onStart }: { onStart: (winCondition?: any) => void }) => {
+    const [type, setType] = useState<"CLASSIC" | "POINTS" | "ROUNDS">("CLASSIC");
+    const [value, setValue] = useState<number>(3000);
+
+    const handleStart = () => {
+        if (type === "CLASSIC") {
+            onStart();
+        } else {
+            onStart({ type, value });
+        }
+    }
+
+    return (
+        <div className="flex flex-col gap-3 my-2 p-4 bg-black/20 rounded-xl border border-white/5">
+            <div className="flex items-center gap-2 mb-1">
+                 <span className="w-1.5 h-1.5 bg-yellow-500 rounded-full shadow-[0_0_8px_rgba(234,179,8,0.8)]"></span>
+                 <label className="text-[10px] uppercase tracking-widest text-yellow-500/80 font-bold">Configuração da Partida</label>
+            </div>
+            
+            <div className="flex gap-2">
+                <button 
+                    onClick={() => setType("CLASSIC")}
+                    className={`flex-1 py-3 px-1 text-[9px] md:text-[10px] font-bold uppercase tracking-wider rounded-lg border transition-all ${type === "CLASSIC" ? "bg-yellow-500 text-black border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.3)]" : "bg-black/40 text-slate-400 border-white/5 hover:bg-white/5 hover:border-white/10"}`}
+                >
+                    Rápida
+                </button>
+                <button 
+                    onClick={() => { setType("POINTS"); setValue(3000); }}
+                    className={`flex-1 py-3 px-1 text-[9px] md:text-[10px] font-bold uppercase tracking-wider rounded-lg border transition-all ${type === "POINTS" ? "bg-yellow-500 text-black border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.3)]" : "bg-black/40 text-slate-400 border-white/5 hover:bg-white/5 hover:border-white/10"}`}
+                >
+                    Pontos
+                </button>
+                <button 
+                    onClick={() => { setType("ROUNDS"); setValue(3); }}
+                    className={`flex-1 py-3 px-1 text-[9px] md:text-[10px] font-bold uppercase tracking-wider rounded-lg border transition-all ${type === "ROUNDS" ? "bg-yellow-500 text-black border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.3)]" : "bg-black/40 text-slate-400 border-white/5 hover:bg-white/5 hover:border-white/10"}`}
+                >
+                    Rodadas
+                </button>
+            </div>
+
+            {type === "POINTS" && (
+                <div className="flex items-center gap-3 mt-2 animate-fade-in bg-black/20 p-2 rounded-lg border border-white/5">
+                    <span className="text-xs text-slate-400 font-bold uppercase tracking-wider pl-1">Alvo:</span>
+                    <input 
+                        type="number" 
+                        value={value} 
+                        onChange={(e) => setValue(Number(e.target.value))}
+                        step={500}
+                        min={1000}
+                        max={10000}
+                        className="flex-1 bg-black/40 border border-white/10 rounded px-3 py-1.5 text-sm font-mono text-yellow-400 focus:outline-none focus:border-yellow-500/50 transition-colors text-right"
+                    />
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider pr-1">Pts</span>
+                </div>
+            )}
+
+             {type === "ROUNDS" && (
+                <div className="flex items-center gap-3 mt-2 animate-fade-in bg-black/20 p-2 rounded-lg border border-white/5">
+                    <span className="text-xs text-slate-400 font-bold uppercase tracking-wider pl-1">Total:</span>
+                     <div className="flex gap-2 flex-1">
+                        {[2, 3, 5, 10].map(v => (
+                            <button
+                                key={v}
+                                onClick={() => setValue(v)}
+                                className={`flex-1 py-1.5 text-xs font-mono font-bold rounded border transition-all ${value === v ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/50 shadow-[0_0_10px_rgba(234,179,8,0.2)]" : "bg-black/40 text-slate-500 border-white/5 hover:bg-white/5"}`}
+                            >
+                                {v}
+                            </button>
+                        ))}
+                     </div>
+                </div>
+            )}
+            
+            <button
+                onClick={handleStart}
+                className="w-full bg-green-600 hover:bg-green-500 text-white py-4 rounded-xl font-black text-lg shadow-[0_0_20px_rgba(34,197,94,0.4)] transition-all hover:scale-[1.02] active:scale-95 animate-pulse uppercase tracking-[0.2em] border border-white/10 mt-4"
+              >
+                INICIAR PARTIDA
+              </button>
+        </div>
+    )
+}
 
 export const LobbyScreen = () => {
   const roomId = useGameStore((state) => state.roomId);
@@ -153,13 +237,14 @@ export const LobbyScreen = () => {
                )}
              </div>
 
-            {my_player_number === 1 && missingCount === 0 && (
-              <button
-                onClick={() => startGame()}
-                className="w-full bg-green-600 hover:bg-green-500 text-white py-4 rounded-xl font-black text-lg shadow-[0_0_20px_rgba(34,197,94,0.4)] transition-all hover:scale-[1.02] active:scale-95 animate-pulse uppercase tracking-[0.2em] border border-white/10 mt-2"
-              >
-                INICIAR PARTIDA
-              </button>
+            {my_player_number === 1 && missingCount === 0 ? (
+                <GameConfig onStart={startGame} />
+            ) : (
+                missingCount === 0 && (
+                    <div className="w-full bg-slate-700/30 text-slate-400 py-4 rounded-xl font-bold text-xs uppercase tracking-[0.2em] border border-white/5 mt-2 text-center">
+                        Aguardando anfitrião iniciar...
+                    </div>
+                )
             )}
 
             <div className="mt-4 pt-4 border-t border-white/5 flex justify-center">

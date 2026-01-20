@@ -1,4 +1,4 @@
-import { useGameStore } from "../../store/useGameStore";
+import { useGameStore, type WinCondition } from "../../store/useGameStore";
 import { Users, Bot, Loader2, Wifi, WifiOff } from "lucide-react";
 import { useState } from "react";
 
@@ -76,7 +76,7 @@ const TeamList = ({
     </div>
   );
 
-const GameConfig = ({ onStart }: { onStart: (winCondition?: any) => void }) => {
+const GameConfig = ({ onStart }: { onStart: (winCondition?: WinCondition) => void }) => {
     const [type, setType] = useState<"CLASSIC" | "POINTS" | "ROUNDS">("CLASSIC");
     const [value, setValue] = useState<number>(3000);
 

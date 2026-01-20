@@ -31,7 +31,7 @@ const ConnectionBadge = () => {
           <Loader2 size={14} className="text-yellow-500 animate-spin" />
           <span className="text-[10px] font-black text-yellow-500 uppercase tracking-widest">
             {connectionStatus === "CONNECTING"
-              ? "Conectando..."
+              ? "Ligando servidor..."
               : "Reconectando..."}
           </span>
         </div>

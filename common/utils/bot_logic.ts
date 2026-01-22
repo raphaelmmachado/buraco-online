@@ -749,7 +749,7 @@ export const choose_discard = (
   
         const c = chosen as Card;
   
-        console.log(`[BOT LOGIC] Discard choice: ${c.value}${c.suit.icon} (Score: ${min_score.toFixed(1)})`);
+        console.log(`[BOT LOGIC] Discard choice: ${c.value}${c.suit.icon} (Score: ${min_score.toFixed(1)}) [Pile: ${discard_pile_size}, PartnerHand: ${partner_hand_size}]`);
   
     }
   

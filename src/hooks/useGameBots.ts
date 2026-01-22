@@ -145,7 +145,7 @@ export const useGameBots = () => {
           my_hand,
           opponent_melds,
           store.discard_pile.length > 0 ? store.discard_pile[0] : null,
-          has_taken_dead_pile,
+          has_taken,
           store.deck.length, 
           all_played_cards,
           store.discard_pile.length,
@@ -174,5 +174,10 @@ export const useGameBots = () => {
     store.hands, // Importante: Roda de novo quando a mão muda (após draw/meld)
     // store.discard_pile, // Trigger se lixo mudar
     // store.team_melds // Trigger se jogos mudarem
-  ], [store]);
+  ],
+  // store is used inside but its properties are primitives or stable refs usually, 
+  // but to be safe and satisfy exhaustive-deps if configured strictly:
+  // We can include specific store properties if needed. 
+  // For now, let's keep the array valid.
+  ); 
 };

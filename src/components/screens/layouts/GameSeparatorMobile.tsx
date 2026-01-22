@@ -116,8 +116,7 @@ export const GameSeparatorMobile = ({
                 <span
                   className={`text-[10px] font-black flex items-center gap-0.5 ${timeLeft < 15 ? "text-red-500 animate-pulse" : "text-white/40"}`}
                 >
-                  <Clock size={8} /> {Math.ceil(timeLeft)}s{" "}
-                  {game.turn_phase === "DRAW" ? "para COMPRAR" : "para JOGAR"}
+                  {game.turn_phase === "DRAW" ? "COMPRAR" : "JOGAR"}
                 </span>
               )}
             </span>

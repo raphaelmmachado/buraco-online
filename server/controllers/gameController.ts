@@ -1,5 +1,5 @@
 import { Server, Socket } from "socket.io";
-import { games } from "../state";
+import { games, saveState } from "../state";
 import {
   validateTurn,
   get_next_player,
@@ -92,6 +92,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         game.hands[player_id] = sort_cards(player_hand);
         game.last_drawn_card_id = card.id;
         game.turn_phase = "ACTION";
+        saveState();
         startTurnTimer(io, roomId);
         broadcast_game_update(io, roomId);
       }

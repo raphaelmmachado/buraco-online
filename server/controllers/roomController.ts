@@ -50,9 +50,9 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
 
           if (!anyHumanConnected) {
             if (!game.disconnectTimeout) {
-              // Se estiver no LOBBY, deleta rápido (5s) para limpar a lista.
-              // Se estiver JOGANDO, dá 1 minuto de tolerância para reconexão.
-              const timeoutDuration = game.status === "LOBBY" ? 5000 : 60000;
+              // Se estiver no LOBBY, deleta rápido (10s) para limpar a lista.
+              // Se estiver JOGANDO, dá 5 minutos de tolerância para reconexão.
+              const timeoutDuration = game.status === "LOBBY" ? 10000 : 300000;
 
               console.log(
                 `Sala ${roomId} (${
@@ -77,6 +77,15 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
   });
 
   socket.on("request_rooms", () => {
+    // QUICK CLEANUP: Se houver salas vazias sem timeout agendado (ex: após restart), limpa agora
+    for (const roomId in games) {
+      const game = games[roomId];
+      if (game.players_connected.length === 0 && !game.disconnectTimeout) {
+          // Se não tem ninguém e não tem timer de espera, deleta para não poluir o feed
+          delete games[roomId];
+      }
+    }
+
     const room_list = Object.entries(games).map(([roomId, game]) => {
       const filledSlots = Object.keys(game.players_data).length;
       return {
@@ -438,6 +447,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
     
     startTurnTimer(io, roomId);
     broadcast_game_update(io, roomId);
+    saveState();
   });
 
   socket.on("action_next_round", ({ roomId }: { roomId: string }) => {
@@ -458,6 +468,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
     start_next_round(game);
     startTurnTimer(io, roomId);
     broadcast_game_update(io, roomId);
+    saveState();
   });
 
   socket.on("action_close_room", ({ roomId }: { roomId: string }) => {
@@ -521,7 +532,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
     // If room is empty OR only bots remain, schedule deletion instead of immediate delete
     if (!anyHumanConnected) {
       if (!game.disconnectTimeout) {
-        const timeoutDuration = game.status === "LOBBY" ? 5000 : 60000;
+        const timeoutDuration = game.status === "LOBBY" ? 10000 : 300000;
         console.log(`Sala ${roomId} (${game.status}) sem humanos (leave). Agendando deleção em ${timeoutDuration/1000}s.`);
         
         game.disconnectTimeout = setTimeout(() => {
@@ -534,5 +545,6 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
       // Notify others
       broadcast_game_update(io, roomId);
     }
+    saveState();
   });
 };

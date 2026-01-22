@@ -2,7 +2,13 @@ import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import shufflingSound from "../../assets/sound/shuffling-cards.mp3";
 
-export const LoadingScreen = () => {
+export const LoadingScreen = ({
+  message = "Embaralhando",
+  subMessage = "Preparando a mesa...",
+}: {
+  message?: string;
+  subMessage?: string;
+}) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -84,11 +90,11 @@ export const LoadingScreen = () => {
           transition={{ duration: 2, repeat: Infinity }}
           className="flex flex-col items-center"
         >
-          <h2 className="text-2xl font-black uppercase tracking-widest text-yellow-400 drop-shadow-lg">
-            Embaralhando
+          <h2 className="text-2xl font-black uppercase tracking-widest text-yellow-400 drop-shadow-lg text-center">
+            {message}
           </h2>
-          <p className="text-xs text-white/50 font-mono mt-2">
-            Preparando a mesa...
+          <p className="text-xs text-white/50 font-mono mt-2 text-center">
+            {subMessage}
           </p>
         </motion.div>
       </motion.div>

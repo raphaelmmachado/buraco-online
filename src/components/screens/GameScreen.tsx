@@ -9,6 +9,7 @@ import { HowToPlay } from "../game-ui/HowToPlay";
 import { FinishScreen } from "./FinishScreen";
 import { type GameAdapterInterface } from "../game-ui/useLocalGameAdapter";
 import { OpponentsHandsLayer } from "../game-ui/OpponentsHandsLayer";
+import { LoadingScreen } from "../ui/LoadingScreen";
 
 // Custom Hooks
 import { useWakeLock } from "../../hooks/useWakeLock";
@@ -30,6 +31,11 @@ import { GameFooterDesktop } from "./layouts/GameFooterDesktop";
 import { type GameLayoutProps } from "./types/GameLayoutProps";
 
 export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
+  // GUARD: Wait for player identification to prevent "Ghost Mode"
+  if (game.my_player_number === null) {
+    return <LoadingScreen message="Sincronizando..." subMessage="Recuperando estado da partida..." />;
+  }
+
   // State
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
   const [showHowToPlay, setShowHowToPlay] = useState(false);

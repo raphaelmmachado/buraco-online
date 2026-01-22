@@ -62,6 +62,7 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
   const totalOnline = useGameStore((state) => state.totalOnline);
   const onlineNames = useGameStore((state) => state.onlineNames);
   const connectionStatus = useGameStore((state) => state.connectionStatus);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Check for active session on mount
   const [activeSession] = useState<string | null>(() =>
@@ -72,12 +73,10 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
     () => localStorage.getItem("baralho_user_name") || "",
   );
 
-  const handleUserNameChange = (val: string) => {
-    const cleaned = val.toUpperCase();
-    setUserName(cleaned);
-    if (cleaned) {
-      localStorage.setItem("baralho_user_name", cleaned);
-    }
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    fetchRooms();
+    setTimeout(() => setIsRefreshing(false), 800);
   };
 
   // VALIDATE ACTIVE SESSION
@@ -412,13 +411,18 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
             </div>
 
             <StyledButton
-              onClick={fetchRooms}
+              onClick={handleRefresh}
               variant="ghost"
               fullWidth
-              icon={<RefreshCw size={14} />}
+              icon={
+                <RefreshCw
+                  size={14}
+                  className={`${isRefreshing ? "animate-spin" : ""}`}
+                />
+              }
               className="mt-6 border-t border-white/5 pt-4 text-[10px] text-slate-500 hover:text-white justify-center"
             >
-              Atualizar Feed
+              {isRefreshing ? "Buscando salas..." : "Atualizar Feed"}
             </StyledButton>
           </div>
         </div>

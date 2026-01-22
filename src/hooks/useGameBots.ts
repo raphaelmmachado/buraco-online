@@ -132,13 +132,24 @@ export const useGameBots = () => {
           ...store.team_melds[2].flat(),
           ...store.dead_piles.flat(),
         ];
+        
+        // Calculate partner hand size
+        // Team 1: 1 & 3. Team 2: 2 & 4.
+        let partner_id = 0;
+        if (team_id === 1) partner_id = store.current_player === 1 ? 3 : 1;
+        else partner_id = store.current_player === 2 ? 4 : 2;
+        
+        const partner_hand_size = store.hands[partner_id]?.length || 0;
+
         const card_to_discard = choose_discard(
           my_hand,
           opponent_melds,
           store.discard_pile.length > 0 ? store.discard_pile[0] : null,
-          has_taken,
-          store.deck.length, // Pass deck_size
+          has_taken_dead_pile,
+          store.deck.length, 
           all_played_cards,
+          store.discard_pile.length,
+          partner_hand_size
         );
         if (card_to_discard) {
           console.log(
@@ -163,5 +174,5 @@ export const useGameBots = () => {
     store.hands, // Importante: Roda de novo quando a mão muda (após draw/meld)
     // store.discard_pile, // Trigger se lixo mudar
     // store.team_melds // Trigger se jogos mudarem
-  ]);
+  ], [store]);
 };

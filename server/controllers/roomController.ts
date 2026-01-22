@@ -26,7 +26,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
 
           // Se o jogo está rolando, transformamos o jogador em BOT
           const playerEntry = Object.entries(game.players_data).find(
-            ([_, p]) => p.socketId === socket.id
+            ([, p]) => p.socketId === socket.id
           );
 
           if (playerEntry) {
@@ -209,7 +209,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
       // IMPEDIR QUE O MESMO JOGADOR CRIE MAIS DE UMA SALA COMO HOST (Player 1)
       if (!games[roomId]) {
         // Verifica se o jogador já é host de alguma outra sala
-        const existingRoomEntry = Object.entries(games).find(([_, g]) => {
+        const existingRoomEntry = Object.entries(games).find(([, g]) => {
             const host = g.players_data[1];
             return host && host.playerId === playerId;
         });
@@ -278,7 +278,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
 
       // Verifica se é uma reconexão disfarçada de join (mesmo ID de jogador)
       const existingPlayerEntry = Object.entries(game.players_data).find(
-        ([_, p]) => p.playerId === playerId
+        ([, p]) => p.playerId === playerId
       );
       if (existingPlayerEntry) {
         // É o mesmo jogador tentando entrar de novo. Redireciona para lógica de rejoin.
@@ -371,7 +371,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
       }
 
       const playerEntry = Object.entries(game.players_data).find(
-        ([_, p]) => p.playerId === playerId
+        ([, p]) => p.playerId === playerId
       );
 
       if (!playerEntry) {
@@ -507,7 +507,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
     // Find and remove from players_data to free up the slot
     // This allows the user to rejoin as a fresh player or someone else to take the spot
     const playerEntry = Object.entries(game.players_data).find(
-      ([_, p]) => p.socketId === socket.id
+      ([, p]) => p.socketId === socket.id
     );
 
     if (playerEntry) {

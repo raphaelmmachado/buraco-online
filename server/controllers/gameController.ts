@@ -20,7 +20,7 @@ import {
   validate_discard_pickup,
 } from "../../common/utils/rules_logic";
 import { type Card } from "../../common/types/card";
-import { type PlayerID, type ServerResponse } from "../types";
+import { type ServerResponse } from "../types";
 import { startTurnTimer, stopTurnTimer } from "../services/timerService";
 
 export const registerGameHandlers = (io: Server, socket: Socket) => {

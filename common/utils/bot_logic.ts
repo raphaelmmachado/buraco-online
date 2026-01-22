@@ -271,10 +271,10 @@ const evaluate_potential_melds = (
   }
 
   // ADDED: Minimum score threshold
-  // If the best play is still heavily penalized (e.g., for creating a gapped meld),
-  // it might be better to do nothing.
-  if (highestScore < 40) { // Threshold, can be tuned
-      console.log(`[BOT LOGIC] Best meld score (${highestScore.toFixed(1)}) is below threshold. Holding cards.`);
+  // Lowered from 40 to 10 to be "less conservative" about creating valid games,
+  // while relying on the specific penalties (split meld, dirtying clean) to filter bad plays.
+  if (highestScore < 10) { 
+      console.log(`[BOT LOGIC] Best meld score (${highestScore.toFixed(1)}) is below threshold (10). Holding cards.`);
       return null;
   }
 
@@ -703,7 +703,9 @@ export const choose_discard = (
     discard_pile_top: Card | null = null,
     has_taken_dead_pile: boolean = false,
     deck_size: number = 0, 
-    all_played_cards: Card[] = [] 
+    all_played_cards: Card[] = [],
+    discard_pile_size: number = 0,
+    partner_hand_size: number = 0
 ): Card => {
   let best_card: Card | null = null;
   let min_score = Infinity; 
@@ -714,6 +716,10 @@ export const choose_discard = (
   // Desperation factor for end game
   const desperation_factor = deck_size < 10 ? (10 - deck_size) * 5 : 0; // Increases as deck size decreases
 
+  // Risk Multiplier based on Discard Pile Size
+  // If pile > 10, giving a good card is catastrophic.
+  const risk_multiplier = discard_pile_size > 10 ? 4.0 : 1.0;
+
   pool.forEach((card: Card) => {
       const utility = calculate_hand_utility(card, hand, has_taken_dead_pile);
       const risk = calculate_discard_risk(card, opponent_melds, all_played_cards);
@@ -723,10 +729,13 @@ export const choose_discard = (
           penalty = 40; 
       }
 
+      // Sync Bonus: If it fits well in my hand/team melds (covered by utility),
+      // we want to keep it.
+      
       const card_val_points = CARD_POINTS[card.value] || 0;
 
-      // Adjust score with desperation factor
-      const score = (utility * 3) + (risk * 25) + penalty - (card_val_points / 20) - (desperation_factor * (card_val_points / 10));
+      // Adjust score with desperation factor and dynamic risk
+      const score = (utility * 3) + (risk * 25 * risk_multiplier) + penalty - (card_val_points / 20) - (desperation_factor * (card_val_points / 10));
 
       if (score < min_score) {
           min_score = score;

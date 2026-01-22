@@ -31,11 +31,6 @@ import { GameFooterDesktop } from "./layouts/GameFooterDesktop";
 import { type GameLayoutProps } from "./types/GameLayoutProps";
 
 export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
-  // GUARD: Wait for player identification to prevent "Ghost Mode"
-  if (game.my_player_number === null) {
-    return <LoadingScreen message="Sincronizando..." subMessage="Recuperando estado da partida..." />;
-  }
-
   // State
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
@@ -58,19 +53,21 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   const isMyTurn = game.current_player === my_player_id;
   const canDraw = isMyTurn && game.turn_phase === "DRAW";
   const canAction = isMyTurn && game.turn_phase === "ACTION";
-  const myScore = calculate_score(game.team_melds[my_team]).total_score;
-  const oppScore = calculate_score(game.team_melds[opponent_team]).total_score;
+  // Safe calculation even if game data is incomplete initially
+  const myScore = game.team_melds?.[my_team] ? calculate_score(game.team_melds[my_team]).total_score : 0;
+  const oppScore = game.team_melds?.[opponent_team] ? calculate_score(game.team_melds[opponent_team]).total_score : 0;
+  
   const myTeamHasTaken = game.has_taken_dead_pile?.[my_team - 1] ?? false;
   const oppTeamHasTaken =
     game.has_taken_dead_pile?.[opponent_team - 1] ?? false;
 
   // Discard Pile Logic
-  const topDiscardCard = game.discard_pile[0];
+  const topDiscardCard = game.discard_pile?.[0];
   const isDiscardSelected =
     !!topDiscardCard && selectedCards.includes(topDiscardCard.id);
 
   // Calculate direction for discard animation
-  const numPlayers = Object.keys(game.players_data).length; // 2 or 4
+  const numPlayers = game.players_data ? Object.keys(game.players_data).length : 0;
   const previousPlayerId =
     game.current_player === 1 ? numPlayers : game.current_player - 1;
 
@@ -84,13 +81,14 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   const activePlayerDirection = getPlayerDirection(
     game.current_player,
     my_player_id,
-    Object.keys(game.players_data).length === 4 ? "2v2" : "1v1",
+    numPlayers === 4 ? "2v2" : "1v1",
   );
 
   // Hooks Integration
   useWakeLock();
   const { isMobile } = useMobileCheck();
   const { opponentHeight, startDrag } = useScreenDrag(35);
+  // Pass a safe isMyTurn even if game is loading
   useGameAudio(game, isMyTurn);
 
   // Effect to calculate player positions for portal
@@ -125,7 +123,13 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [game.last_error]);
+  }, [game.last_error, game]);
+
+  // GUARD: Wait for player identification to prevent "Ghost Mode"
+  // Moved after hooks to strictly follow React Rules of Hooks
+  if (game.my_player_number === null) {
+    return <LoadingScreen message="Sincronizando..." subMessage="Recuperando estado da partida..." />;
+  }
 
   // --- RENDER FINISH SCREEN ---
   if (
@@ -329,7 +333,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
             className="bg-red-950/10 border-b border-white/5 px-2 md:px-6 py-2 flex flex-col relative z-10 min-h-0 transition-[height] duration-75 ease-linear"
           >
             <div className="flex-1 flex flex-wrap content-start md:gap-x-4 gap-y-2 md:gap-y-8 overflow-y-auto scrollbar-hide pt-2">
-              {game.team_melds[opponent_team].map((meld, idx) => (
+              {game.team_melds[opponent_team]?.map((meld, idx) => (
                 <MeldDisplay
                   key={idx}
                   meld={meld}
@@ -382,10 +386,10 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               className="flex-1 flex flex-wrap content-start md:gap-x-4
            gap-y-2 md:gap-y-8 overflow-y-auto scrollbar-hide pt-2 pb-20"
             >
-              {game.team_melds[my_team].map((meld, idx) => {
+              {game.team_melds[my_team]?.map((meld, idx) => {
                 // Logic: Can interact if (Draw Phase & Discard Avail) OR (Action Phase & Hand Cards Selected)
                 const canInteractWithMeld =
-                  (canDraw && game.discard_pile.length > 0) ||
+                  (canDraw && (game.discard_pile?.length ?? 0) > 0) ||
                   (canAction && selectedCards.length > 0);
 
                 const isHovered =

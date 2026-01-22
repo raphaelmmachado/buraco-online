@@ -73,6 +73,14 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
     () => localStorage.getItem("baralho_user_name") || "",
   );
 
+  const handleUserNameChange = (val: string) => {
+    const cleaned = val.toUpperCase();
+    setUserName(cleaned);
+    if (cleaned) {
+      localStorage.setItem("baralho_user_name", cleaned);
+    }
+  };
+
   const handleRefresh = () => {
     setIsRefreshing(true);
     fetchRooms();

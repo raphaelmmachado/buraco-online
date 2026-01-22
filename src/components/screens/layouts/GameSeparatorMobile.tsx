@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Skull, Clock } from "lucide-react";
+import { Skull } from "lucide-react";
 import { PileCard } from "../../game-ui/PileCard";
 import { DiscardCard } from "../../game-ui/DiscardCard";
 import { EventBar } from "../../game-ui/EventBar";

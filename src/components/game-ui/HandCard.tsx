@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { type Card as CardType } from "../../../common/types/card";
 import { SuitIcon } from "./SuitIcon";
-
+import { getCardImageSrc } from "../../utils/card_image_map";
 interface HandCardProps {
   card: CardType;
   isSelected: boolean;
@@ -24,7 +24,8 @@ export const HandCard = ({
   onMouseLeave,
 }: HandCardProps) => {
   const isRed = card.color === "red";
-  const { name } = card.suit;
+
+  const imageSrc = getCardImageSrc(card.value, card.suit.name);
 
   return (
     <motion.div
@@ -39,8 +40,8 @@ export const HandCard = ({
           isSelected
             ? "border-yellow-400 ring-4 ring-yellow-400/30 shadow-yellow-500/50 shadow-2xl"
             : isLastDrawn
-            ? "border-blue-400 ring-2 ring-blue-400/50 shadow-blue-500/30"
-            : "border-slate-300"
+              ? "border-blue-400 ring-2 ring-blue-400/50 shadow-blue-500/30"
+              : "border-slate-300"
         }
         ${isRed ? "text-red-600" : "text-slate-900"}
         ${className}
@@ -49,16 +50,33 @@ export const HandCard = ({
     >
       <div className="self-start flex flex-col gap-y-1 items-center leading-none">
         <span className="font-black md:text-2xl">{card.value}</span>
-        <SuitIcon suit={name} className={` w-4 h-4 md:w-5 md:h-5`} />
+        <SuitIcon suit={card.suit.name} className={` w-4 h-4 md:w-5 md:h-5`} />
       </div>
 
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-20">
-        <SuitIcon suit={name} className="w-8 h-8 md:w-16 md:h-16" />
-      </div>
+      {imageSrc ? (
+        // --- MODO IMAGEM ---
+        <img
+          src={imageSrc}
+          alt={`${card.value} de ${card.suit.name}`}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+          draggable={false}
+        />
+      ) : (
+        // --- MODO LEGADO (FALLBACK) ---
+        // Mantém o código antigo aqui para cartas que ainda não têm desenho
+        <>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-20">
+            <SuitIcon
+              suit={card.suit.name}
+              className="w-8 h-8 md:w-16 md:h-16"
+            />
+          </div>
+        </>
+      )}
 
       <div className="self-end flex flex-col items-center  gap-y-1  leading-none rotate-180">
         <span className="font-black md:text-2xl">{card.value}</span>
-        <SuitIcon suit={name} className="w-4 h-4 md:w-5 md:h-5" />
+        <SuitIcon suit={card.suit.name} className="w-4 h-4 md:w-5 md:h-5" />
       </div>
     </motion.div>
   );

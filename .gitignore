@@ -28,3 +28,6 @@ dist-ssr
 
 #custom
 game_storage.json
+
+
+/src/assets/stickers/*webp

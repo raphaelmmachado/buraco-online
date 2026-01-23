@@ -75,14 +75,14 @@ const CARD_DEFINITIONS = [
 
 // Usado para criar o baralho
 export const VALUES: CardValue[] = CARD_DEFINITIONS.map(
-  (d) => d.val as CardValue
+  (d) => d.val as CardValue,
 );
 
 // Usado para validação de sequências (Rules) - Agora suporta múltiplos pesos
 export const CARD_VALUE_WEIGHTS: Record<CardValue, readonly number[]> =
   CARD_DEFINITIONS.reduce(
     (acc, curr) => ({ ...acc, [curr.val]: curr.weight }),
-    {} as Record<CardValue, readonly number[]>
+    {} as Record<CardValue, readonly number[]>,
   );
 
 // Usado para ordenação simples (Sort) - Prioriza o peso natural ou o primeiro peso
@@ -105,7 +105,7 @@ export const PRIMARY_CARD_WEIGHTS: Record<CardValue, number> = {
 // Usado para calcular a pontuação (Scoring)
 export const CARD_POINTS: Record<CardValue, number> = CARD_DEFINITIONS.reduce(
   (acc, curr) => ({ ...acc, [curr.val]: curr.points }),
-  {} as Record<CardValue, number>
+  {} as Record<CardValue, number>,
 );
 
 // -----------------------------------------------------------------------------

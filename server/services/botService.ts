@@ -263,12 +263,24 @@ const execute_bot_move = (io: Server, roomId: string) => {
     // Determine if my team has taken dead pile
     const my_team_has_taken = game.has_taken_dead_pile[my_team_idx as 0 | 1];
 
-    const discard_card = choose_discard(
+    // Pass all parameters to improve intelligence and prevent undefined behavior
+    let discard_card = choose_discard(
       my_hand,
       opponent_melds,
       game.discard_pile[0],
-      my_team_has_taken
+      my_team_has_taken,
+      game.deck.length,
+      [], // all_played_cards - Optional/Optimization not yet fully tracked in game state for bots
+      game.discard_pile.length,
+      0   // partner_hand_size - Optional, defaults to 0
     );
+
+    // FALLBACK SAFETY: Ensure we ALWAYS discard if we have cards
+    if (!discard_card && my_hand.length > 0) {
+        console.warn(`[BOT WARNING] choose_discard returned null for ${pData.userName}. Forcing discard of first card.`);
+        discard_card = my_hand[0];
+    }
+
     if (discard_card) {
       game.hands[game.current_player] = my_hand.filter(
         (c) => c.id !== discard_card.id

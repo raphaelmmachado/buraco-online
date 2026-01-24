@@ -206,7 +206,10 @@ const evaluate_potential_melds = (
     // 3. Soft Lock Prevention
     const remainingHand = remove_cards_from_hand(currentHand, cards);
     if (hasTakenDeadPile && !hasCleanCanastra && remainingHand.length < 2) {
-      score -= 1000;
+      const is_creating_clean = validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE';
+      if (!is_creating_clean) {
+         score -= 1000;
+      }
     }
 
     // 3. Joker Preservation & Strategy
@@ -338,11 +341,22 @@ export const find_card_to_add = (
     const validation = validate_sequence(attempt);
 
     if (validation.is_valid) {
+        // PRIORITY: Completing a Clean Canastra (7+ cards)
+        // If this card makes the meld a clean canastra, we ALWAYS take it.
+        const is_now_clean_canastra = validation.is_clean && (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE');
+        if (is_now_clean_canastra) {
+             console.log(`[BOT LOGIC] PRIORITY: Completing Clean Canastra with ${card.value}!`);
+             return card;
+        }
+
         // SOFT LOCK PROTECTION
         if (has_taken_dead_pile && !has_clean_canastra) {
             const is_now_canastra = validation.is_valid && (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE');
-            if (!is_now_canastra && hand.length === 2) {
-                 console.log(`[BOT LOGIC] Card ${card.value} rejected to avoid soft lock (Hand would become 1).`);
+            // Prevent playing if it leaves us with <= 1 card (requiring illegal discard/win)
+            // If hand.length is 1, playing leaves 0 -> Batida Direta (Illegal)
+            // If hand.length is 2, playing leaves 1 -> Must Discard -> Batida Indireta (Illegal)
+            if (!is_now_canastra && hand.length <= 2) {
+                 console.log(`[BOT LOGIC] Card ${card.value} rejected to avoid soft lock (Hand size ${hand.length} -> would finish illegally).`);
                  continue;
             }
         }
@@ -488,7 +502,7 @@ export const analyze_discard_pickup = (
        if (has_taken_dead_pile && !has_clean_canastra) {
            const is_now_canastra = validation.is_valid && (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE');
            const new_hand_size = hand.length + (discard_pile_size - 1); // Ganha o lixo todo, mas perde 1 que vai pro jogo
-           if (!is_now_canastra && new_hand_size < 2 && desperation_factor === 0) { // Only protect if not desperate
+           if (!is_now_canastra && new_hand_size < 2) { // Only protect if not desperate - REMOVED: Illegal moves are never allowed.
                console.log(`[BOT LOGIC] Pickup Rejected: Direct add would cause soft lock.`);
                continue;
            }
@@ -529,7 +543,7 @@ export const analyze_discard_pickup = (
               if (has_taken_dead_pile && !has_clean_canastra) {
                   const is_now_canastra = validation.is_valid && (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE');
                   const new_hand_size = hand.length + (discard_pile_size - 1) - 1; // Ganha lixo, perde 1 da ponte, perde 1 pro meld
-                  if (!is_now_canastra && new_hand_size < 2 && desperation_factor === 0) { // Only protect if not desperate
+                  if (!is_now_canastra && new_hand_size < 2) { // Only protect if not desperate - REMOVED
                       continue;
                   }
               }
@@ -592,7 +606,7 @@ export const analyze_discard_pickup = (
           if (has_taken_dead_pile && !has_clean_canastra) {
               const is_now_canastra = validation.is_valid && (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE');
               const new_hand_size = hand.length + (discard_pile_size - 1) - 2; // Ganha lixo, perde 2 da mão, perde 1 pro meld
-              if (!is_now_canastra && new_hand_size < 2 && desperation_factor === 0) { // Only protect if not desperate
+              if (!is_now_canastra && new_hand_size < 2) { // Only protect if not desperate - REMOVED
                   continue;
               }
           }

@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "start": "tsx index.ts",
+    "start:dist": "bun run server_dist.ts",
     "dev": "bun run index.ts"
   },
   "devDependencies": {

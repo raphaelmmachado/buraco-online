@@ -14,18 +14,17 @@ export const PileCard = ({
   quantity,
   dead_piles,
 }: PileCardProps) => {
-  if (quantity === 0) {
-    if (dead_piles > 0) {
-      return <PileQuantity quantity={11} />;
-    }
+  const displayQuantity = quantity === 0 && dead_piles > 0 ? 11 : quantity;
+
+  if (displayQuantity === 0) {
     return <EmptyPile mini={mini} onClick={onClick} />;
   }
 
   // Lógica para determinar quantas "camadas" mostrar atrás
-  const showL1 = quantity > 1;
-  const showL2 = quantity > 10;
-  const showL3 = quantity > 25;
-  const showL4 = quantity > 50;
+  const showL1 = displayQuantity > 1;
+  const showL2 = displayQuantity > 10;
+  const showL3 = displayQuantity > 25;
+  const showL4 = displayQuantity > 50;
 
   // Estilos comuns para garantir que as cartas de trás pareçam com a da frente
   const baseCardStyles = `
@@ -87,7 +86,7 @@ export const PileCard = ({
         ></div>
 
         {/* Número da quantidade */}
-        <PileQuantity quantity={quantity} />
+        <PileQuantity quantity={displayQuantity} />
 
         {/* Borda brilhante quando ativo */}
         {active && onClick && (
@@ -116,17 +115,14 @@ const EmptyPile = ({
   mini: boolean;
 }) => {
   return (
-    <>
-      {" "}
-      <div
-        onClick={onClick}
-        className={`${mini ? "w-10 h-14" : "w-14 h-20 md:w-20 md:h-32"}
-          text-xs tracking-wider md:text-base border-2 border-dashed border-white/10 rounded-md
-          flex items-center justify-center font-black text-white/10 select-none
-        `}
-      >
-        MONTE
-      </div>
-    </>
+    <div
+      onClick={onClick}
+      className={`${mini ? "w-10 h-14" : "w-14 h-20 md:w-20 md:h-32"}
+        text-xs tracking-wider md:text-base border-2 border-dashed border-white/10 rounded-md
+        flex items-center justify-center font-black text-white/10 select-none
+      `}
+    >
+      MONTE
+    </div>
   );
 };

@@ -96,6 +96,8 @@ interface GameState {
 
 interface GameActions {
   initializeSocket: () => void;
+  disconnectSocket: () => void;
+  connectSocket: () => void;
   connect: (roomId: string, mode: "1v1" | "2v2", userName: string) => void;
   rejoinGame: () => void;
   fetchRooms: () => void;
@@ -252,6 +254,20 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     });
   },
 
+  disconnectSocket: () => {
+    if (socket.connected) {
+      socket.disconnect();
+    }
+    set({ connectionStatus: "DISCONNECTED" });
+  },
+
+  connectSocket: () => {
+    if (!socket.connected) {
+      set({ connectionStatus: "CONNECTING" });
+      socket.connect();
+    }
+  },
+
   initializeSocket: () => {
     if (!listeners_setup) {
       socket.on("player_assignment", (num: number, userName: string) => {
@@ -375,14 +391,10 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
       listeners_setup = true;
     }
-
-    if (!socket.connected) {
-      set({ connectionStatus: "CONNECTING" });
-      socket.connect();
-    }
     
+    // REMOVED AUTO CONNECT
     // Always fetch rooms when initializing
-    get().fetchRooms();
+    // get().fetchRooms(); // Don't fetch rooms if not connected
   },
 
   fetchRooms: () => {

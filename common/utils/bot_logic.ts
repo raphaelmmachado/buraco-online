@@ -30,7 +30,8 @@ const group_by_suit = (hand: Card[]) => {
   const suits: Record<string, Card[]> = {};
   SUITS.forEach(s => suits[s.name] = []);
   hand.forEach((c) => {
-    if (suits[c.suit.name]) suits[c.suit.name].push(c);
+    const s = suits[c.suit.name];
+    if (s) s.push(c);
   });
   return suits;
 };
@@ -49,7 +50,9 @@ export const find_meld_in_hand = (
   
   // 1. Tenta sequências LIMPAS
   for (const suitName in suits) {
-    const cards = sort_cards(suits[suitName]); 
+    const suitCards = suits[suitName];
+    if (!suitCards) continue;
+    const cards = sort_cards(suitCards); 
     if (cards.length < 3) continue;
 
     for (let len = cards.length; len >= 3; len--) {
@@ -73,18 +76,22 @@ export const find_meld_in_hand = (
               // STRICT RULE: Wildcard MUST match the suit of the sequence
               if (wc.suit.name !== suitName) continue;
 
-              const cards = sort_cards(suits_clean[suitName]);
+              const suitCards = suits_clean[suitName];
+              if (!suitCards) continue;
+              const cards = sort_cards(suitCards);
               if (cards.length < 2) continue;
 
               // A. Tenta ponte inteligente (CLUSTERING)
-              let current_cluster: Card[] = [cards[0]];
+              let current_cluster: Card[] = [cards[0]!];
               
               for (let i = 0; i < cards.length - 1; i++) {
-                  const curr_rank = RANK_MAP[cards[i].value];
-                  const next_rank = RANK_MAP[cards[i+1].value];
+                  const c1 = cards[i]!;
+                  const c2 = cards[i+1]!;
+                  const curr_rank = RANK_MAP[c1.value] || 0;
+                  const next_rank = RANK_MAP[c2.value] || 0;
                   
                   if (curr_rank && next_rank && (next_rank - curr_rank) <= 2) {
-                      current_cluster.push(cards[i+1]);
+                      current_cluster.push(c2);
                   } else {
                       if (current_cluster.length >= 2) {
                           const attempt = [...current_cluster, wc];
@@ -93,7 +100,7 @@ export const find_meld_in_hand = (
                               all_potential_melds.push({ cards: organize_meld(attempt), validation: validation as ValidSequence });
                           }
                       }
-                      current_cluster = [cards[i+1]];
+                      current_cluster = [c2];
                   }
               }
               if (current_cluster.length >= 2) {
@@ -107,7 +114,9 @@ export const find_meld_in_hand = (
               // B. Fallback: Força bruta em trincas
               for (let i = 0; i < cards.length - 1; i++) {
                   for (let j = i + 1; j < cards.length; j++) {
-                      const attempt = [cards[i], cards[j], wc];
+                      const c1 = cards[i]!;
+                      const c2 = cards[j]!;
+                      const attempt = [c1, c2, wc];
                       const validation = get_sequence_details(attempt); 
                       if (validation.is_valid) {
                           all_potential_melds.push({ cards: organize_meld(attempt), validation: validation as ValidSequence });
@@ -141,13 +150,17 @@ const analyze_hand_for_potential_sequences = (hand: Card[]): number => {
     const suits = group_by_suit(hand);
 
     for (const suitName in suits) {
-        const cards = sort_cards(suits[suitName]);
+        const suitCards = suits[suitName];
+        if (!suitCards) continue;
+        const cards = sort_cards(suitCards);
         if (cards.length < 2) continue;
 
         let current_sequence_length = 1;
         for (let i = 0; i < cards.length - 1; i++) {
-            const current_rank = RANK_MAP[cards[i].value];
-            const next_rank = RANK_MAP[cards[i+1].value];
+            const c1 = cards[i]!;
+            const c2 = cards[i+1]!;
+            const current_rank = RANK_MAP[c1.value];
+            const next_rank = RANK_MAP[c2.value];
 
             if (next_rank && current_rank && next_rank === current_rank + 1) {
                 current_sequence_length++;
@@ -299,8 +312,9 @@ export const find_card_to_add = (
     all_played_cards: Card[] = [],
     is_2v2: boolean = false
 ): Card | null => {
-  const target_suit = meld.find(c => c.value !== "2")?.suit.name;
-  if (!target_suit) return null;
+    const target_suit_name = meld.find(c => c.value !== "2")?.suit.name;
+    const target_suit = target_suit_name; // Alias for logic compatibility
+    if (!target_suit) return null;
 
   // Verifica o estado atual do meld
   const current_validation = get_sequence_details(meld);
@@ -473,11 +487,12 @@ export const analyze_discard_pickup = (
   // 1. TENTA ADICIONAR DIRETO EM UM JOGO EXISTENTE
   for (let i = 0; i < team_melds.length; i++) {
     const meld = team_melds[i];
+    if (!meld) continue;
     const target_suit = meld.find(c => c.value !== "2")?.suit.name;
     
     // Se a carta do lixo não é curinga e nem do naipe do jogo, ignora (otimização)
     // NOVA REGRA: Coringa de naipe diferente PROIBIDO. Portanto, só aceita se for do mesmo naipe.
-    if (top_discard.suit.name !== target_suit) continue;
+    if (!target_suit || top_discard.suit.name !== target_suit) continue;
 
     const attempt = [...meld, top_discard];
     const validation = validate_sequence(attempt);
@@ -516,7 +531,9 @@ export const analyze_discard_pickup = (
   // 2. TENTA "PONTE" (Lixo + 1 da mão -> Jogo Existente)
   for (let i = 0; i < team_melds.length; i++) {
       const meld = team_melds[i];
+      if (!meld) continue;
       const target_suit = meld.find(c => c.value !== "2")?.suit.name;
+      if (!target_suit) continue;
 
       // Filtra candidatos da mão que podem ajudar
       // NOVA REGRA: Apenas cartas do mesmo naipe (incluindo coringas do mesmo naipe)
@@ -560,7 +577,9 @@ export const analyze_discard_pickup = (
   if (same_suit.length >= 2) {
     for (let i = 0; i < same_suit.length; i++) {
       for (let j = i + 1; j < same_suit.length; j++) {
-        const attempt = [top_discard, same_suit[i], same_suit[j]];
+        const c1 = same_suit[i]!;
+        const c2 = same_suit[j]!;
+        const attempt = [top_discard, c1, c2];
         const validation = validate_sequence(attempt);
         
         // Regra: Pegar lixo para novo jogo exige jogo LIMPO (sem curinga)
@@ -611,8 +630,8 @@ export const analyze_discard_pickup = (
               }
           }
 
-          console.log(`[BOT LOGIC] Pickup Discard: Found new clean sequence ${top_discard.value}-${same_suit[i].value}-${same_suit[j].value}`);
-          return { type: 'NEW_MELD', cards: [same_suit[i], same_suit[j]] }; 
+          console.log(`[BOT LOGIC] Pickup Discard: Found new clean sequence ${top_discard.value}-${c1.value}-${c2.value}`);
+          return { type: 'NEW_MELD', cards: [c1, c2] }; 
         }
       }
     }
@@ -769,7 +788,7 @@ export const choose_discard = (
   
   
   
-    return chosen || pool[0]; 
+    return chosen || pool[0]!; 
   
   };
   

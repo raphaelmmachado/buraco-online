@@ -6,6 +6,7 @@ import { get_player_id_by_socket, start_next_round, start_new_match } from "../s
 import { broadcast_game_update, process_bot_turn } from "../services/botService";
 import { type PlayerID, type GameMode, type WinCondition } from "../types";
 import { startTurnTimer } from "../services/timerService";
+import { type Card } from "../../common/types/card";
 
 export const registerRoomHandlers = (io: Server, socket: Socket) => {
   socket.on("disconnect", () => {
@@ -80,6 +81,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
     // QUICK CLEANUP: Se houver salas vazias sem timeout agendado (ex: após restart), limpa agora
     for (const roomId in games) {
       const game = games[roomId];
+      if (!game) continue;
       if (game.players_connected.length === 0 && !game.disconnectTimeout) {
           // Se não tem ninguém e não tem timer de espera, deleta para não poluir o feed
           delete games[roomId];

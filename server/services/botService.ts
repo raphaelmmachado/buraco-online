@@ -278,7 +278,8 @@ const execute_bot_move = (io: Server, roomId: string) => {
     // FALLBACK SAFETY: Ensure we ALWAYS discard if we have cards
     if (!discard_card && my_hand.length > 0) {
         console.warn(`[BOT WARNING] choose_discard returned null for ${pData.userName}. Forcing discard of first card.`);
-        discard_card = my_hand[0];
+        const fallback = my_hand[0];
+        if (fallback) discard_card = fallback;
     }
 
     if (discard_card) {

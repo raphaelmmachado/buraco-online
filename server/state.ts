@@ -16,7 +16,7 @@ export interface ServerGameState {
   turn_phase: "DRAW" | "ACTION" | "DISCARD";
   current_player: number;
   players_connected: string[];
-  players_data: Record<PlayerID, PlayerData>;
+  players_data: Partial<Record<PlayerID, PlayerData>>;
   
   // Championship State
   win_condition?: WinCondition;
@@ -75,8 +75,10 @@ export const loadState = () => {
       
       // Reset volatile state on load
       for (const roomId in games) {
-        games[roomId].players_connected = [];
-        games[roomId].disconnectTimeout = null;
+        if (games[roomId]) {
+            games[roomId].players_connected = [];
+            games[roomId].disconnectTimeout = null;
+        }
       }
 
       console.log(`📂 Loaded ${Object.keys(games).length} games from disk.`);

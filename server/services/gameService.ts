@@ -1,5 +1,5 @@
 import { create_deck, distribute_cards } from "../../common/utils/game_logic";
-import { calculate_score } from "../../common/utils/scoring";
+import { calculate_score, type ScoreResult } from "../../common/utils/scoring";
 import { sort_cards } from "../../common/utils/sort_cards";
 import { validate_sequence } from "../../common/utils/rules_logic";
 import { type ServerGameState } from "../state";

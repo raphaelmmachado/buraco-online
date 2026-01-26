@@ -97,6 +97,7 @@ const handleTurnTimeout = (io: Server, roomId: string) => {
     // Simplificação para Auto-Play:
     // Escolhe uma carta aleatória.
     const card_to_discard = current_hand[Math.floor(Math.random() * current_hand.length)];
+    if (!card_to_discard) return;
     
     // Verifica se esse descarte faria bater sem limpa
     const new_hand_len = current_hand.length - 1;
@@ -138,7 +139,7 @@ const handleTurnTimeout = (io: Server, roomId: string) => {
     
     if (updated_hand && updated_hand.length === 0) {
         // Bateu
-        handle_empty_hand(game, player_id, "INDIRECT");
+        handle_empty_hand(game, player_id as any, "INDIRECT");
         // Se pegou morto indireto, continua na ACTION do mesmo jogador?
         // handle_empty_hand define.
         // Se indirect, pegou morto e só. O turno acaba? 
@@ -154,7 +155,7 @@ const handleTurnTimeout = (io: Server, roomId: string) => {
         game.hands[player_id] = sort_cards(updated_hand);
     }
 
-    if (game.status !== "FINISHED") {
+    if ((game.status as string) !== "FINISHED") {
         game.turn_phase = "DRAW";
         game.current_player = get_next_player(game.current_player, game.mode);
         game.last_drawn_card_id = null;

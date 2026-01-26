@@ -11,7 +11,7 @@ import {
   Globe,
   Bot,
   ArrowLeft,
-  Plus
+  Plus,
 } from "lucide-react";
 import { StyledButton } from "../ui/StyledButton";
 
@@ -60,7 +60,7 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
   const [screenMode, setScreenMode] = useState<ScreenMode>("SELECT");
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [newRoomId, setNewRoomId] = useState("");
-  
+
   const connect = useGameStore((state) => state.connect);
   const initializeSocket = useGameStore((state) => state.initializeSocket);
   const connectSocket = useGameStore((state) => state.connectSocket);
@@ -104,12 +104,12 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
   // Gerencia conexão baseada na tela atual
   useEffect(() => {
     if (screenMode === "ONLINE_LOBBY") {
-        connectSocket();
-        const interval = setInterval(fetchRooms, 5000);
-        return () => clearInterval(interval);
+      connectSocket();
+      const interval = setInterval(fetchRooms, 5000);
+      return () => clearInterval(interval);
     } else {
-        // Se voltar para SELECT, desconecta
-        // disconnectSocket(); // Comentado pois pode ser agressivo se o usuario so voltar sem querer, mas o pedido foi: "corte conexões"
+      // Se voltar para SELECT, desconecta
+      // disconnectSocket(); // Comentado pois pode ser agressivo se o usuario so voltar sem querer, mas o pedido foi: "corte conexões"
     }
   }, [screenMode, connectSocket, fetchRooms]);
 
@@ -123,10 +123,9 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
     }
   }, [rooms, activeSession]);
 
-
   const handleCreate = (mode: "1v1" | "2v2") => {
     if (connectionStatus !== "CONNECTED") return;
-    
+
     if (userName.trim() === "") {
       alert("Por favor, digite seu nome primeiro.");
       return;
@@ -149,82 +148,105 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
   };
 
   const goOffline = () => {
-      disconnectSocket();
-      setScreenMode("SELECT");
-      if (onPlayLocal) onPlayLocal();
+    disconnectSocket();
+    setScreenMode("SELECT");
+    if (onPlayLocal) onPlayLocal();
   };
 
   const goOnline = () => {
-      setScreenMode("ONLINE_LOBBY");
+    setScreenMode("ONLINE_LOBBY");
   };
-  
+
   const goBackToSelect = () => {
-      disconnectSocket();
-      setScreenMode("SELECT");
-      setIsCreatingRoom(false);
+    disconnectSocket();
+    setScreenMode("SELECT");
+    setIsCreatingRoom(false);
   };
 
   // --- RENDER: SELECT MODE ---
   if (screenMode === "SELECT") {
-      return (
-        <div className="min-h-screen bg-[#0f2e1a] flex flex-col items-center justify-center text-white p-6 font-sans relative overflow-hidden">
-            <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "30px 30px" }}></div>
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/50 pointer-events-none"></div>
-            
-            <div className="relative z-10 flex flex-col gap-8 max-w-md w-full animate-fade-in">
-                <div className="text-center mb-4">
-                    <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-yellow-300 via-yellow-500 to-orange-600 mb-2 uppercase tracking-tighter drop-shadow-xl">
-                      Buraco
-                    </h1>
-                    <p className="text-slate-400 text-xs uppercase tracking-[0.5em]">Online & Offline</p>
-                </div>
+    return (
+      <div className="min-h-screen bg-[#0f2e1a] flex flex-col items-center justify-center text-white p-6 font-sans relative overflow-hidden">
+        <div
+          className="absolute inset-0 opacity-10 pointer-events-none"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle, #fff 1px, transparent 1px)",
+            backgroundSize: "30px 30px",
+          }}
+        ></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/50 pointer-events-none"></div>
 
-                <button 
-                    onClick={goOffline}
-                    className="group bg-black/40 hover:bg-purple-900/20 backdrop-blur-md p-8 rounded-2xl border border-white/10 hover:border-purple-500/50 transition-all hover:scale-[1.02] active:scale-95 flex flex-col items-center gap-4 shadow-2xl"
-                >
-                    <div className="w-20 h-20 bg-purple-500/10 rounded-full flex items-center justify-center border border-purple-500/20 group-hover:border-purple-500 group-hover:bg-purple-500 group-hover:text-black transition-all text-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.1)] group-hover:shadow-[0_0_30px_rgba(168,85,247,0.6)]">
-                        <Bot size={40} />
-                    </div>
-                    <div className="text-center">
-                        <h2 className="text-2xl font-black uppercase text-purple-100 mb-1">Jogar Offline</h2>
-                        <p className="text-[10px] text-purple-300/60 font-mono uppercase tracking-widest">Contra o Computador</p>
-                    </div>
-                </button>
+        <div className="relative z-10 flex flex-col gap-8 max-w-md w-full animate-fade-in">
+          <div className="text-center mb-4">
+            <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-yellow-300 via-yellow-500 to-orange-600 mb-2 uppercase tracking-tighter drop-shadow-xl">
+              Buraco Resenha
+            </h1>
+            <p className="text-slate-400 text-xs uppercase tracking-[0.5em]">
+              Fechado, sem trinca, sem vulnerável.
+            </p>
+          </div>
 
-                <button 
-                    onClick={goOnline}
-                    className="group bg-black/40 hover:bg-blue-900/20 backdrop-blur-md p-8 rounded-2xl border border-white/10 hover:border-blue-500/50 transition-all hover:scale-[1.02] active:scale-95 flex flex-col items-center gap-4 shadow-2xl"
-                >
-                     <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center border border-blue-500/20 group-hover:border-blue-500 group-hover:bg-blue-500 group-hover:text-black transition-all text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.1)] group-hover:shadow-[0_0_30px_rgba(59,130,246,0.6)]">
-                        <Globe size={40} />
-                    </div>
-                    <div className="text-center">
-                        <h2 className="text-2xl font-black uppercase text-blue-100 mb-1">Jogar Online</h2>
-                        <p className="text-[10px] text-blue-300/60 font-mono uppercase tracking-widest">Multiplayer Real-time</p>
-                    </div>
-                </button>
+          <button
+            onClick={goOffline}
+            className="group bg-black/40 hover:bg-purple-900/20 backdrop-blur-md p-8 rounded-2xl border border-white/10 hover:border-purple-500/50 transition-all hover:scale-[1.02] active:scale-95 flex flex-col items-center gap-4 shadow-2xl"
+          >
+            <div className="w-20 h-20 bg-purple-500/10 rounded-full flex items-center justify-center border border-purple-500/20 group-hover:border-purple-500 group-hover:bg-purple-500 group-hover:text-black transition-all text-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.1)] group-hover:shadow-[0_0_30px_rgba(168,85,247,0.6)]">
+              <Bot size={40} />
             </div>
+            <div className="text-center">
+              <h2 className="text-2xl font-black uppercase text-purple-100 mb-1">
+                Jogar Offline
+              </h2>
+              <p className="text-[10px] text-purple-300/60 font-mono uppercase tracking-widest">
+                Contra o Computador
+              </p>
+            </div>
+          </button>
+
+          <button
+            onClick={goOnline}
+            className="group bg-black/40 hover:bg-blue-900/20 backdrop-blur-md p-8 rounded-2xl border border-white/10 hover:border-blue-500/50 transition-all hover:scale-[1.02] active:scale-95 flex flex-col items-center gap-4 shadow-2xl"
+          >
+            <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center border border-blue-500/20 group-hover:border-blue-500 group-hover:bg-blue-500 group-hover:text-black transition-all text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.1)] group-hover:shadow-[0_0_30px_rgba(59,130,246,0.6)]">
+              <Globe size={40} />
+            </div>
+            <div className="text-center">
+              <h2 className="text-2xl font-black uppercase text-blue-100 mb-1">
+                Jogar Online
+              </h2>
+              <p className="text-[10px] text-blue-300/60 font-mono uppercase tracking-widest">
+                Multijogador em tempo real
+              </p>
+            </div>
+          </button>
         </div>
-      );
+      </div>
+    );
   }
 
   // --- RENDER: ONLINE LOBBY ---
   return (
     <div className="min-h-screen bg-[#0f2e1a] flex flex-col items-center justify-center text-white p-6 font-sans relative overflow-hidden">
       <ConnectionBadge />
-      
+
       {/* Background Texture */}
-      <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "30px 30px" }}></div>
+      <div
+        className="absolute inset-0 opacity-10 pointer-events-none"
+        style={{
+          backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)",
+          backgroundSize: "30px 30px",
+        }}
+      ></div>
       <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/50 pointer-events-none"></div>
-      
+
       {/* Back Button */}
       <div className="absolute top-6 left-6 z-20">
-        <button 
-            onClick={goBackToSelect}
-            className="flex items-center gap-2 px-4 py-2 bg-black/40 hover:bg-white/10 border border-white/10 rounded-full text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-all backdrop-blur-sm"
+        <button
+          onClick={goBackToSelect}
+          className="flex items-center gap-2 px-4 py-2 bg-black/40 hover:bg-white/10 border border-white/10 rounded-full text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-all backdrop-blur-sm"
         >
-            <ArrowLeft size={14} /> Voltar
+          <ArrowLeft size={14} /> Voltar
         </button>
       </div>
 
@@ -253,60 +275,65 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
 
           {/* ACTIONS PANEL */}
           <div className="bg-black/40 backdrop-blur-md rounded-2xl shadow-2xl border border-white/10 flex flex-col overflow-hidden min-h-60 group hover:border-blue-500/30 transition-colors relative">
-             <div className="p-6 flex-1 flex flex-col justify-center">
-                {!isCreatingRoom ? (
+            <div className="p-6 flex-1 flex flex-col justify-center">
+              {!isCreatingRoom ? (
+                <button
+                  onClick={() => setIsCreatingRoom(true)}
+                  className="w-full h-full min-h-[160px] border-2 border-dashed border-white/10 hover:border-blue-500/50 rounded-xl flex flex-col items-center justify-center gap-4 group/create transition-all hover:bg-blue-500/5"
+                >
+                  <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500 group-hover/create:scale-110 transition-transform shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+                    <Plus size={32} />
+                  </div>
+                  <span className="text-sm font-black uppercase tracking-widest text-slate-400 group-hover/create:text-blue-300">
+                    Criar Nova Sala
+                  </span>
+                </button>
+              ) : (
+                <div className="animate-fade-in flex flex-col gap-4 h-full">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[10px] font-black text-blue-400 uppercase tracking-widest">
+                      Configurar Sala
+                    </h3>
                     <button
-                        onClick={() => setIsCreatingRoom(true)}
-                        className="w-full h-full min-h-[160px] border-2 border-dashed border-white/10 hover:border-blue-500/50 rounded-xl flex flex-col items-center justify-center gap-4 group/create transition-all hover:bg-blue-500/5"
+                      onClick={() => setIsCreatingRoom(false)}
+                      className="text-slate-500 hover:text-white text-xs p-1"
                     >
-                        <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500 group-hover/create:scale-110 transition-transform shadow-[0_0_15px_rgba(59,130,246,0.2)]">
-                            <Plus size={32} />
-                        </div>
-                        <span className="text-sm font-black uppercase tracking-widest text-slate-400 group-hover/create:text-blue-300">
-                            Criar Nova Sala
-                        </span>
+                      ✕
                     </button>
-                ) : (
-                    <div className="animate-fade-in flex flex-col gap-4 h-full">
-                        <div className="flex items-center justify-between">
-                             <h3 className="text-[10px] font-black text-blue-400 uppercase tracking-widest">
-                                Configurar Sala
-                             </h3>
-                             <button onClick={() => setIsCreatingRoom(false)} className="text-slate-500 hover:text-white text-xs p-1">✕</button>
-                        </div>
-                        
-                        <input
-                          type="text"
-                          value={newRoomId}
-                          onChange={(e) => setNewRoomId(e.target.value)}
-                          placeholder="NOME DA SALA..."
-                          autoFocus
-                          className="w-full px-4 py-3 rounded-lg bg-black/50 text-white border border-white/10 focus:outline-none focus:border-blue-500/50 transition-all font-mono text-sm uppercase"
-                        />
-                        
-                        <div className="grid grid-cols-2 gap-4 mt-auto">
-                            <StyledButton
-                              onClick={() => handleCreate("1v1")}
-                              variant="secondary"
-                              size="lg"
-                              icon={<User size={16} />}
-                              className="bg-blue-600/80 hover:bg-blue-500 shadow-blue-900/20 text-xs"
-                            >
-                              1 vs 1
-                            </StyledButton>
-                            <StyledButton
-                              onClick={() => handleCreate("2v2")}
-                              variant="secondary"
-                              size="lg"
-                              icon={<Users size={16} />}
-                              className="bg-purple-600/80 hover:bg-purple-500 shadow-purple-900/20 text-xs"
-                            >
-                              2 vs 2
-                            </StyledButton>
-                        </div>
-                    </div>
-                )}
-             </div>
+                  </div>
+
+                  <input
+                    type="text"
+                    value={newRoomId}
+                    onChange={(e) => setNewRoomId(e.target.value)}
+                    placeholder="NOME DA SALA..."
+                    autoFocus
+                    className="w-full px-4 py-3 rounded-lg bg-black/50 text-white border border-white/10 focus:outline-none focus:border-blue-500/50 transition-all font-mono text-sm uppercase"
+                  />
+
+                  <div className="grid grid-cols-2 gap-4 mt-auto">
+                    <StyledButton
+                      onClick={() => handleCreate("1v1")}
+                      variant="secondary"
+                      size="lg"
+                      icon={<User size={16} />}
+                      className="bg-blue-600/80 hover:bg-blue-500 shadow-blue-900/20 text-xs"
+                    >
+                      1 vs 1
+                    </StyledButton>
+                    <StyledButton
+                      onClick={() => handleCreate("2v2")}
+                      variant="secondary"
+                      size="lg"
+                      icon={<Users size={16} />}
+                      className="bg-purple-600/80 hover:bg-purple-500 shadow-purple-900/20 text-xs"
+                    >
+                      2 vs 2
+                    </StyledButton>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

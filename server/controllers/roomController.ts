@@ -3,7 +3,7 @@ import { games, saveState } from "../state";
 import { create_deck, distribute_cards } from "../../common/utils/game_logic";
 import { sort_cards } from "../../common/utils/sort_cards";
 import { get_player_id_by_socket, start_next_round, start_new_match } from "../services/gameService";
-import { broadcast_game_update } from "../services/botService";
+import { broadcast_game_update, process_bot_turn } from "../services/botService";
 import { type PlayerID, type GameMode, type WinCondition } from "../types";
 import { startTurnTimer } from "../services/timerService";
 
@@ -111,6 +111,51 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
       totalOnline,
       onlineNames,
     });
+  });
+
+  socket.on("action_add_bot", ({ roomId }: { roomId: string }) => {
+    const game = games[roomId];
+    if (!game) return;
+
+    const player_id = get_player_id_by_socket(game, socket.id);
+    if (player_id !== 1) {
+        socket.emit("error_msg", "Apenas o dono da sala pode adicionar bots.");
+        return;
+    }
+
+    if (game.status !== "LOBBY") {
+        socket.emit("error_msg", "Não é possível adicionar bots durante a partida.");
+        return;
+    }
+
+    const maxPlayers = game.mode === "1v1" ? 2 : 4;
+    const filledSlots = Object.keys(game.players_data).length;
+
+    if (filledSlots >= maxPlayers) {
+        socket.emit("error_msg", "Sala cheia!");
+        return;
+    }
+
+    // Find first available slot (1, 2, 3, 4)
+    let botSlot: PlayerID | null = null;
+    for (let i = 1; i <= maxPlayers; i++) {
+        if (!game.players_data[i as PlayerID]) {
+            botSlot = i as PlayerID;
+            break;
+        }
+    }
+
+    if (botSlot) {
+        game.players_data[botSlot] = {
+            socketId: "BOT",
+            userName: `Bot ${botSlot}`,
+            playerId: `bot-${Date.now()}-${botSlot}`, // Fake unique ID
+            isBot: true,
+        };
+        console.log(`[BOT] Added to slot ${botSlot} in room ${roomId}`);
+        broadcast_game_update(io, roomId);
+        saveState();
+    }
   });
 
   socket.on("action_switch_team", ({ roomId }: { roomId: string }) => {
@@ -441,12 +486,12 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
         game.status = "PLAYING";
     }
 
-    if (winCondition) {
-        game.win_condition = winCondition;
-    }
-    
     startTurnTimer(io, roomId);
     broadcast_game_update(io, roomId);
+    
+    // START BOT IF P1 IS BOT
+    process_bot_turn(io, roomId);
+    
     saveState();
   });
 
@@ -468,6 +513,10 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
     start_next_round(game);
     startTurnTimer(io, roomId);
     broadcast_game_update(io, roomId);
+
+    // START BOT IF P1 IS BOT
+    process_bot_turn(io, roomId);
+
     saveState();
   });
 

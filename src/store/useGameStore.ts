@@ -113,6 +113,7 @@ interface GameActions {
   leaveGame: () => void;
   closeRoom: () => void;
   switchTeam: () => void;
+  addBot: () => void;
   sort_hand: () => void;
   toggleMute: () => void;
   toggleAnimations: () => void;
@@ -206,6 +207,11 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   switchTeam: () => {
     const { roomId } = get();
     socket.emit("action_switch_team", { roomId });
+  },
+
+  addBot: () => {
+    const { roomId } = get();
+    socket.emit("action_add_bot", { roomId });
   },
 
   sort_hand: () => {

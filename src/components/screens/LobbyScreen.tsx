@@ -227,6 +227,15 @@ export const LobbyScreen = () => {
 
              {/* Actions */}
              <div className="flex gap-3">
+               {my_player_number === 1 && missingCount > 0 && (
+                  <button
+                    onClick={useGameStore.getState().addBot}
+                    className="flex-1 bg-purple-600/40 hover:bg-purple-500/50 text-purple-200 border border-purple-500/30 py-3 rounded-lg font-bold text-xs uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    <Bot size={16} /> Add Bot
+                  </button>
+               )}
+               
                {canSwitch && (
                   <button
                     onClick={useGameStore.getState().switchTeam}

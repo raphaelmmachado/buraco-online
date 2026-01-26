@@ -6,7 +6,6 @@ import {
   WifiOff,
   User,
   Users,
-  Play,
   RefreshCw,
   Globe,
   Bot,

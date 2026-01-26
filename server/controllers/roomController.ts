@@ -486,6 +486,10 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
         game.status = "PLAYING";
     }
 
+    if (winCondition) {
+        game.win_condition = winCondition;
+    }
+
     startTurnTimer(io, roomId);
     broadcast_game_update(io, roomId);
     

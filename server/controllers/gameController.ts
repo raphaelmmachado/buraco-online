@@ -12,6 +12,7 @@ import {
 } from "../services/gameService";
 import {
   broadcast_game_update,
+  process_bot_turn,
 } from "../services/botService";
 import { calculate_score } from "../../common/utils/scoring";
 import { sort_cards, organize_meld } from "../../common/utils/sort_cards";
@@ -575,8 +576,12 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         game.current_player = get_next_player(game.current_player, game.mode);
         game.last_drawn_card_id = null; // Limpa o destaque da carta comprada
         startTurnTimer(io, roomId);
-      } else {
-        stopTurnTimer(roomId);
+
+        // Check if next player is bot
+        const nextPData = game.players_data[game.current_player as PlayerID];
+        if (nextPData && nextPData.isBot) {
+            process_bot_turn(io, roomId);
+        }
       }
 
       broadcast_game_update(io, roomId);

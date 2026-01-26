@@ -15,12 +15,10 @@ export const PileCard = ({
   dead_piles,
 }: PileCardProps) => {
   if (quantity === 0) {
-    if (dead_piles < 1) {
-      return <EmptyPile mini={mini} onClick={onClick} />;
-    }
     if (dead_piles > 0) {
       return <PileQuantity quantity={11} />;
     }
+    return <EmptyPile mini={mini} onClick={onClick} />;
   }
 
   // Lógica para determinar quantas "camadas" mostrar atrás

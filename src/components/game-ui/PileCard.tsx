@@ -13,20 +13,14 @@ export const PileCard = ({
   mini = false,
   quantity,
   dead_piles,
-  draw_phase,
 }: PileCardProps) => {
-  if (quantity === 0 && dead_piles === 0) {
-    return (
-      <div
-        onClick={onClick}
-        className={`${mini ? "w-10 h-14" : "w-14 h-20 md:w-20 md:h-32"}
-          text-xs tracking-wider md:text-base border-2 border-dashed border-white/10 rounded-md
-          flex items-center justify-center font-black text-white/10 select-none
-        `}
-      >
-        MONTE
-      </div>
-    );
+  if (quantity === 0) {
+    if (dead_piles < 1) {
+      return <EmptyPile mini={mini} onClick={onClick} />;
+    }
+    if (dead_piles > 0) {
+      return <PileQuantity quantity={11} />;
+    }
   }
 
   // Lógica para determinar quantas "camadas" mostrar atrás
@@ -95,11 +89,7 @@ export const PileCard = ({
         ></div>
 
         {/* Número da quantidade */}
-        {dead_piles > 0 && draw_phase && quantity === 0 ? (
-          <PileQuantity quantity={11} />
-        ) : (
-          <PileQuantity quantity={quantity} />
-        )}
+        <PileQuantity quantity={quantity} />
 
         {/* Borda brilhante quando ativo */}
         {active && onClick && (
@@ -115,6 +105,29 @@ const PileQuantity = ({ quantity }: { quantity: number }) => {
     <>
       <div className="text-white rounded-xl font-bold md:text-2xl drop-shadow-md z-20">
         {quantity}
+      </div>
+    </>
+  );
+};
+
+const EmptyPile = ({
+  onClick,
+  mini,
+}: {
+  onClick?: () => void;
+  mini: boolean;
+}) => {
+  return (
+    <>
+      {" "}
+      <div
+        onClick={onClick}
+        className={`${mini ? "w-10 h-14" : "w-14 h-20 md:w-20 md:h-32"}
+          text-xs tracking-wider md:text-base border-2 border-dashed border-white/10 rounded-md
+          flex items-center justify-center font-black text-white/10 select-none
+        `}
+      >
+        MONTE
       </div>
     </>
   );

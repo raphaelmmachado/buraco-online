@@ -1,4 +1,4 @@
-import { Hand, ShoppingCart, Trash } from "lucide-react";
+import { Hand, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useGameStore } from "../../store/useGameStore";
 import { useMobileCheck } from "../../hooks/useMobileCheck";
@@ -98,9 +98,9 @@ export const PlayerTimerBadge = ({
               }
             >
               {turnPhase === "DRAW" ? (
-                <ShoppingCart size={10} />
+                <ArrowDownToLine size={10} />
               ) : (
-                <Trash size={10} />
+                <ArrowUpFromLine size={10} />
               )}
             </span>
           )}
@@ -146,9 +146,9 @@ export const PlayerTimerBadge = ({
                 className={`flex items-center ml-1 ${isCritical ? "text-red-200" : "text-yellow-200"}`}
               >
                 {turnPhase === "DRAW" ? (
-                  <ShoppingCart size={11} />
+                  <ArrowDownToLine size={11} />
                 ) : (
-                  <Trash size={11} />
+                  <ArrowUpFromLine size={11} />
                 )}
               </span>
             )}

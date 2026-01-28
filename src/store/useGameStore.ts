@@ -452,9 +452,15 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   },
 
   set_server_state: (server_data: IncomingServerState) => {
+    // Calculate total cards on table to trigger audio
+    const total_melded_t1 = (server_data.team_melds[1] || []).reduce((acc, m) => acc + m.length, 0);
+    const total_melded_t2 = (server_data.team_melds[2] || []).reduce((acc, m) => acc + m.length, 0);
+    const total_cards_melded = total_melded_t1 + total_melded_t2;
+
     set({
       status: server_data.status,
       mode: server_data.mode,
+      cardsPlayedThisTurn: total_cards_melded,
       deck_count: server_data.deck_count,
       discard_pile: server_data.discard_pile,
       dead_piles_count: server_data.dead_piles_count,

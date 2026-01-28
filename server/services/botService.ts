@@ -39,13 +39,13 @@ export const process_bot_turn = (io: Server, roomId: string) => {
   if (!pData || !pData.isBot) return;
 
   console.log(
-    `[BOT] Processing turn for ${pData.userName} (${game.current_player})`
+    `[BOT] Processing turn for ${pData.userName} (${game.current_player})`,
   );
 
   // Add simulated delay
   setTimeout(() => {
     execute_bot_move(io, roomId);
-  }, 1500);
+  }, 2000);
 };
 
 const execute_bot_move = (io: Server, roomId: string) => {
@@ -96,13 +96,13 @@ const execute_bot_move = (io: Server, roomId: string) => {
         t1_melds,
         [t1_hand_1, t1_hand_2],
         false, // No one beat, game ended by exhaustion
-        !t1_taken
+        !t1_taken,
       );
       const t2_score = calculate_score(
         t2_melds,
         [t2_hand_1, t2_hand_2],
         false,
-        !t2_taken
+        !t2_taken,
       );
 
       game.status = "FINISHED";
@@ -128,7 +128,7 @@ const execute_bot_move = (io: Server, roomId: string) => {
           team_melds,
           has_taken,
           has_clean,
-          game.discard_pile.length
+          game.discard_pile.length,
         );
 
         if (action) {
@@ -172,7 +172,7 @@ const execute_bot_move = (io: Server, roomId: string) => {
           broadcast_game_update(io, roomId);
 
           // Bot continues to ACTION phase immediately
-          setTimeout(() => execute_bot_move(io, roomId), 1000);
+          setTimeout(() => execute_bot_move(io, roomId), 1500);
           return;
         }
       }
@@ -180,7 +180,7 @@ const execute_bot_move = (io: Server, roomId: string) => {
 
     // Draw from deck
     console.log(
-      `[BOT DEBUG] ${pData.userName} drawing from deck. Remaining: ${game.deck.length}`
+      `[BOT DEBUG] ${pData.userName} drawing from deck. Remaining: ${game.deck.length}`,
     );
     if (game.deck.length === 0) {
       // Handle Deck Empty logic (move dead pile or finish)
@@ -206,7 +206,7 @@ const execute_bot_move = (io: Server, roomId: string) => {
         current_h.unshift(card);
         game.turn_phase = "ACTION";
         broadcast_game_update(io, roomId);
-        setTimeout(() => execute_bot_move(io, roomId), 1000);
+        setTimeout(() => execute_bot_move(io, roomId), 1500);
       }
     }
     return;
@@ -217,12 +217,17 @@ const execute_bot_move = (io: Server, roomId: string) => {
     const has_taken = game.has_taken_dead_pile[my_team_idx as 0 | 1];
 
     // A. Meld
-    const new_meld_cards = find_meld_in_hand(my_hand, team_melds, has_taken, has_clean);
+    const new_meld_cards = find_meld_in_hand(
+      my_hand,
+      team_melds,
+      has_taken,
+      has_clean,
+    );
     if (new_meld_cards) {
       const card_ids = new_meld_cards.map((c) => c.id);
 
       game.hands[game.current_player] = my_hand.filter(
-        (c) => !card_ids.includes(c.id)
+        (c) => !card_ids.includes(c.id),
       );
       team_melds.push(organize_meld(new_meld_cards));
 
@@ -231,7 +236,7 @@ const execute_bot_move = (io: Server, roomId: string) => {
         handle_empty_hand(game, game.current_player as PlayerID, "DIRECT");
 
       broadcast_game_update(io, roomId);
-      setTimeout(() => execute_bot_move(io, roomId), 1000); // Try more actions
+      setTimeout(() => execute_bot_move(io, roomId), 1500); // Try more actions
       return;
     }
 
@@ -243,7 +248,7 @@ const execute_bot_move = (io: Server, roomId: string) => {
       const card_to_add = find_card_to_add(my_hand, meld, has_taken, has_clean);
       if (card_to_add) {
         game.hands[game.current_player] = my_hand.filter(
-          (c) => c.id !== card_to_add.id
+          (c) => c.id !== card_to_add.id,
         );
         team_melds[i] = organize_meld([...meld, card_to_add]);
 
@@ -252,7 +257,7 @@ const execute_bot_move = (io: Server, roomId: string) => {
           handle_empty_hand(game, game.current_player as PlayerID, "DIRECT");
 
         broadcast_game_update(io, roomId);
-        setTimeout(() => execute_bot_move(io, roomId), 1000);
+        setTimeout(() => execute_bot_move(io, roomId), 1500);
         return;
       }
     }
@@ -272,19 +277,21 @@ const execute_bot_move = (io: Server, roomId: string) => {
       game.deck.length,
       [], // all_played_cards - Optional/Optimization not yet fully tracked in game state for bots
       game.discard_pile.length,
-      0   // partner_hand_size - Optional, defaults to 0
+      0, // partner_hand_size - Optional, defaults to 0
     );
 
     // FALLBACK SAFETY: Ensure we ALWAYS discard if we have cards
     if (!discard_card && my_hand.length > 0) {
-        console.warn(`[BOT WARNING] choose_discard returned null for ${pData.userName}. Forcing discard of first card.`);
-        const fallback = my_hand[0];
-        if (fallback) discard_card = fallback;
+      console.warn(
+        `[BOT WARNING] choose_discard returned null for ${pData.userName}. Forcing discard of first card.`,
+      );
+      const fallback = my_hand[0];
+      if (fallback) discard_card = fallback;
     }
 
     if (discard_card) {
       game.hands[game.current_player] = my_hand.filter(
-        (c) => c.id !== discard_card.id
+        (c) => c.id !== discard_card.id,
       );
       game.discard_pile.unshift(discard_card);
 

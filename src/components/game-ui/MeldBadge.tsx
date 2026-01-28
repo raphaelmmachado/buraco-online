@@ -21,11 +21,11 @@ export const MeldBadge = ({ meld }: { meld: CardType[] }) => {
       label = "Suja";
       break;
     case "KING":
-      color = "bg-green-600 shadow-[0_0_20px_rgba(22,163,74,0.8)]";
+      color = "bg-purple-600 shadow-[0_0_20px_rgba(22,163,74,0.8)]";
       label = "Excelente!";
       break;
     case "ACE":
-      color = "bg-purple-600 shadow-[0_0_25px_rgba(147,51,234,0.9)]";
+      color = "bg-green-600 shadow-[0_0_25px_rgba(147,51,234,0.9)]";
       label = "Perfeita!";
       break;
     default:
@@ -39,13 +39,17 @@ export const MeldBadge = ({ meld }: { meld: CardType[] }) => {
         key={label} // Animate on change
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={showAnimations ? { type: "spring", stiffness: 500, damping: 20 } : { duration: 0 }}
+        transition={
+          showAnimations
+            ? { type: "spring", stiffness: 500, damping: 20 }
+            : { duration: 0 }
+        }
         className={`w-full ${color} text-center text-xs md:text-sm
          text-white font-black p-1 rounded-md rounded-tl-none rounded-tr-none shadow-lg uppercase tracking-widest border border-white/10`}
       >
         {label}
       </motion.span>
-      <motion.span 
+      <motion.span
         key={score}
         initial={{ scale: 1.5, color: "#ffff00" }}
         animate={{ scale: 1, color: "#ffffff" }}

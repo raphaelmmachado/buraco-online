@@ -603,4 +603,42 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       broadcast_game_update(io, roomId);
     }
   });
+
+  socket.on("action_vote_next", ({ roomId }: { roomId: string }) => {
+    const game = games[roomId];
+    if (!game) return;
+    
+    if (game.status !== "ROUND_OVER" && game.status !== "FINISHED") return;
+
+    // Toggle vote or set to true? "Continue" usually implies True.
+    if (!game.rematch_votes) game.rematch_votes = {};
+    game.rematch_votes[socket.id] = true;
+
+    // Check if everyone is ready
+    // Filter only HUMAN players who are currently connected
+    // Bots are auto-ready (implicitly, we don't check them)
+    // We check `players_connected` list.
+    
+    const allHumansReady = game.players_connected.every(socketId => {
+        // Is this socket associated with a player in the game?
+        const isPlayer = Object.values(game.players_data).some(p => p.socketId === socketId);
+        if (!isPlayer) return true; // Spectator? Ignore.
+        return game.rematch_votes![socketId];
+    });
+
+    if (allHumansReady) {
+        if (game.status === "ROUND_OVER") {
+            start_next_round(game);
+        } else {
+            start_new_match(game);
+        }
+        startTurnTimer(io, roomId);
+        
+        // Start Bot if P1 is bot
+        process_bot_turn(io, roomId);
+    }
+    
+    broadcast_game_update(io, roomId);
+    saveState();
+  });
 };

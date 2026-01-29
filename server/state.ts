@@ -22,6 +22,7 @@ export interface ServerGameState {
   win_condition?: WinCondition;
   cumulative_score: { team_1: number; team_2: number };
   round_count: number;
+  rematch_votes?: Record<string, boolean>; // New: socketId -> wantsRematch
 
   turn_start_time?: number;
   last_drawn_card_id: string | null;

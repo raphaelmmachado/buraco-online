@@ -137,18 +137,24 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     game.final_score
   ) {
     const isRoundOver = game.status === "ROUND_OVER";
+    const totalHumanPlayers = game.players_data 
+        ? Object.values(game.players_data).filter(p => !p.isBot).length 
+        : 0;
+    const mySocketId = game.players_data?.[my_player_id]?.socketId;
+
     return (
       <FinishScreen
         finalScore={game.final_score}
         myTeam={my_team}
-        onPlayAgain={() =>
-          isRoundOver ? game.nextRound() : game.startGame(game.win_condition)
-        }
+        onPlayAgain={() => game.voteNext()}
         onLeave={game.leaveGame}
         isRoundOver={isRoundOver}
         cumulativeScore={game.cumulative_score}
         roundCount={game.round_count}
         winCondition={game.win_condition}
+        rematchVotes={game.rematch_votes}
+        totalHumanPlayers={totalHumanPlayers}
+        myPlayerId={mySocketId}
       />
     );
   }
@@ -260,7 +266,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               {Object.entries(playerPositions).map(([id, pos]) => {
                 const playerEvent = [...(game.recentEvents || [])]
                   .reverse()
-                  .find((e) => e.playerId === Number(id) && e.type === "info");
+                  .find((e) => e.playerId === Number(id) && ["info", "warning", "success"].includes(e.type));
 
                 if (playerEvent) {
                   // Determine team
@@ -269,11 +275,16 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                   const eventPlayerTeam = eventPlayerId % 2;
                   const team = myTeam === eventPlayerTeam ? "mine" : "opponent";
 
+                  let customColor = undefined;
+                  if (playerEvent.type === "warning") customColor = "bg-red-600";
+                  if (playerEvent.type === "success") customColor = "bg-green-600";
+
                   return (
                     <EventBalloon
                       key={playerEvent.id}
                       message={playerEvent.message}
                       team={team}
+                      customColor={customColor}
                       x={pos.x}
                       y={pos.y}
                     />

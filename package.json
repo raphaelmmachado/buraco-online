@@ -1,5 +1,9 @@
 {
   "name": "baralho",
+  "author": {
+    "name": "raphael machado",
+    "url": "https://github.com/raphaelmmachado"
+  },
   "private": true,
   "version": "0.0.0",
   "type": "module",

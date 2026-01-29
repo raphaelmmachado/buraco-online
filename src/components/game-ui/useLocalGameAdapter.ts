@@ -14,7 +14,7 @@ export interface GameAdapterInterface {
   roomId: string; // Mocked
   my_player_number: number | null;
   my_player_name: string | null;
-  players_data: Record<number, { socketId: string; userName: string }>;
+  players_data: Record<number, { socketId: string; userName: string; isBot?: boolean }>;
 
   deck_count: number;
   discard_pile: Card[];
@@ -34,6 +34,7 @@ export interface GameAdapterInterface {
   cumulative_score: { team_1: number; team_2: number };
   round_count: number;
   win_condition?: WinCondition;
+  rematch_votes?: Record<string, boolean>;
   last_error: string | null;
   showAnimations: boolean;
   cardsPlayedThisTurn: number;
@@ -53,6 +54,7 @@ export interface GameAdapterInterface {
   pick_up_discard_add_to_meld: (meld_index: number, card_ids: string[]) => void;
   startGame: (winCondition?: WinCondition) => void;
   nextRound: () => void;
+  voteNext: () => void;
   leaveGame: () => void;
   sort_hand: () => void;
   clear_error: () => void;
@@ -63,14 +65,14 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
   const local = useLocalStore();
 
   const players_data = useMemo(() => {
-    const data: Record<number, { socketId: string; userName: string }> = {
-      1: { socketId: "local-1", userName: "Você" },
-      2: { socketId: "local-2", userName: "Bot 1" },
+    const data: Record<number, { socketId: string; userName: string; isBot?: boolean }> = {
+      1: { socketId: "local-1", userName: "Você", isBot: false },
+      2: { socketId: "local-2", userName: "Bot 1", isBot: true },
     };
 
     if (local.mode === "2v2") {
-      data[3] = { socketId: "local-3", userName: "Bot 2" };
-      data[4] = { socketId: "local-4", userName: "Bot 3" };
+      data[3] = { socketId: "local-3", userName: "Bot 2", isBot: true };
+      data[4] = { socketId: "local-4", userName: "Bot 3", isBot: true };
     }
     return data;
   }, [local.mode]);
@@ -108,6 +110,7 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       cumulative_score: local.cumulative_score || { team_1: 0, team_2: 0 },
       round_count: local.round_count || 1,
       win_condition: local.win_condition,
+      rematch_votes: {},
       last_error: local.last_error,
       showAnimations: local.showAnimations,
       cardsPlayedThisTurn: local.cardsPlayedThisTurn,
@@ -122,6 +125,10 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       pick_up_discard_add_to_meld: local.pick_up_discard_add_to_meld,
       startGame: local.start_game,
       nextRound: local.next_round,
+      voteNext: () => {
+        if (local.status === "ROUND_OVER") local.next_round();
+        else if (local.status === "FINISHED") local.start_game(local.win_condition);
+      },
       leaveGame: () => {
         window.location.reload();
       },

@@ -16,6 +16,9 @@ interface FinishScreenProps {
   winCondition?: WinCondition;
   isRoundOver?: boolean;
   myTeam: number;
+  myPlayerId?: string; // SocketID logic? Or just ID. We need to check against rematchVotes keys.
+  rematchVotes?: Record<string, boolean>;
+  totalHumanPlayers?: number;
   onPlayAgain: () => void;
   onLeave: () => void;
 }
@@ -28,7 +31,10 @@ export const FinishScreen = ({
   cumulativeScore,
   roundCount = 1,
   winCondition,
-  isRoundOver = false
+  isRoundOver = false,
+  myPlayerId,
+  rematchVotes = {},
+  totalHumanPlayers = 0
 }: FinishScreenProps) => {
   // Logic for Winner of the MATCH (Cumulative) or ROUND (FinalScore)
   // If isRoundOver, we care about round winner for visual pop, but general status for progress.
@@ -48,6 +54,13 @@ export const FinishScreen = ({
   const subtitle = isRoundOver 
     ? "Pontuação Acumulada" 
     : "Fim de Campeonato";
+
+  // Voting Logic
+  const votesCount = Object.values(rematchVotes).filter(Boolean).length;
+  const iVoted = myPlayerId && rematchVotes[myPlayerId];
+  
+  // If totalHumanPlayers is 0 (Local Game), we don't use voting logic visual, just click to continue.
+  const isOnline = totalHumanPlayers > 0;
 
   return (
     <div className="h-screen w-screen bg-[#0f2e1a] text-white overflow-y-auto flex flex-col items-center py-10 px-4 font-sans">
@@ -153,12 +166,22 @@ export const FinishScreen = ({
       <div className="flex flex-col md:flex-row gap-6 w-full max-w-2xl">
         <StyledButton
           onClick={onPlayAgain}
-          variant="primary"
+          variant={iVoted ? "secondary" : "primary"}
           size="lg"
           fullWidth
+          disabled={!!iVoted && isOnline}
           icon={isRoundOver ? <Trophy size={20} /> : <RotateCcw size={20} />}
+          className={iVoted ? "opacity-50" : "animate-pulse"}
         >
-          {isRoundOver ? "Próxima Rodada" : "Jogar Novamente"}
+            {isOnline ? (
+                iVoted ? (
+                    `Aguardando... (${votesCount}/${totalHumanPlayers})`
+                ) : (
+                   isRoundOver ? "Estou Pronto (Próxima)" : "Jogar Novamente"
+                )
+            ) : (
+                isRoundOver ? "Próxima Rodada" : "Jogar Novamente"
+            )}
         </StyledButton>
         
         <StyledButton

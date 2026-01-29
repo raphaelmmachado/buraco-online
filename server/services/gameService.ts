@@ -127,6 +127,7 @@ export const start_next_round = (game: ServerGameState) => {
     game.last_drawn_card_id = null;
     game.final_score = null;
     game.turn_start_time = Date.now();
+    game.rematch_votes = {};
 };
 
 export const start_new_match = (game: ServerGameState) => {
@@ -159,6 +160,7 @@ export const start_new_match = (game: ServerGameState) => {
     game.last_drawn_card_id = null;
     game.final_score = null;
     game.turn_start_time = Date.now();
+    game.rematch_votes = {};
 };
 
 export const handle_empty_hand = (
@@ -306,5 +308,6 @@ export const sanitize_state = (
     cumulative_score: game.cumulative_score,
     round_count: game.round_count,
     win_condition: game.win_condition,
+    rematch_votes: game.rematch_votes || {},
   };
 };

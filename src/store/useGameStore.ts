@@ -22,7 +22,7 @@ interface IncomingServerState {
   current_player: number;
   players_data: Record<
     number,
-    { socketId: string; userName: string; isBot?: boolean; playerId: string }
+    { socketId: string; userName: string; isBot?: boolean; playerId: string; isReady?: boolean }
   >;
   turn_start_time?: number;
   last_drawn_card_id: string | null;
@@ -36,6 +36,7 @@ interface IncomingServerState {
   cumulative_score?: { team_1: number; team_2: number };
   round_count?: number;
   win_condition?: WinCondition;
+  rematch_votes?: Record<string, boolean>;
 }
 
 export interface RoomInfo {
@@ -60,7 +61,7 @@ interface GameState {
   connectionStatus: "CONNECTED" | "DISCONNECTED" | "CONNECTING" | "RECONNECTING";
   players_data: Record<
     number,
-    { socketId: string; userName: string; isBot?: boolean; playerId: string }
+    { socketId: string; userName: string; isBot?: boolean; playerId: string; isReady?: boolean }
   >;
   mode: "1v1" | "2v2";
   isMuted: boolean;
@@ -92,6 +93,7 @@ interface GameState {
   cumulative_score: { team_1: number; team_2: number };
   round_count: number;
   win_condition?: WinCondition;
+  rematch_votes: Record<string, boolean>;
 }
 
 interface GameActions {
@@ -116,6 +118,8 @@ interface GameActions {
   closeRoom: () => void;
   switchTeam: () => void;
   addBot: () => void;
+  toggleReady: () => void;
+  voteNext: () => void;
   sort_hand: () => void;
   toggleMute: () => void;
   toggleAnimations: () => void;
@@ -170,6 +174,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   final_score: null,
   cumulative_score: { team_1: 0, team_2: 0 },
   round_count: 1,
+  rematch_votes: {},
 
   clear_error: () => set({ last_error: null }),
 
@@ -214,6 +219,16 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   addBot: () => {
     const { roomId } = get();
     socket.emit("action_add_bot", { roomId });
+  },
+
+  toggleReady: () => {
+    const { roomId } = get();
+    socket.emit("action_toggle_ready", { roomId });
+  },
+
+  voteNext: () => {
+    const { roomId } = get();
+    socket.emit("action_vote_next", { roomId });
   },
 
   sort_hand: () => {
@@ -389,6 +404,18 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
          set({ connectionStatus: "RECONNECTING" });
       });
 
+      socket.on("player_disconnected", ({ userName }: { userName: string }) => {
+        get().addEvent(`Jogador ${userName} desconectou.`, "warning");
+      });
+
+      socket.on("player_reconnected", ({ userName }: { userName: string }) => {
+        get().addEvent(`Jogador ${userName} reconectou!`, "success");
+      });
+
+      socket.on("bot_takeover", ({ userName }: { userName: string }) => {
+        get().addEvent(`Bot assumiu o lugar de ${userName}.`, "info");
+      });
+
       listeners_setup = true;
     }
     
@@ -479,6 +506,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       cumulative_score: server_data.cumulative_score || { team_1: 0, team_2: 0 },
       round_count: server_data.round_count || 1,
       win_condition: server_data.win_condition,
+      rematch_votes: server_data.rematch_votes || {},
       last_error: null,
     });
   },

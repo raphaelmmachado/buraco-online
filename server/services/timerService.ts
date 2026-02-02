@@ -8,6 +8,7 @@ import {
   has_clean_canastra,
   requires_clean_to_empty_hand,
   handle_empty_hand,
+  check_championship_status,
 } from "./gameService";
 import { calculate_score } from "../../common/utils/scoring";
 import type { PlayerID } from "../types";
@@ -210,13 +211,7 @@ const finishGame = (io: Server, roomId: string) => {
     !t2_taken,
   );
 
-  game.status = "FINISHED";
-  game.final_score = {
-    team_1: t1_score.total_score,
-    team_2: t2_score.total_score,
-    details_t1: t1_score,
-    details_t2: t2_score,
-  };
+  check_championship_status(game, t1_score.total_score, t2_score.total_score, t1_score, t2_score);
   stopTurnTimer(roomId);
   broadcast_game_update(io, roomId);
 };

@@ -12,6 +12,7 @@ import {
   get_next_player,
   handle_empty_hand,
   sanitize_state,
+  check_championship_status,
 } from "../services/gameService";
 import { calculate_score } from "../../common/utils/scoring";
 import { validate_sequence } from "../../common/utils/rules_logic";
@@ -105,13 +106,7 @@ const execute_bot_move = (io: Server, roomId: string) => {
         !t2_taken,
       );
 
-      game.status = "FINISHED";
-      game.final_score = {
-        team_1: t1_score.total_score,
-        team_2: t2_score.total_score,
-        details_t1: t1_score,
-        details_t2: t2_score,
-      };
+      check_championship_status(game, t1_score.total_score, t2_score.total_score, t1_score, t2_score);
       broadcast_game_update(io, roomId);
       return;
     }

@@ -31,6 +31,7 @@ export const PlayerTimerBadge = ({
   const lastTickRef = useRef<number | null>(null);
 
   const duration = turnPhase === "DRAW" ? 20 : 60;
+  const criticalThreshold = turnPhase === "DRAW" ? 5 : 10;
   const [timeLeft, setTimeLeft] = useState(duration);
 
   useEffect(() => {
@@ -38,6 +39,8 @@ export const PlayerTimerBadge = ({
       if (!turn_start_time || status !== "PLAYING" || !isCurrentPlayer) {
         setTimeLeft(duration);
         lastTickRef.current = null;
+        ticTacAudio.pause();
+        ticTacAudio.currentTime = 0;
         return;
       }
       const now = Date.now();
@@ -45,8 +48,8 @@ export const PlayerTimerBadge = ({
       const remaining = Math.max(0, duration - elapsed);
       setTimeLeft(remaining);
 
-      // Audio Logic: Play every second when <= 10s
-      if (remaining <= 10 && remaining > 0 && !isMuted) {
+      // Audio Logic: Play every second when <= threshold
+      if (remaining <= criticalThreshold && remaining > 0 && !isMuted) {
         const currentSecond = Math.ceil(remaining);
         if (lastTickRef.current !== currentSecond) {
           ticTacAudio.currentTime = 0;
@@ -55,6 +58,9 @@ export const PlayerTimerBadge = ({
         }
       } else {
         lastTickRef.current = null;
+        // Pause if we are above threshold (e.g. if timer reset but still playing)
+        // Though logically we only play short clips, for safety:
+        // ticTacAudio.pause(); 
       }
     };
 
@@ -64,11 +70,13 @@ export const PlayerTimerBadge = ({
     return () => {
       clearTimeout(timeoutId);
       clearInterval(intervalId);
+      ticTacAudio.pause();
+      ticTacAudio.currentTime = 0;
     };
-  }, [turn_start_time, status, isCurrentPlayer, duration, isMuted, ticTacAudio]);
+  }, [turn_start_time, status, isCurrentPlayer, duration, isMuted, ticTacAudio, criticalThreshold]);
 
   const progress = Math.min(100, Math.max(0, (timeLeft / duration) * 100));
-  const isCritical = timeLeft <= 10;
+  const isCritical = timeLeft <= criticalThreshold;
 
   // --- MOBILE DESIGN ---
   if (isMobile) {

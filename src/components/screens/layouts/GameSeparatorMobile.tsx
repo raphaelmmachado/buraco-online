@@ -24,7 +24,7 @@ export const GameSeparatorMobile = ({
 }: GameLayoutProps & { my_player_id: number }) => {
   const turn_start_time = useGameStore((s) => s.turn_start_time);
   const status = useGameStore((s) => s.status);
-  const duration = game.turn_phase === "DRAW" ? 30 : 60;
+  const duration = game.turn_phase === "DRAW" ? 20 : 60;
   const [timeLeft, setTimeLeft] = useState(duration);
 
   useEffect(() => {

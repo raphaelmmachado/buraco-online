@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
 import { games, saveState } from "../state";
-import { broadcast_game_update } from "./botService";
+import { broadcast_game_update, process_bot_turn } from "./botService";
 import { sort_cards } from "../../common/utils/sort_cards";
 import {
   get_next_player,
@@ -29,8 +29,8 @@ export const startTurnTimer = (io: Server, roomId: string) => {
 
   game.turn_start_time = Date.now();
 
-  // 30s for DRAW phase, 60s for ACTION phase
-  const duration = game.turn_phase === "DRAW" ? 30000 : 60000;
+  // 20s for DRAW phase, 60s for ACTION phase
+  const duration = game.turn_phase === "DRAW" ? 20000 : 60000;
 
   timers[roomId] = setTimeout(() => {
     handleTurnTimeout(io, roomId);
@@ -167,6 +167,12 @@ const handleTurnTimeout = (io: Server, roomId: string) => {
       game.current_player = get_next_player(game.current_player, game.mode);
       game.last_drawn_card_id = null;
       startTurnTimer(io, roomId); // Timer pro próximo
+
+      // Check if next player is bot (Critical for auto-play continuity)
+      const nextPData = game.players_data[game.current_player as PlayerID];
+      if (nextPData && nextPData.isBot) {
+        process_bot_turn(io, roomId);
+      }
     } else {
       stopTurnTimer(roomId);
     }

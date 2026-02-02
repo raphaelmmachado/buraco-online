@@ -1,7 +1,8 @@
 import { Hand, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useGameStore } from "../../store/useGameStore";
 import { useMobileCheck } from "../../hooks/useMobileCheck";
+import tic_tac_sound from "../../assets/sound/tic-tac.mp3";
 
 interface PlayerTimerBadgeProps {
   playerId: number;
@@ -23,20 +24,38 @@ export const PlayerTimerBadge = ({
 }: PlayerTimerBadgeProps) => {
   const turn_start_time = useGameStore((s) => s.turn_start_time);
   const status = useGameStore((s) => s.status);
+  const isMuted = useGameStore((s) => s.isMuted);
   const { isMobile } = useMobileCheck();
 
-  const duration = turnPhase === "DRAW" ? 30 : 60;
+  const ticTacAudio = useMemo(() => new Audio(tic_tac_sound), []);
+  const lastTickRef = useRef<number | null>(null);
+
+  const duration = turnPhase === "DRAW" ? 20 : 60;
   const [timeLeft, setTimeLeft] = useState(duration);
 
   useEffect(() => {
     const update = () => {
       if (!turn_start_time || status !== "PLAYING" || !isCurrentPlayer) {
         setTimeLeft(duration);
+        lastTickRef.current = null;
         return;
       }
       const now = Date.now();
       const elapsed = (now - turn_start_time) / 1000;
-      setTimeLeft(Math.max(0, duration - elapsed));
+      const remaining = Math.max(0, duration - elapsed);
+      setTimeLeft(remaining);
+
+      // Audio Logic: Play every second when <= 10s
+      if (remaining <= 10 && remaining > 0 && !isMuted) {
+        const currentSecond = Math.ceil(remaining);
+        if (lastTickRef.current !== currentSecond) {
+          ticTacAudio.currentTime = 0;
+          ticTacAudio.play().catch((e) => console.warn("Audio play blocked:", e));
+          lastTickRef.current = currentSecond;
+        }
+      } else {
+        lastTickRef.current = null;
+      }
     };
 
     const timeoutId = setTimeout(update, 0);
@@ -46,7 +65,7 @@ export const PlayerTimerBadge = ({
       clearTimeout(timeoutId);
       clearInterval(intervalId);
     };
-  }, [turn_start_time, status, isCurrentPlayer, duration]);
+  }, [turn_start_time, status, isCurrentPlayer, duration, isMuted, ticTacAudio]);
 
   const progress = Math.min(100, Math.max(0, (timeLeft / duration) * 100));
   const isCritical = timeLeft <= 10;

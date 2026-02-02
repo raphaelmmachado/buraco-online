@@ -515,7 +515,6 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       if (updated_hand && updated_hand.length === 0) {
         handle_empty_hand(game, player_id, "DIRECT");
       }
-      startTurnTimer(io, roomId);
       broadcast_game_update(io, roomId);
     }
   );

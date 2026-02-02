@@ -9,6 +9,7 @@ import {
   HelpCircle,
   Eye,
   EyeOff,
+  Type,
 } from "lucide-react";
 import { useGameStore } from "../../store/useGameStore";
 
@@ -33,6 +34,8 @@ export const GameMenu = ({
   const [isOpen, setIsOpen] = useState(false);
   const toggleMute = useGameStore((state) => state.toggleMute);
   const isMuted = useGameStore((state) => state.isMuted);
+  const toggleAccessibilityMode = useGameStore((state) => state.toggleAccessibilityMode);
+  const isAccessibilityMode = useGameStore((state) => state.isAccessibilityMode);
 
   return (
     <div className="relative z-50">
@@ -53,6 +56,16 @@ export const GameMenu = ({
           >
             {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
             {isMuted ? "Som: OFF" : "Som: ON"}
+          </button>
+
+          <button
+            onClick={() => {
+              toggleAccessibilityMode();
+            }}
+            className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-bold transition-all ${isAccessibilityMode ? "text-yellow-400 bg-yellow-400/10" : "text-slate-300 hover:bg-white/10 hover:text-white"}`}
+          >
+            <Type size={16} />
+            {isAccessibilityMode ? "Acessibilidade: ON" : "Acessibilidade: OFF"}
           </button>
 
           {toggleAnimations && (

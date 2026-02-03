@@ -28,7 +28,9 @@ const InfoItem = ({
   children: React.ReactNode;
 }) => (
   <div className="bg-white/5 p-4 rounded-lg border border-white/10 mt-2">
-    <strong className="font-black text-slate-100 uppercase tracking-wider">{title}</strong>
+    <strong className="font-black text-slate-100 uppercase tracking-wider">
+      {title}
+    </strong>
     <p className="text-slate-400 text-sm mt-1 leading-relaxed">{children}</p>
   </div>
 );
@@ -74,7 +76,8 @@ export const HowToPlay = ({ onClose }: HowToPlayProps) => {
                 Comprar uma carta
               </h4>
               <p className="text-slate-400 text-sm leading-relaxed">
-                Você começa seu turno comprando uma carta do monte. Se o lixo for do seu interesse, você também pode pegá-lo.
+                Você começa seu turno comprando uma carta do monte. Se o lixo
+                for do seu interesse, você também pode pegá-lo.
               </p>
             </li>
             <li className="ml-8">
@@ -85,7 +88,9 @@ export const HowToPlay = ({ onClose }: HowToPlayProps) => {
                 Baixar Jogos (Opcional)
               </h4>
               <p className="text-slate-400 text-sm leading-relaxed">
-                Se tiver sequências de 3 ou mais cartas do mesmo naipe, você pode "baixá-las" na mesa. Você também pode adicionar cartas a jogos já existentes.
+                Se tiver sequências de 3 ou mais cartas do mesmo naipe, você
+                pode "baixá-las" na mesa. Você também pode adicionar cartas a
+                jogos já existentes.
               </p>
             </li>
             <li className="ml-8">
@@ -96,7 +101,8 @@ export const HowToPlay = ({ onClose }: HowToPlayProps) => {
                 Descartar uma carta
               </h4>
               <p className="text-slate-400 text-sm leading-relaxed">
-                Para finalizar seu turno, você deve jogar uma carta da sua mão no lixo.
+                Para finalizar seu turno, você deve jogar uma carta da sua mão
+                no lixo.
               </p>
             </li>
           </ol>
@@ -107,24 +113,52 @@ export const HowToPlay = ({ onClose }: HowToPlayProps) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <InfoItem title="Jogos (Sequências)">
               <p>Sequências de 3+ cartas do mesmo naipe. A ordem é:</p>
-              <span className="font-mono uppercase tracking-widest text-xs mt-2 block p-2 bg-black/20 rounded">
+              <span className="font-mono uppercase tracking-widest mt-2 block p-2 bg-black/20 rounded">
                 {"A-2-3-4-5-6-7-8-9-10-J-Q-K-A"}
               </span>
             </InfoItem>
+            <InfoItem title="Cartas">
+              <p>
+                <span className="font-bold">A:</span> Ás
+              </p>
+              <p>
+                <span className="font-bold">J:</span> Valete{" "}
+              </p>
+              <p>
+                <span className="font-bold">Q:</span> Dama
+              </p>
+              <p>
+                <span className="font-bold">K:</span> Rei
+              </p>
+            </InfoItem>
+            <InfoItem title="Naipes">
+              <p>Copas ♥️ </p>
+              <p>Ouro ♦️</p>
+              <p>Paus ♣️</p>
+              <p>Espadas ♠️ </p>
+            </InfoItem>
             <InfoItem title="Curinga">
-              A carta '2' substitui qualquer outra em um jogo. Apenas um curinga por jogo é permitido (a menos que o outro '2' esteja em sua posição natural).
+              A carta '2' substitui qualquer outra em um jogo. Apenas um curinga
+              por jogo é permitido (a menos que o outro '2' esteja em sua
+              posição natural).
             </InfoItem>
             <InfoItem title="Pegar o Lixo">
-              Você só pode pegar o lixo se a carta do topo for usada imediatamente em um jogo. Ao fazer isso, você pega todas as outras cartas do lixo.
+              Você só pode pegar o lixo se a carta do topo for usada
+              imediatamente em um jogo. Ao fazer isso, você pega todas as outras
+              cartas do lixo.
             </InfoItem>
             <InfoItem title="Morto">
-              Uma pilha de 11 cartas que uma dupla pega quando um de seus jogadores fica sem cartas na mão. Cada dupla só pode pegar um morto.
+              Uma pilha de 11 cartas que uma dupla pega quando um de seus
+              jogadores fica sem cartas na mão. Cada dupla só pode pegar um
+              morto.
             </InfoItem>
             <InfoItem title="Bater">
-              Significa ficar sem cartas na mão. Para "bater final" e encerrar a rodada, sua dupla deve ter pelo menos uma canastra limpa.
+              Significa ficar sem cartas na mão. Para "bater final" e encerrar a
+              rodada, sua dupla deve ter pelo menos uma canastra limpa.
             </InfoItem>
-             <InfoItem title="Canastra">
-              Um jogo com 7 ou mais cartas. Fazer canastras é essencial para uma boa pontuação.
+            <InfoItem title="Canastra">
+              Um jogo com 7 ou mais cartas. Fazer canastras é essencial para uma
+              boa pontuação.
             </InfoItem>
           </div>
 
@@ -149,16 +183,16 @@ export const HowToPlay = ({ onClose }: HowToPlayProps) => {
           <SectionTitle icon={<Crown size={24} />}>Pontuação</SectionTitle>
           <ul className="space-y-3 text-base">
             <li className="flex items-center justify-between bg-white/5 p-3 rounded-lg">
-                <span className="text-slate-300">Batida Final</span>
-                <span className="font-bold text-green-400">100 pontos</span>
+              <span className="text-slate-300">Batida Final</span>
+              <span className="font-bold text-green-400">100 pontos</span>
             </li>
-             <li className="flex items-center justify-between bg-white/5 p-3 rounded-lg">
-                <span className="text-slate-300">Valor das cartas na mesa</span>
-                <span className="font-bold text-slate-300">(+) Soma-se</span>
+            <li className="flex items-center justify-between bg-white/5 p-3 rounded-lg">
+              <span className="text-slate-300">Valor das cartas na mesa</span>
+              <span className="font-bold text-slate-300">(+) Soma-se</span>
             </li>
-             <li className="flex items-center justify-between bg-white/5 p-3 rounded-lg">
-                <span className="text-slate-300">Valor das cartas na mão</span>
-                <span className="font-bold text-red-400">(-) Subtrai-se</span>
+            <li className="flex items-center justify-between bg-white/5 p-3 rounded-lg">
+              <span className="text-slate-300">Valor das cartas na mão</span>
+              <span className="font-bold text-red-400">(-) Subtrai-se</span>
             </li>
           </ul>
         </div>

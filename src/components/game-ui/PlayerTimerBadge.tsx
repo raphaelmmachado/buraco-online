@@ -25,6 +25,7 @@ export const PlayerTimerBadge = ({
   const turn_start_time = useGameStore((s) => s.turn_start_time);
   const status = useGameStore((s) => s.status);
   const isMuted = useGameStore((s) => s.isMuted);
+  const isAccessibilityMode = useGameStore((s) => s.isAccessibilityMode);
   const { isMobile } = useMobileCheck();
 
   const ticTacAudio = useMemo(() => new Audio(tic_tac_sound), []);
@@ -106,15 +107,28 @@ export const PlayerTimerBadge = ({
 
           {/* Initials or Short Name */}
           <span
-            className={`text-[10px] font-black ${isCurrentPlayer ? "text-white" : "opacity-70 text-white"}`}
+            className={`${
+              isAccessibilityMode ? "text-xs" : "text-[10px]"
+            } font-black ${
+              isCurrentPlayer ? "text-white" : "opacity-70 text-white"
+            }`}
           >
             {userName.substring(0, 3).toUpperCase()}
           </span>
 
           {/* Cards Count Badge */}
           <div className="flex items-center gap-0.5 bg-white/10 px-1 rounded-md">
-            <Hand size={10} className="opacity-60" />
-            <span className="text-[10px] font-mono font-bold">{handSize}</span>
+            <Hand
+              size={isAccessibilityMode ? 12 : 10}
+              className="opacity-60"
+            />
+            <span
+              className={`${
+                isAccessibilityMode ? "text-xs" : "text-[10px]"
+              } font-mono font-bold`}
+            >
+              {handSize}
+            </span>
           </div>
 
           {/* Turn Icon */}
@@ -125,9 +139,9 @@ export const PlayerTimerBadge = ({
               }
             >
               {turnPhase === "DRAW" ? (
-                <ArrowDownToLine size={10} />
+                <ArrowDownToLine size={isAccessibilityMode ? 12 : 10} />
               ) : (
-                <ArrowUpFromLine size={10} />
+                <ArrowUpFromLine size={isAccessibilityMode ? 12 : 10} />
               )}
             </span>
           )}
@@ -160,22 +174,36 @@ export const PlayerTimerBadge = ({
           />
         )}
         <div className="relative flex items-center gap-2 z-10 w-full justify-between min-w-[90px]">
-          <span className="text-[10px] md:text-xs font-bold tracking-wide truncate max-w-[80px]">
+          <span
+            className={`${
+              isAccessibilityMode ? "text-xs md:text-sm" : "text-[10px] md:text-xs"
+            } font-bold tracking-wide truncate max-w-[80px]`}
+          >
             {userName.toUpperCase()}
           </span>
           <div className="w-px h-3 bg-white/10 mx-0.5"></div>
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] md:text-xs flex gap-1 items-center font-mono font-bold opacity-90">
-              <Hand size={11} className="opacity-70" /> {handSize}
+            <span
+              className={`${
+                isAccessibilityMode ? "text-xs md:text-sm" : "text-[10px] md:text-xs"
+              } flex gap-1 items-center font-mono font-bold opacity-90`}
+            >
+              <Hand
+                size={isAccessibilityMode ? 13 : 11}
+                className="opacity-70"
+              />{" "}
+              {handSize}
             </span>
             {isCurrentPlayer && (
               <span
-                className={`flex items-center ml-1 ${isCritical ? "text-red-200" : "text-yellow-200"}`}
+                className={`flex items-center ml-1 ${
+                  isCritical ? "text-red-200" : "text-yellow-200"
+                }`}
               >
                 {turnPhase === "DRAW" ? (
-                  <ArrowDownToLine size={11} />
+                  <ArrowDownToLine size={isAccessibilityMode ? 13 : 11} />
                 ) : (
-                  <ArrowUpFromLine size={11} />
+                  <ArrowUpFromLine size={isAccessibilityMode ? 13 : 11} />
                 )}
               </span>
             )}

@@ -1,11 +1,13 @@
 import { expect, test, describe } from "bun:test";
-import { validate_discard_add_to_meld, validate_sequence } from "./rules_logic";
-import { type Card, SUITS } from "../types/card";
+import { validate_discard_add_to_meld, validate_sequence, type MeldValidation } from "./rules_logic";
+import { type Card, type CardValue, type Suit, SUITS } from "../types/card";
 
 const hearts = SUITS.find(s => s.name === "copas")!;
 const clubs = SUITS.find(s => s.name === "paus")!;
 
-const createCard = (value: any, suit: any, id: string): Card => ({
+type SuccessMeld = Extract<MeldValidation, { is_valid: true }>;
+
+const createCard = (value: CardValue, suit: Suit, id: string): Card => ({
   id,
   value,
   suit,
@@ -119,7 +121,7 @@ describe("General Game Rules", () => {
     ];
     const result = validate_sequence(cards);
     expect(result.is_valid).toBe(true);
-    expect((result as any).is_clean).toBe(true);
+    expect((result as SuccessMeld).is_clean).toBe(true);
   });
 
   test("VALID: Simple dirty sequence (with same-suit joker acting as wildcard)", () => {
@@ -130,7 +132,7 @@ describe("General Game Rules", () => {
     ];
     const result = validate_sequence(cards);
     expect(result.is_valid).toBe(true);
-    expect((result as any).is_clean).toBe(false);
+    expect((result as SuccessMeld).is_clean).toBe(false);
   });
 
   test("VALID: Simple dirty sequence (with off-suit joker)", () => {
@@ -141,7 +143,7 @@ describe("General Game Rules", () => {
     ];
     const result = validate_sequence(cards);
     expect(result.is_valid).toBe(true);
-    expect((result as any).is_clean).toBe(false);
+    expect((result as SuccessMeld).is_clean).toBe(false);
   });
 
   test("INVALID: Too few cards (<3)", () => {
@@ -191,7 +193,7 @@ describe("General Game Rules", () => {
     ];
     const result = validate_sequence(cards);
     expect(result.is_valid).toBe(true);
-    expect((result as any).is_clean).toBe(true);
+    expect((result as SuccessMeld).is_clean).toBe(true);
   });
 
   test("VALID: Ace usage (Q-K-A)", () => {
@@ -202,7 +204,7 @@ describe("General Game Rules", () => {
     ];
     const result = validate_sequence(cards);
     expect(result.is_valid).toBe(true);
-    expect((result as any).is_clean).toBe(true);
+    expect((result as SuccessMeld).is_clean).toBe(true);
   });
   
   test("VALID: Canastra Limpa (7 cards, no joker)", () => {
@@ -217,8 +219,8 @@ describe("General Game Rules", () => {
     ];
     const result = validate_sequence(cards);
     expect(result.is_valid).toBe(true);
-    expect((result as any).is_clean).toBe(true);
-    expect((result as any).canastra_type).toBe("CLEAN");
+    expect((result as SuccessMeld).is_clean).toBe(true);
+    expect((result as SuccessMeld).canastra_type).toBe("CLEAN");
   });
 
   test("VALID: Canastra Suja (7 cards, with joker)", () => {
@@ -233,7 +235,7 @@ describe("General Game Rules", () => {
     ];
     const result = validate_sequence(cards);
     expect(result.is_valid).toBe(true);
-    expect((result as any).is_clean).toBe(false);
-    expect((result as any).canastra_type).toBe("DIRTY");
+    expect((result as SuccessMeld).is_clean).toBe(false);
+    expect((result as SuccessMeld).canastra_type).toBe("DIRTY");
   });
 });

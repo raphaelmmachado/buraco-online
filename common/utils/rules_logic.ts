@@ -49,7 +49,7 @@ export type MeldValidation =
  * - '2' usado como qualquer outra coisa ou outro naipe = Curinga.
  * - Qualquer outra carta = Natural (pois só '2' tem essa dualidade na regra atual).
  */
-const is_wildcard_usage = (
+export const is_wildcard_usage = (
   card: Card,
   weight: number,
   target_suit: string
@@ -335,4 +335,49 @@ export const validate_discard_pickup = (
   const validation_result = validate_sequence(potential_meld);
 
   return validation_result.is_valid && validation_result.is_clean;
+};
+
+/**
+ * @function validate_discard_add_to_meld
+ * @description Valida se a adição de cartas do lixo + mão em uma canastra existente é legal.
+ * Regra Específica: Não pode usar coringa da mão para pegar o lixo, a menos que a canastra já tenha coringa (o que é impossível pois max 1 coringa, mas a regra foca na ação).
+ * Na prática: Se a canastra original NÃO tem coringa, as cartas da mão NÃO podem ser coringas.
+ */
+export const validate_discard_add_to_meld = (
+  target_meld: Card[],
+  bridge_cards: Card[],
+  discard_card: Card
+): { valid: boolean; error?: string } => {
+  const proposed_meld = [...target_meld, ...bridge_cards, discard_card];
+  const details = get_sequence_details(proposed_meld);
+
+  if (!details.is_valid) {
+    return { valid: false, error: details.error };
+  }
+
+  // Se a sequência resultante é válida, precisamos checar se violamos a regra do lixo.
+  // Regra: "Proibido pegar lixo com coringa".
+  // Interpretação: Se usamos um coringa da mão para justificar a pegada.
+  
+  // Se o jogo original JÁ TINHA coringa, então adicionar mais cartas é "normal".
+  // Mas se já tinha coringa, adicionar OUTRO coringa (da mão) invalidaria o jogo (2 coringas),
+  // o que já foi pego pelo get_sequence_details (is_valid seria false).
+  // Portanto, só precisamos nos preocupar se o jogo original ERA LIMPO (sem coringa).
+  
+  // Vamos verificar se alguma das cartas da "ponte" (mão) está sendo usada como coringa.
+  // Precisamos do naipe alvo.
+  const naturals = proposed_meld.filter((c) => c.value !== "2");
+  const target_suit = naturals[0]?.suit.name;
+  
+  if (!target_suit) return { valid: false, error: "Erro de validação interna." };
+
+  // Verifica se alguma carta da mão é um coringa na nova configuração
+  for (const card of bridge_cards) {
+    const w = details.assigned_weights[card.id];
+    if (w !== undefined && is_wildcard_usage(card, w, target_suit)) {
+       return { valid: false, error: "Proibido pegar lixo com coringa." };
+    }
+  }
+
+  return { valid: true };
 };

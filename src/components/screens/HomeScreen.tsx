@@ -230,6 +230,10 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
             </div>
           </button>
         </div>
+
+        <div className="fixed bottom-4 left-4 text-[10px] text-white/20 font-mono pointer-events-none z-50">
+          v{__APP_VERSION__}
+        </div>
       </div>
     );
   }
@@ -242,6 +246,10 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
           {recentEvents.map((event) => (
             <EventBar key={event.id} message={event.message} type={event.type} />
           ))}
+      </div>
+
+      <div className="fixed bottom-4 left-4 text-[10px] text-white/20 font-mono pointer-events-none z-50">
+        v{__APP_VERSION__}
       </div>
 
       <ConnectionBadge />

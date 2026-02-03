@@ -10,6 +10,7 @@ import { sort_cards, organize_meld } from "../../common/utils/sort_cards";
 import {
   validate_sequence,
   type MeldValidation,
+  validate_discard_add_to_meld,
 } from "../../common/utils/rules_logic";
 
 import { calculate_score, type ScoreResult } from "../../common/utils/scoring";
@@ -380,10 +381,10 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       proposed_meld.map((c) => `${c.value}${c.suit.icon}`)
     );
 
-    const validation = validate_sequence(proposed_meld);
-    console.log(`[LOCAL PICKUP ADD RESULT] Valid: ${validation.is_valid}`);
+    const validation = validate_discard_add_to_meld(target_meld, bridge_cards, top_card);
+    console.log(`[LOCAL PICKUP ADD RESULT] Valid: ${validation.valid}`);
 
-    if (!validation.is_valid) {
+    if (!validation.valid) {
       set({ last_error: validation.error });
       return;
     }

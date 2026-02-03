@@ -1,3 +1,8 @@
+# Lockfiles
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
 # Logs
 logs
 *.log

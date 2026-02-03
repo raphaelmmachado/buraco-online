@@ -10,7 +10,7 @@ import type { Card } from "../../common/types/card"; // Import Card type
 
 export const useGameBots = () => {
   const store = useGameStoreBots();
-  const timeoutRef = useRef<number | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // Se o jogo não começou ou é a vez do humano (Player 1), não faz nada

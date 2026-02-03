@@ -391,22 +391,22 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
 
     const pile_to_take = [...discard_pile];
     pile_to_take.shift();
-    const hand_cards_for_meld_ids = bridge_cards.map((c) => c.id);
-    const remaining_hand = my_hand.filter(
-      (c) => !hand_cards_for_meld_ids.includes(c.id)
-    );
-    const new_hand = sort_cards([...remaining_hand, ...pile_to_take]);
-
-    const is_clean_canasta = (v: MeldValidation) =>
-      v.is_valid &&
-      (v.canastra_type === "CLEAN" ||
-        v.canastra_type === "KING" ||
-        v.canastra_type === "ACE");
-
-    const will_have_clean = team_melds[team_id].some((meld, idx) => {
-      const v = idx === meld_index ? validation : validate_sequence(meld);
-      return is_clean_canasta(v);
-    });
+        const hand_cards_for_meld_ids = bridge_cards.map((c) => c.id);
+        const remaining_hand = my_hand.filter(
+          (c) => !hand_cards_for_meld_ids.includes(c.id)
+        );
+        const new_hand = sort_cards([...remaining_hand, ...pile_to_take]);
+    
+        const is_clean_canasta = (v: MeldValidation) =>
+          v.is_valid &&
+          (v.canastra_type === "CLEAN" ||
+            v.canastra_type === "KING" ||
+            v.canastra_type === "ACE");
+    
+        const will_have_clean = team_melds[team_id].some((meld, idx) => {
+          const v = idx === meld_index ? validate_sequence(proposed_meld) : validate_sequence(meld);
+          return is_clean_canasta(v);
+        });
 
     if (
       get().has_taken_dead_pile[team_id] &&

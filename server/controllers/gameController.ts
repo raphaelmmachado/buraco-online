@@ -19,6 +19,7 @@ import { sort_cards, organize_meld } from "../../common/utils/sort_cards";
 import {
   validate_sequence,
   validate_discard_pickup,
+  validate_discard_add_to_meld,
 } from "../../common/utils/rules_logic";
 import { type Card } from "../../common/types/card";
 import { type ServerResponse, type PlayerID } from "../types";
@@ -265,9 +266,14 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       const hand_cards = current_hand.filter((c) => card_ids.includes(c.id));
 
       const new_meld: Card[] = [...target_meld, ...hand_cards, top_discard];
-      const validation = validate_sequence(new_meld);
+      // Updated rule: use specific validation for discard pickup
+      const validation = validate_discard_add_to_meld(
+        target_meld,
+        hand_cards,
+        top_discard
+      );
 
-      if (!validation.is_valid) {
+      if (!validation.valid) {
         if (callback)
           callback({ error: `Movimento inválido: ${validation.error}` });
         return;

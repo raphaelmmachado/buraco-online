@@ -68,6 +68,7 @@ interface GameActions {
   ) => void;
   internal_can_beat: () => boolean;
   internal_handle_empty_hand: (type: "DIRECT" | "INDIRECT") => void;
+  reset_game: () => void;
 }
 
 const get_team = (player_id: number): TeamID => (player_id % 2 !== 0 ? 1 : 2);
@@ -97,6 +98,28 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
   cardsPlayedThisTurn: 0,
 
   clear_error: () => set({ last_error: null }),
+
+  reset_game: () => {
+    set({
+      status: "LOBBY",
+      mode: "1v1",
+      deck: [],
+      discard_pile: [],
+      hands: {},
+      team_melds: { 1: [], 2: [] },
+      dead_piles: [],
+      has_taken_dead_pile: { 1: false, 2: false },
+      turn_phase: "DRAW",
+      current_player: 1,
+      last_drawn_card_id: null,
+      final_score: null,
+      cumulative_score: { team_1: 0, team_2: 0 },
+      round_count: 1,
+      last_error: null,
+      recentEvents: [],
+      cardsPlayedThisTurn: 0,
+    });
+  },
 
   addEvent: (message, type = "info", playerId) => {
     const id = Math.random().toString(36).substring(7);

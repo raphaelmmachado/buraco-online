@@ -300,7 +300,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       );
 
       socket.on("game_closed", (reason: string) => {
-        alert(reason); // Simple alert for now
+        get().addEvent(reason, "error"); // Use addEvent instead of alert
         
         // Limpa estado local e redireciona
         localStorage.removeItem("baralho_active_room");
@@ -322,7 +322,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       });
 
       socket.on("kicked", () => {
-        alert("Você foi expulso da sala pelo anfitrião.");
+        get().addEvent("Você foi expulso da sala pelo anfitrião.", "error");
         localStorage.removeItem("baralho_active_room");
         set({
           status: "IDLE",
@@ -343,6 +343,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
       socket.on("rejoin_failed", () => {
         console.log("Tentativa de reconexão falhou: Sala não existe mais.");
+        get().addEvent("Não foi possível reconectar à sala anterior.", "error");
         localStorage.removeItem("baralho_active_room");
         // Não removemos o ID do jogador (baralho_player_id) para manter a identidade
         set({
@@ -355,9 +356,10 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
       socket.on("error_msg", (msg: string) => {
         set({ last_error: msg });
+        get().addEvent(msg, "error");
         // Se o erro for crítico de sessão, limpa tudo e volta pro inicio
         if (msg.includes("não encontrada") || msg.includes("não encontrado")) {
-          alert(`Erro de conexão: ${msg}`);
+          // Alert removed, notification via addEvent above is enough, layout will handle it
           localStorage.removeItem("baralho_active_room");
           localStorage.removeItem("baralho_player_id");
           set({

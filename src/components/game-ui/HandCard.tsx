@@ -25,27 +25,37 @@ export const HandCard = ({
   onMouseLeave,
 }: HandCardProps) => {
   const isRed = card.color === "red";
-  const isAccessibilityMode = useGameStore((state) => state.isAccessibilityMode);
+  const isAccessibilityMode = useGameStore(
+    (state) => state.isAccessibilityMode,
+  );
   const imageSrc = getCardImageSrc(card.value, card.suit.name);
 
   // Estilos de texto: Mantendo simples, com ajustes md: apenas para desktop
-  const valueClass = isAccessibilityMode 
-    ? `font-bold text-2xl md:text-4xl scale-y-125 origin-top ${card.value === '10' ? 'tracking-tighter' : ''}` 
+  const valueClass = isAccessibilityMode
+    ? `font-bold text-2xl md:text-4xl scale-y-125 origin-top ${card.value === "10" ? "tracking-tighter" : ""}`
     : "font-black text-lg md:text-2xl";
-    
+
   const suitClass = isAccessibilityMode
     ? "w-6 h-6 md:w-8 md:h-8"
     : "w-4 h-4 md:w-5 md:h-5";
 
   let textColorClass = isRed ? "text-red-600" : "text-slate-900";
-  
+
   if (isAccessibilityMode) {
     // Cores de alto contraste para acessibilidade
     switch (card.suit.name) {
-      case "copas": textColorClass = "text-red-600"; break;
-      case "ouro": textColorClass = "text-orange-600"; break;
-      case "espadas": textColorClass = "text-slate-900"; break;
-      case "paus": textColorClass = "text-blue-900"; break;
+      case "copas":
+        textColorClass = "text-red-600";
+        break;
+      case "ouro":
+        textColorClass = "text-orange-600";
+        break;
+      case "espadas":
+        textColorClass = "text-slate-900";
+        break;
+      case "paus":
+        textColorClass = "text-blue-900";
+        break;
     }
   }
 
@@ -71,19 +81,28 @@ export const HandCard = ({
       style={style}
     >
       {/* Símbolo Topo-Esquerda */}
-      <div className={`self-start flex flex-col items-center leading-none z-10 ${isAccessibilityMode ? 'gap-y-1 md:gap-y-2' : ''}`}>
+      <div
+        className={`self-start flex flex-col items-center leading-none z-10 ${isAccessibilityMode ? "gap-y-1 md:gap-y-2" : ""}`}
+      >
         <span className={valueClass}>{card.value}</span>
         <SuitIcon suit={card.suit.name} className={suitClass} />
       </div>
 
       {/* Imagem Central */}
-      {imageSrc && (
+      {imageSrc ? (
         <img
           src={imageSrc}
           alt={`${card.value} de ${card.suit.name}`}
-          className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none ${isAccessibilityMode ? 'opacity-30' : 'opacity-100'}`}
+          className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none ${isAccessibilityMode ? "opacity-30" : "opacity-100"}`}
           draggable={false}
         />
+      ) : !isAccessibilityMode ? (
+        <SuitIcon
+          suit={card.suit.name}
+          className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20 w-8 h-8 md:w-12 md:h-12 pointer-events-none`}
+        />
+      ) : (
+        <></>
       )}
 
       {/* Símbolo Inferior-Direita (Invertido) - Oculto em Acessibilidade para dar foco ao valor maior */}

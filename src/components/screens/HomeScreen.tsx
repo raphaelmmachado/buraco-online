@@ -13,6 +13,7 @@ import {
   Plus,
 } from "lucide-react";
 import { StyledButton } from "../ui/StyledButton";
+import { EventBar } from "../game-ui/EventBar";
 
 const ConnectionBadge = () => {
   const connectionStatus = useGameStore((state) => state.connectionStatus);
@@ -70,6 +71,8 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
   const totalOnline = useGameStore((state) => state.totalOnline);
   const onlineNames = useGameStore((state) => state.onlineNames);
   const connectionStatus = useGameStore((state) => state.connectionStatus);
+  const recentEvents = useGameStore((state) => state.recentEvents);
+  const addEvent = useGameStore((state) => state.addEvent);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Check for active session on mount
@@ -126,11 +129,11 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
     if (connectionStatus !== "CONNECTED") return;
 
     if (userName.trim() === "") {
-      alert("Por favor, digite seu nome primeiro.");
+      addEvent("Por favor, digite seu nome primeiro.", "warning");
       return;
     }
     if (newRoomId.trim() === "") {
-      alert("Por favor, digite um nome para a nova sala.");
+      addEvent("Por favor, digite um nome para a nova sala.", "warning");
       return;
     }
     connect(newRoomId.trim(), mode, userName.trim());
@@ -140,7 +143,7 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
     if (connectionStatus !== "CONNECTED") return;
 
     if (userName.trim() === "") {
-      alert("Por favor, digite seu nome antes de entrar.");
+      addEvent("Por favor, digite seu nome antes de entrar.", "warning");
       return;
     }
     connect(roomId, mode, userName.trim());
@@ -166,6 +169,13 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
   if (screenMode === "SELECT") {
     return (
       <div className="min-h-screen bg-[#0f2e1a] flex flex-col items-center justify-center text-white p-6 font-sans relative overflow-hidden">
+        {/* Event Display */}
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[60] w-full max-w-md px-4 flex flex-col gap-2 pointer-events-none">
+            {recentEvents.map((event) => (
+              <EventBar key={event.id} message={event.message} type={event.type} />
+            ))}
+        </div>
+
         <div
           className="absolute inset-0 opacity-10 pointer-events-none"
           style={{
@@ -227,6 +237,13 @@ export const HomeScreen = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
   // --- RENDER: ONLINE LOBBY ---
   return (
     <div className="min-h-screen bg-[#0f2e1a] flex flex-col items-center justify-center text-white p-6 font-sans relative overflow-hidden">
+      {/* Event Display */}
+      <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[60] w-full max-w-md px-4 flex flex-col gap-2 pointer-events-none">
+          {recentEvents.map((event) => (
+            <EventBar key={event.id} message={event.message} type={event.type} />
+          ))}
+      </div>
+
       <ConnectionBadge />
 
       {/* Background Texture */}

@@ -39,7 +39,9 @@ export const DiscardCard = ({
   originDirection = "bottom",
   quantity = 0,
 }: DiscardCardProps) => {
-  const isAccessibilityMode = useGameStore((state) => state.isAccessibilityMode);
+  const isAccessibilityMode = useGameStore(
+    (state) => state.isAccessibilityMode,
+  );
   if (!card) {
     return (
       <div
@@ -64,7 +66,7 @@ export const DiscardCard = ({
   // Se vem de outros, usamos animação explícita de entrada.
   // MAS sempre mantemos layoutId para permitir que a carta "voe" para a mão de quem pegar o lixo.
   const isFromMe = originDirection === "bottom";
-  
+
   const animationProps = {
     layoutId: card.id,
     ...(isFromMe
@@ -91,9 +93,9 @@ export const DiscardCard = ({
   const baseLayerStyle = `absolute inset-0 bg-white rounded-md border border-slate-300 shadow-sm select-none`;
 
   // Accessibility Styles
-  const valueClass = (isMini: boolean) => 
+  const valueClass = (isMini: boolean) =>
     isAccessibilityMode
-      ? `${isMini ? "text-lg" : "md:text-4xl text-2xl"} font-bold scale-y-125 origin-top ${card?.value === '10' ? 'tracking-tighter' : ''}`
+      ? `${isMini ? "text-lg" : "md:text-4xl text-2xl"} font-bold scale-y-125 origin-top ${card?.value === "10" ? "tracking-tighter" : ""}`
       : `${isMini ? "text-sm" : "md:text-2xl"} font-black`;
 
   const suitClass = (isMini: boolean) =>
@@ -104,10 +106,18 @@ export const DiscardCard = ({
   let textColorClass = isRed ? "text-red-600" : "text-slate-900";
   if (isAccessibilityMode) {
     switch (card.suit.name) {
-      case "copas": textColorClass = "text-red-600"; break;
-      case "ouro": textColorClass = "text-orange-600"; break;
-      case "espadas": textColorClass = "text-slate-900"; break;
-      case "paus": textColorClass = "text-blue-900"; break;
+      case "copas":
+        textColorClass = "text-red-600";
+        break;
+      case "ouro":
+        textColorClass = "text-orange-600";
+        break;
+      case "espadas":
+        textColorClass = "text-slate-900";
+        break;
+      case "paus":
+        textColorClass = "text-blue-900";
+        break;
     }
   }
 
@@ -170,42 +180,34 @@ export const DiscardCard = ({
           highlight
             ? "ring-4 ring-yellow-400/40 shadow-yellow-500/50 shadow-2xl z-50 border-transparent"
             : subtleHighlight
-            ? "ring-4 ring-red-500/40 shadow-[0_0_15px_rgba(239,68,68,0.4)] z-10 border-transparent"
-            : "border-slate-300"
+              ? "ring-4 ring-red-500/40 shadow-[0_0_15px_rgba(239,68,68,0.4)] z-10 border-transparent"
+              : "border-slate-300"
         }
         ${textColorClass}
       `}
       >
-        <div className={`md:self-start flex flex-col ${isAccessibilityMode ? 'gap-y-1 md:gap-y-2' : ''} items-center leading-none z-10`}>
-          <span className={valueClass(!!mini)}>
-            {card.value}
-          </span>
-          <SuitIcon
-            suit={card.suit.name}
-            className={suitClass(!!mini)}
-          />
+        <div
+          className={`md:self-start flex flex-col ${isAccessibilityMode ? "gap-y-1 md:gap-y-2" : ""} items-center leading-none z-10`}
+        >
+          <span className={valueClass(!!mini)}>{card.value}</span>
+          <SuitIcon suit={card.suit.name} className={suitClass(!!mini)} />
         </div>
         {!mini && (
           <div
             className={`absolute top-1/2 left-1/2 -translate-x-1/2
-           -translate-y-1/2 pointer-events-none ${isAccessibilityMode ? 'opacity-5' : 'opacity-20'}`}
+           -translate-y-1/2 pointer-events-none ${isAccessibilityMode ? "opacity-5" : "opacity-20"}`}
           >
             <SuitIcon
               suit={card.suit.name}
-              className={mini ? "w-5 h-5" : "w-8 h-8 md:w-16 md:h-16"}
+              className={mini ? "w-5 h-5" : "w-8 h-8 md:w-10 md:h-10"}
             />
           </div>
         )}
 
         {!mini && !isAccessibilityMode && (
           <div className="self-end flex flex-col items-center leading-none rotate-180 z-10">
-            <span className={valueClass(!!mini)}>
-              {card.value}
-            </span>
-            <SuitIcon
-              suit={card.suit.name}
-              className={suitClass(!!mini)}
-            />
+            <span className={valueClass(!!mini)}>{card.value}</span>
+            <SuitIcon suit={card.suit.name} className={suitClass(!!mini)} />
           </div>
         )}
       </motion.div>

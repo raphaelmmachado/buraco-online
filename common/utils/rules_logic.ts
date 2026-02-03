@@ -355,23 +355,27 @@ export const validate_discard_add_to_meld = (
     return { valid: false, error: details.error };
   }
 
-  // Se a sequência resultante é válida, precisamos checar se violamos a regra do lixo.
-  // Regra: "Proibido pegar lixo com coringa".
-  // Interpretação: Se usamos um coringa da mão para justificar a pegada.
+  // Regra: "Proibido pegar lixo com coringa."
+  // Interpretação refinada:
+  // 1. Se a canastra original JÁ TINHA coringa (era suja), a jogada é LIVRE (podemos manipular os coringas ou adicionar novos se o antigo virar natural).
+  // 2. Se a canastra original ERA LIMPA, então NÃO podemos usar coringa da mão para realizar a pegada.
+
+  // Passo 1: Verificar se a canastra original era suja.
+  const original_details = get_sequence_details(target_meld);
+  // Se a original já era válida e suja (!is_clean), liberamos a jogada.
+  // Nota: Se a original não fosse válida (ex: <3 cartas), o jogo teria outros problemas, mas assumimos que o estado do jogo é integro.
+  if (original_details.is_valid && !original_details.is_clean) {
+    return { valid: true };
+  }
+
+  // Passo 2: Se chegamos aqui, a canastra original era LIMPA (ou vazia/inválida, mas assumimos limpa).
+  // Agora aplicamos a restrição: Nenhuma carta da "ponte" (mão) pode ser usada como coringa na nova configuração.
   
-  // Se o jogo original JÁ TINHA coringa, então adicionar mais cartas é "normal".
-  // Mas se já tinha coringa, adicionar OUTRO coringa (da mão) invalidaria o jogo (2 coringas),
-  // o que já foi pego pelo get_sequence_details (is_valid seria false).
-  // Portanto, só precisamos nos preocupar se o jogo original ERA LIMPO (sem coringa).
-  
-  // Vamos verificar se alguma das cartas da "ponte" (mão) está sendo usada como coringa.
-  // Precisamos do naipe alvo.
   const naturals = proposed_meld.filter((c) => c.value !== "2");
   const target_suit = naturals[0]?.suit.name;
   
   if (!target_suit) return { valid: false, error: "Erro de validação interna." };
 
-  // Verifica se alguma carta da mão é um coringa na nova configuração
   for (const card of bridge_cards) {
     const w = details.assigned_weights[card.id];
     if (w !== undefined && is_wildcard_usage(card, w, target_suit)) {

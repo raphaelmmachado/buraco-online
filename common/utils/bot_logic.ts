@@ -1,5 +1,5 @@
 import { type Card, SUITS } from "../types/card";
-import { validate_sequence, get_sequence_details, type ValidSequence } from "./rules_logic";
+import { validate_sequence, get_sequence_details, type ValidSequence, validate_discard_add_to_meld } from "./rules_logic";
 import { sort_cards, organize_meld } from "./sort_cards";
 
 // =============================================================================
@@ -544,6 +544,12 @@ export const analyze_discard_pickup = (
           const validation = validate_sequence(attempt);
 
           if (validation.is_valid) {
+              // Check specific rule: No joker from hand unless allowed
+              const ruleCheck = validate_discard_add_to_meld(meld, [card], top_discard);
+              if (!ruleCheck.valid) {
+                  continue;
+              }
+
               const meld_val = validate_sequence(meld);
               const was_clean = meld_val.is_valid && meld_val.is_clean;
 

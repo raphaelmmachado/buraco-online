@@ -34,7 +34,7 @@ export const StartMenu = ({ onPlayOnline, onPlayLocal }: StartMenuProps) => {
             Buraco Resenha
           </h1>
           <p className="text-slate-400 text-xs uppercase tracking-[0.5em]">
-            Fechado, sem trinca, sem vulnerável.
+            Fechado, sem trinca e vulnerável.
           </p>
         </div>
 

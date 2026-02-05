@@ -232,7 +232,7 @@ export const PlayerHand = ({
                   zIndex:
                     isHovered && HAND_CONFIG.hover_zIndex && !isMobile
                       ? 100
-                      : "auto",
+                      : i, // Ensure stacking context respects card order
                 }}
                 onMouseEnter={() => setHoveredIndex(i)}
                 onMouseLeave={() => setHoveredIndex(null)}

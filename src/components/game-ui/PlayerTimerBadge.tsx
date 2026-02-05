@@ -1,7 +1,8 @@
 import { Hand, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useGameStore } from "../../store/useGameStore";
 import { useMobileCheck } from "../../hooks/useMobileCheck";
+import tic_tac_sound from "../../assets/sound/tic-tac.mp3";
 
 interface PlayerTimerBadgeProps {
   playerId: number;
@@ -23,20 +24,45 @@ export const PlayerTimerBadge = ({
 }: PlayerTimerBadgeProps) => {
   const turn_start_time = useGameStore((s) => s.turn_start_time);
   const status = useGameStore((s) => s.status);
+  const isMuted = useGameStore((s) => s.isMuted);
+  const isAccessibilityMode = useGameStore((s) => s.isAccessibilityMode);
   const { isMobile } = useMobileCheck();
 
-  const duration = turnPhase === "DRAW" ? 30 : 60;
+  const ticTacAudio = useMemo(() => new Audio(tic_tac_sound), []);
+  const lastTickRef = useRef<number | null>(null);
+
+  const duration = turnPhase === "DRAW" ? 20 : 60;
+  const criticalThreshold = turnPhase === "DRAW" ? 5 : 10;
   const [timeLeft, setTimeLeft] = useState(duration);
 
   useEffect(() => {
     const update = () => {
       if (!turn_start_time || status !== "PLAYING" || !isCurrentPlayer) {
         setTimeLeft(duration);
+        lastTickRef.current = null;
+        ticTacAudio.pause();
+        ticTacAudio.currentTime = 0;
         return;
       }
       const now = Date.now();
       const elapsed = (now - turn_start_time) / 1000;
-      setTimeLeft(Math.max(0, duration - elapsed));
+      const remaining = Math.max(0, duration - elapsed);
+      setTimeLeft(remaining);
+
+      // Audio Logic: Play every second when <= threshold
+      if (remaining <= criticalThreshold && remaining > 0 && !isMuted) {
+        const currentSecond = Math.ceil(remaining);
+        if (lastTickRef.current !== currentSecond) {
+          ticTacAudio.currentTime = 0;
+          ticTacAudio.play().catch((e) => console.warn("Audio play blocked:", e));
+          lastTickRef.current = currentSecond;
+        }
+      } else {
+        lastTickRef.current = null;
+        // Pause if we are above threshold (e.g. if timer reset but still playing)
+        // Though logically we only play short clips, for safety:
+        // ticTacAudio.pause(); 
+      }
     };
 
     const timeoutId = setTimeout(update, 0);
@@ -45,11 +71,13 @@ export const PlayerTimerBadge = ({
     return () => {
       clearTimeout(timeoutId);
       clearInterval(intervalId);
+      ticTacAudio.pause();
+      ticTacAudio.currentTime = 0;
     };
-  }, [turn_start_time, status, isCurrentPlayer, duration]);
+  }, [turn_start_time, status, isCurrentPlayer, duration, isMuted, ticTacAudio, criticalThreshold]);
 
   const progress = Math.min(100, Math.max(0, (timeLeft / duration) * 100));
-  const isCritical = timeLeft <= 10;
+  const isCritical = timeLeft <= criticalThreshold;
 
   // --- MOBILE DESIGN ---
   if (isMobile) {
@@ -79,15 +107,28 @@ export const PlayerTimerBadge = ({
 
           {/* Initials or Short Name */}
           <span
-            className={`text-[10px] font-black ${isCurrentPlayer ? "text-white" : "opacity-70 text-white"}`}
+            className={`${
+              isAccessibilityMode ? "text-xs" : "text-[10px]"
+            } font-black ${
+              isCurrentPlayer ? "text-white" : "opacity-70 text-white"
+            }`}
           >
             {userName.substring(0, 3).toUpperCase()}
           </span>
 
           {/* Cards Count Badge */}
           <div className="flex items-center gap-0.5 bg-white/10 px-1 rounded-md">
-            <Hand size={10} className="opacity-60" />
-            <span className="text-[10px] font-mono font-bold">{handSize}</span>
+            <Hand
+              size={isAccessibilityMode ? 12 : 10}
+              className="opacity-60"
+            />
+            <span
+              className={`${
+                isAccessibilityMode ? "text-xs" : "text-[10px]"
+              } font-mono font-bold`}
+            >
+              {handSize}
+            </span>
           </div>
 
           {/* Turn Icon */}
@@ -98,9 +139,9 @@ export const PlayerTimerBadge = ({
               }
             >
               {turnPhase === "DRAW" ? (
-                <ArrowDownToLine size={10} />
+                <ArrowDownToLine size={isAccessibilityMode ? 12 : 10} />
               ) : (
-                <ArrowUpFromLine size={10} />
+                <ArrowUpFromLine size={isAccessibilityMode ? 12 : 10} />
               )}
             </span>
           )}
@@ -133,22 +174,36 @@ export const PlayerTimerBadge = ({
           />
         )}
         <div className="relative flex items-center gap-2 z-10 w-full justify-between min-w-[90px]">
-          <span className="text-[10px] md:text-xs font-bold tracking-wide truncate max-w-[80px]">
+          <span
+            className={`${
+              isAccessibilityMode ? "text-xs md:text-sm" : "text-[10px] md:text-xs"
+            } font-bold tracking-wide truncate max-w-[80px]`}
+          >
             {userName.toUpperCase()}
           </span>
           <div className="w-px h-3 bg-white/10 mx-0.5"></div>
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] md:text-xs flex gap-1 items-center font-mono font-bold opacity-90">
-              <Hand size={11} className="opacity-70" /> {handSize}
+            <span
+              className={`${
+                isAccessibilityMode ? "text-xs md:text-sm" : "text-[10px] md:text-xs"
+              } flex gap-1 items-center font-mono font-bold opacity-90`}
+            >
+              <Hand
+                size={isAccessibilityMode ? 13 : 11}
+                className="opacity-70"
+              />{" "}
+              {handSize}
             </span>
             {isCurrentPlayer && (
               <span
-                className={`flex items-center ml-1 ${isCritical ? "text-red-200" : "text-yellow-200"}`}
+                className={`flex items-center ml-1 ${
+                  isCritical ? "text-red-200" : "text-yellow-200"
+                }`}
               >
                 {turnPhase === "DRAW" ? (
-                  <ArrowDownToLine size={11} />
+                  <ArrowDownToLine size={isAccessibilityMode ? 13 : 11} />
                 ) : (
-                  <ArrowUpFromLine size={11} />
+                  <ArrowUpFromLine size={isAccessibilityMode ? 13 : 11} />
                 )}
               </span>
             )}

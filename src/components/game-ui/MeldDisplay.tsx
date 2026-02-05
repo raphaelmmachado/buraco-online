@@ -46,12 +46,13 @@ export const MeldDisplay = memo(
           }`}
         >
           <div className="flex -space-x-7.5 md:-space-x-10 transition-all">
-            {organizedCards.map((card) => (
+            {organizedCards.map((card, i) => (
               <MeldCard
                 key={card.id}
                 card={card}
                 highlight={isHovered}
                 enterFrom={enterFrom}
+                style={{ zIndex: i }}
               />
             ))}
           </div>

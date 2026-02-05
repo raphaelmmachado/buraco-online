@@ -6,36 +6,36 @@ import {
   find_card_to_add,
   find_meld_in_hand,
 } from "../../common/utils/bot_logic";
-import type { Card } from "../../common/types/card"; // Import Card type
+import type { Card } from "../../common/types/card";
 
+/**
+ * Hook customizado que gerencia a execução dos turnos dos Bots no modo Local.
+ * Ele observa o estado do jogo e, quando é a vez de um bot, dispara as ações necessárias.
+ */
 export const useGameBots = () => {
   const store = useGameStoreBots();
-  const timeoutRef = useRef<number | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    // Se o jogo não começou ou é a vez do humano (Player 1), não faz nada
+    // Se o jogo não estiver rodando ou for a vez do jogador humano (Player 1), não faz nada.
     if (store.status !== "PLAYING" || store.current_player === 1) return;
 
+    // Identifica qual é a mão do bot atual e qual sua equipe.
     const my_hand = store.hands[store.current_player] || [];
     const team_id = store.current_player % 2 !== 0 ? 1 : 2;
     const team_melds = store.team_melds[team_id];
 
+    /** Função principal que executa a lógica do turno do bot. */
     const playBotTurn = () => {
       const has_taken = store.has_taken_dead_pile[team_id];
-      const has_clean = store.internal_can_beat();
+      const has_clean = store.internal_can_beat(); // Verifica se já tem canastra limpa para bater.
 
-      // 1. FASE DE COMPRA (DRAW)
+      // --- FASE DE COMPRA (DRAW) ---
       if (store.turn_phase === "DRAW") {
-        // Tenta pegar do lixo
+        // 1. Tenta pegar a carta do topo do lixo.
         if (store.discard_pile.length > 0) {
           const top_discard = store.discard_pile[0];
 
-          const all_played_cards = [
-            ...store.discard_pile,
-            ...store.team_melds[1].flat(),
-            ...store.team_melds[2].flat(),
-            ...store.dead_piles.flat(),
-          ];
           const action = analyze_discard_pickup(
             my_hand,
             top_discard,
@@ -43,66 +43,39 @@ export const useGameBots = () => {
             has_taken,
             has_clean,
             store.discard_pile.length,
-            store.deck.length, // Pass deck_size
-            all_played_cards,
+            store.deck.length,
           );
 
           if (action) {
             if (action.type === "NEW_MELD") {
-              console.log(
-                `🤖 Bot ${store.current_player} pegou do lixo (Novo Jogo)!`,
-              );
-              store.pick_up_discard_new_meld(
-                action.cards.map((c: Card) => c.id),
-              );
+              console.log(`🤖 Bot ${store.current_player} pegou lixo (Novo Jogo)!`);
+              store.pick_up_discard_new_meld(action.cards.map((c: Card) => c.id));
             } else if (action.type === "ADD_TO_MELD") {
-              console.log(
-                `🤖 Bot ${store.current_player} pegou do lixo (Add ao Jogo ${action.meld_index})!`,
-              );
-              store.pick_up_discard_add_to_meld(
-                action.meld_index,
-                action.cards.map((c: Card) => c.id),
-              );
+              console.log(`🤖 Bot ${store.current_player} pegou lixo (Adicionar)!`);
+              store.pick_up_discard_add_to_meld(action.meld_index, action.cards.map((c: Card) => c.id));
             }
-            return;
+            return; // Após pegar o lixo, o turno continua na fase de ação.
           }
         }
 
-        // Se não deu, compra do monte
+        // 2. Se não pegou do lixo, compra obrigatoriamente do monte.
         console.log(`🤖 Bot ${store.current_player} comprou do monte.`);
         store.draw_card_from_deck();
       }
 
-      // 2. FASE DE AÇÃO (ACTION)
+      // --- FASE DE AÇÃO (ACTION) ---
       else if (store.turn_phase === "ACTION") {
         const has_taken = store.has_taken_dead_pile[team_id];
         const has_clean = store.internal_can_beat();
-        const is_desperate = store.deck.length < 10;
+        const is_desperate = store.deck.length < 10; // Modo desespero se o monte estiver acabando.
 
-        // A. Tenta baixar novo jogo
-        const new_meld = find_meld_in_hand(
-          my_hand,
-          team_melds,
-          has_taken,
-          has_clean,
-          is_desperate,
-          store.mode === "2v2",
-        );
-        if (new_meld) {
-          console.log(`🤖 Bot ${store.current_player} baixou jogo.`);
-          store.meld_cards(new_meld.map((c) => c.id));
-          return; // Espera atualização de estado para continuar
-        }
-
-        // B. Tenta adicionar a jogos existentes
+        // A. PRIORIDADE: Tenta adicionar cartas a jogos que já estão na mesa.
         const all_played_cards_for_add = [
           ...store.discard_pile,
           ...store.team_melds[1].flat(),
           ...store.team_melds[2].flat(),
           ...store.dead_piles.flat(),
         ];
-
-        // Desperate if deck is low (game ending soon)
 
         for (let i = 0; i < team_melds.length; i++) {
           const card_to_add = find_card_to_add(
@@ -115,30 +88,34 @@ export const useGameBots = () => {
             store.mode === "2v2",
           );
           if (card_to_add) {
-            console.log(
-              `🤖 Bot ${store.current_player} adicionou ao jogo ${i}.`,
-            );
+            console.log(`🤖 Bot ${store.current_player} adicionou ao jogo ${i}.`);
             store.add_card_to_meld([card_to_add.id], i);
-            return; // Espera atualização
+            return; // Sai para esperar a atualização do estado do componente.
           }
         }
 
-        // C. Se não tem mais ações, descarta
-        const opponent_melds =
-          team_id === 1 ? store.team_melds[2] : store.team_melds[1]; // Assuming 2 teams
-        const all_played_cards = [
-          ...store.discard_pile,
-          ...store.team_melds[1].flat(),
-          ...store.team_melds[2].flat(),
-          ...store.dead_piles.flat(),
-        ];
+        // B. Tenta baixar um NOVO jogo da mão.
+        const new_meld = find_meld_in_hand(
+          my_hand,
+          team_melds,
+          has_taken,
+          has_clean,
+          is_desperate,
+          store.mode === "2v2",
+        );
+        if (new_meld) {
+          console.log(`🤖 Bot ${store.current_player} baixou um novo jogo.`);
+          store.meld_cards(new_meld.map((c) => c.id));
+          return;
+        }
+
+        // C. Se não tem mais o que fazer, DESCARTA uma carta para encerrar o turno.
+        const opponent_melds = team_id === 1 ? store.team_melds[2] : store.team_melds[1];
         
-        // Calculate partner hand size
-        // Team 1: 1 & 3. Team 2: 2 & 4.
+        // Identifica o parceiro para fins de estratégia (ex: não dar carta que ele precisa).
         let partner_id = 0;
         if (team_id === 1) partner_id = store.current_player === 1 ? 3 : 1;
         else partner_id = store.current_player === 2 ? 4 : 2;
-        
         const partner_hand_size = store.hands[partner_id]?.length || 0;
 
         const card_to_discard = choose_discard(
@@ -147,25 +124,23 @@ export const useGameBots = () => {
           store.discard_pile.length > 0 ? store.discard_pile[0] : null,
           has_taken,
           store.deck.length, 
-          all_played_cards,
           store.discard_pile.length,
           partner_hand_size
         );
+
         if (card_to_discard) {
-          console.log(
-            `🤖 Bot ${store.current_player} descartou ${card_to_discard.value}.`,
-          );
+          console.log(`🤖 Bot ${store.current_player} descartou ${card_to_discard.value}.`);
           store.discard_card(card_to_discard.id);
         }
       }
     };
 
-    // Adiciona delay para "pensar"
-    const delay = Math.random() * 1000 + 1000; // 1s a 2s
+    // Adiciona um atraso aleatório (entre 1s e 2s) para simular o tempo de pensamento do bot.
+    const delay = Math.random() * 1000 + 1000;
     timeoutRef.current = setTimeout(playBotTurn, delay);
 
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [store]); 
+  }, [store]); // Re-executa sempre que o estado da 'store' mudar e for a vez do bot.
 };

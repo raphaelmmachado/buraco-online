@@ -37,11 +37,7 @@ export const LocalGame = ({ onBack }: { onBack?: () => void }) => {
   const gameAdapterWithBack = {
     ...gameAdapter,
     leaveGame: () => {
-      store.start_game("1v1"); // Reset or just re-render lobby?
-      // Actually, we want to go back to LOBBY state of local store
-      // But local store doesn't have a "reset to lobby" easily exposed?
-      // `start_game` resets state to PLAYING.
-      // We can force a reload or just call onBack if we want to exit completely.
+      store.reset_game();
       if (onBack) onBack();
     },
   };

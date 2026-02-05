@@ -54,9 +54,13 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   const canDraw = isMyTurn && game.turn_phase === "DRAW";
   const canAction = isMyTurn && game.turn_phase === "ACTION";
   // Safe calculation even if game data is incomplete initially
-  const myScore = game.team_melds?.[my_team] ? calculate_score(game.team_melds[my_team]).total_score : 0;
-  const oppScore = game.team_melds?.[opponent_team] ? calculate_score(game.team_melds[opponent_team]).total_score : 0;
-  
+  const myScore = game.team_melds?.[my_team]
+    ? calculate_score(game.team_melds[my_team]).total_score
+    : 0;
+  const oppScore = game.team_melds?.[opponent_team]
+    ? calculate_score(game.team_melds[opponent_team]).total_score
+    : 0;
+
   const myTeamHasTaken = game.has_taken_dead_pile?.[my_team - 1] ?? false;
   const oppTeamHasTaken =
     game.has_taken_dead_pile?.[opponent_team - 1] ?? false;
@@ -67,7 +71,9 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     !!topDiscardCard && selectedCards.includes(topDiscardCard.id);
 
   // Calculate direction for discard animation
-  const numPlayers = game.players_data ? Object.keys(game.players_data).length : 0;
+  const numPlayers = game.players_data
+    ? Object.keys(game.players_data).length
+    : 0;
   const previousPlayerId =
     game.current_player === 1 ? numPlayers : game.current_player - 1;
 
@@ -128,7 +134,12 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   // GUARD: Wait for player identification to prevent "Ghost Mode"
   // Moved after hooks to strictly follow React Rules of Hooks
   if (game.my_player_number === null) {
-    return <LoadingScreen message="Sincronizando..." subMessage="Recuperando estado da partida..." />;
+    return (
+      <LoadingScreen
+        message="Sincronizando..."
+        subMessage="Recuperando estado da partida..."
+      />
+    );
   }
 
   // --- RENDER FINISH SCREEN ---
@@ -373,7 +384,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
            px-2 md:px-8 border-y border-white/5 shadow-2xl z-30 shrink-0
             cursor-grab active:cursor-grabbing select-none active:bg-white/10 transition-colors group"
           >
-            <div className="flex h-full items-center justify-between">
+            <div className="flex h-full items-center justify-center">
               {isMobile ? (
                 <GameSeparatorMobile
                   {...layoutProps}

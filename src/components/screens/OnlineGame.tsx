@@ -13,7 +13,7 @@ const GameScreen = lazy(() =>
  * This component acts as a router, displaying the correct screen
  * based on the current game status from the WebSocket store.
  */
-export const OnlineGame = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
+export const OnlineGame = ({ onBack }: { onBack: () => void }) => {
   const store = useGameStore();
   const status = store.status;
 
@@ -30,6 +30,6 @@ export const OnlineGame = ({ onPlayLocal }: { onPlayLocal?: () => void }) => {
     return <LobbyScreen />;
   }
 
-  // Default view is the home screen to join a game
-  return <HomeScreen onPlayLocal={onPlayLocal} />;
+  // Default view is the home screen (which is now just the Lobby entry)
+  return <HomeScreen onBack={onBack} />;
 };

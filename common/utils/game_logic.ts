@@ -11,11 +11,6 @@ export interface InitialDistribution {
   remaining_deck: Card[];
 }
 
-/**
- * Embaralha um array de cartas usando o algoritmo Fisher-Yates.
- * @param {Card[]} array - O array de cartas a ser embaralhado.
- * @returns {Card[]} - Um novo array com as cartas embaralhadas.
- */
 const shuffle = (array: Card[]): Card[] => {
   const new_array = [...array];
   for (let i = new_array.length - 1; i > 0; i--) {
@@ -52,27 +47,21 @@ export const create_deck = (): Card[] => {
 
   const shuffled_deck = shuffle(deck);
   console.log(
-    `[GAME] Baralho criado e embaralhado com ${shuffled_deck.length} cartas.`
+    `[GAME] Baralho criado e embaralhado com ${shuffled_deck.length} cartas.`,
   );
   return shuffled_deck;
 };
 
-/**
- * Distribui as cartas para os jogadores e separa os mortos.
- * @param {Card[]} shuffled_deck - O baralho completo e embaralhado.
- * @param {"1v1" | "2v2"} mode - O modo de jogo.
- * @returns {InitialDistribution} - As mãos dos jogadores, os mortos e o deck restante.
- */
 export const distribute_cards = (
   shuffled_deck: Card[],
-  mode: "1v1" | "2v2"
+  mode: "1v1" | "2v2",
 ): InitialDistribution => {
   const temp_deck = [...shuffled_deck];
   const hands: Record<number, Card[]> = {};
 
   const num_players = mode === "1v1" ? 2 : 4;
   console.log(
-    `[GAME] Distribuindo cartas para ${num_players} jogadores no modo ${mode}.`
+    `[GAME] Distribuindo cartas para ${num_players} jogadores no modo ${mode}.`,
   );
 
   // 1. Distribui as cartas para cada jogador.

@@ -10,6 +10,7 @@ import { sort_cards, organize_meld } from "../../common/utils/sort_cards";
 import {
   validate_sequence,
   type MeldValidation,
+  validate_discard_add_to_meld,
 } from "../../common/utils/rules_logic";
 
 import { calculate_score, type ScoreResult } from "../../common/utils/scoring";
@@ -68,6 +69,7 @@ interface GameActions {
   ) => void;
   internal_can_beat: () => boolean;
   internal_handle_empty_hand: (type: "DIRECT" | "INDIRECT") => void;
+  reset_game: () => void;
 }
 
 const get_team = (player_id: number): TeamID => (player_id % 2 !== 0 ? 1 : 2);
@@ -97,6 +99,28 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
   cardsPlayedThisTurn: 0,
 
   clear_error: () => set({ last_error: null }),
+
+  reset_game: () => {
+    set({
+      status: "LOBBY",
+      mode: "1v1",
+      deck: [],
+      discard_pile: [],
+      hands: {},
+      team_melds: { 1: [], 2: [] },
+      dead_piles: [],
+      has_taken_dead_pile: { 1: false, 2: false },
+      turn_phase: "DRAW",
+      current_player: 1,
+      last_drawn_card_id: null,
+      final_score: null,
+      cumulative_score: { team_1: 0, team_2: 0 },
+      round_count: 1,
+      last_error: null,
+      recentEvents: [],
+      cardsPlayedThisTurn: 0,
+    });
+  },
 
   addEvent: (message, type = "info", playerId) => {
     const id = Math.random().toString(36).substring(7);
@@ -357,32 +381,32 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       proposed_meld.map((c) => `${c.value}${c.suit.icon}`)
     );
 
-    const validation = validate_sequence(proposed_meld);
-    console.log(`[LOCAL PICKUP ADD RESULT] Valid: ${validation.is_valid}`);
+    const validation = validate_discard_add_to_meld(target_meld, bridge_cards, top_card);
+    console.log(`[LOCAL PICKUP ADD RESULT] Valid: ${validation.valid}`);
 
-    if (!validation.is_valid) {
+    if (!validation.valid) {
       set({ last_error: validation.error });
       return;
     }
 
     const pile_to_take = [...discard_pile];
     pile_to_take.shift();
-    const hand_cards_for_meld_ids = bridge_cards.map((c) => c.id);
-    const remaining_hand = my_hand.filter(
-      (c) => !hand_cards_for_meld_ids.includes(c.id)
-    );
-    const new_hand = sort_cards([...remaining_hand, ...pile_to_take]);
-
-    const is_clean_canasta = (v: MeldValidation) =>
-      v.is_valid &&
-      (v.canastra_type === "CLEAN" ||
-        v.canastra_type === "KING" ||
-        v.canastra_type === "ACE");
-
-    const will_have_clean = team_melds[team_id].some((meld, idx) => {
-      const v = idx === meld_index ? validation : validate_sequence(meld);
-      return is_clean_canasta(v);
-    });
+        const hand_cards_for_meld_ids = bridge_cards.map((c) => c.id);
+        const remaining_hand = my_hand.filter(
+          (c) => !hand_cards_for_meld_ids.includes(c.id)
+        );
+        const new_hand = sort_cards([...remaining_hand, ...pile_to_take]);
+    
+        const is_clean_canasta = (v: MeldValidation) =>
+          v.is_valid &&
+          (v.canastra_type === "CLEAN" ||
+            v.canastra_type === "KING" ||
+            v.canastra_type === "ACE");
+    
+        const will_have_clean = team_melds[team_id].some((meld, idx) => {
+          const v = idx === meld_index ? validate_sequence(proposed_meld) : validate_sequence(meld);
+          return is_clean_canasta(v);
+        });
 
     if (
       get().has_taken_dead_pile[team_id] &&

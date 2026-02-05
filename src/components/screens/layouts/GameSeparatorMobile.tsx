@@ -24,7 +24,8 @@ export const GameSeparatorMobile = ({
 }: GameLayoutProps & { my_player_id: number }) => {
   const turn_start_time = useGameStore((s) => s.turn_start_time);
   const status = useGameStore((s) => s.status);
-  const duration = game.turn_phase === "DRAW" ? 30 : 60;
+  const isAccessibilityMode = useGameStore((s) => s.isAccessibilityMode);
+  const duration = game.turn_phase === "DRAW" ? 20 : 60;
   const [timeLeft, setTimeLeft] = useState(duration);
 
   useEffect(() => {
@@ -103,7 +104,9 @@ export const GameSeparatorMobile = ({
           <div className="flex flex-col items-center">
             <div className="flex items-center gap-1">
               <span
-                className={`text-[8px] font-black ${
+                className={`${
+                  isAccessibilityMode ? "text-xs" : "text-[8px]"
+                } font-black ${
                   isMyTurn ? "text-yellow-400 animate-pulse" : "text-white/40"
                 } uppercase tracking-widest`}
               >
@@ -111,10 +114,18 @@ export const GameSeparatorMobile = ({
               </span>
             </div>
 
-            <span className="text-[9px] text-gray-400 font-bold tracking-tight mt-0.5">
+            <span
+              className={`${
+                isAccessibilityMode ? "text-xs" : "text-[9px]"
+              } text-gray-400 font-bold tracking-tight mt-0.5`}
+            >
               {status === "PLAYING" && (
                 <span
-                  className={`text-[10px] font-black flex items-center gap-0.5 ${timeLeft < 15 ? "text-red-500 animate-pulse" : "text-white/40"}`}
+                  className={`${
+                    isAccessibilityMode ? "text-sm" : "text-[10px]"
+                  } font-black flex items-center gap-0.5 ${
+                    timeLeft < 15 ? "text-red-500 animate-pulse" : "text-white/40"
+                  }`}
                 >
                   {game.turn_phase === "DRAW" ? "COMPRAR" : "JOGAR"}
                 </span>

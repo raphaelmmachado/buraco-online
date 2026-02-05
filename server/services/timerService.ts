@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
 import { games, saveState } from "../state";
-import { broadcast_game_update } from "./botService";
+import { broadcast_game_update, process_bot_turn } from "./botService";
 import { sort_cards } from "../../common/utils/sort_cards";
 import {
   get_next_player,
@@ -8,6 +8,7 @@ import {
   has_clean_canastra,
   requires_clean_to_empty_hand,
   handle_empty_hand,
+  check_championship_status,
 } from "./gameService";
 import { calculate_score } from "../../common/utils/scoring";
 import type { PlayerID } from "../types";
@@ -29,8 +30,8 @@ export const startTurnTimer = (io: Server, roomId: string) => {
 
   game.turn_start_time = Date.now();
 
-  // 30s for DRAW phase, 60s for ACTION phase
-  const duration = game.turn_phase === "DRAW" ? 30000 : 60000;
+  // 20s for DRAW phase, 60s for ACTION phase
+  const duration = game.turn_phase === "DRAW" ? 20000 : 60000;
 
   timers[roomId] = setTimeout(() => {
     handleTurnTimeout(io, roomId);
@@ -167,6 +168,12 @@ const handleTurnTimeout = (io: Server, roomId: string) => {
       game.current_player = get_next_player(game.current_player, game.mode);
       game.last_drawn_card_id = null;
       startTurnTimer(io, roomId); // Timer pro próximo
+
+      // Check if next player is bot (Critical for auto-play continuity)
+      const nextPData = game.players_data[game.current_player as PlayerID];
+      if (nextPData && nextPData.isBot) {
+        process_bot_turn(io, roomId);
+      }
     } else {
       stopTurnTimer(roomId);
     }
@@ -204,13 +211,7 @@ const finishGame = (io: Server, roomId: string) => {
     !t2_taken,
   );
 
-  game.status = "FINISHED";
-  game.final_score = {
-    team_1: t1_score.total_score,
-    team_2: t2_score.total_score,
-    details_t1: t1_score,
-    details_t2: t2_score,
-  };
+  check_championship_status(game, t1_score.total_score, t2_score.total_score, t1_score, t2_score);
   stopTurnTimer(roomId);
   broadcast_game_update(io, roomId);
 };

@@ -12,7 +12,7 @@ export const TimerBalloon = ({ x, y }: TimerBalloonProps) => {
   const turn_phase = useGameStore((s) => s.turn_phase);
   const status = useGameStore((s) => s.status);
   
-  const duration = turn_phase === "DRAW" ? 30 : 60;
+  const duration = turn_phase === "DRAW" ? 20 : 60;
   
   // Initialize state lazily to reduce hydration mismatch if possible, 
   // though for client-side timer it's less critical.

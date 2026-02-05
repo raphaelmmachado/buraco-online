@@ -1,20 +1,9 @@
 export type ScreenDirection = "bottom" | "left" | "top" | "right";
 
-/**
- * Determina a posição espacial de um jogador na tela relativa ao jogador local (Bottom).
- * Baseado na regra:
- * - 1v1: Oponente = Top
- * - 2v2: Sentido Horário (Eu -> Esq -> Parceiro -> Dir)
- *
- * @param targetId ID do jogador alvo
- * @param myId ID do jogador local
- * @param mode Modo de jogo ("1v1" ou "2v2")
- * @returns 'bottom' | 'left' | 'top' | 'right'
- */
 export const getPlayerDirection = (
   targetId: number,
   myId: number,
-  mode: "1v1" | "2v2"
+  mode: "1v1" | "2v2",
 ): ScreenDirection => {
   if (targetId === myId) return "bottom";
 
@@ -52,14 +41,14 @@ export const getPlayerDirection = (
  */
 export const getAnimationOrigin = (
   direction: ScreenDirection,
-  offset = 1000
+  offset = 1000,
 ) => {
   switch (direction) {
     case "bottom":
       return { x: 0, y: offset };
     case "top":
       // Vem de cima (parceiro/oponente frente): Geralmente virado 180 ou 0 dependendo se é carta fechada
-      return { x: 0, y: -offset }; 
+      return { x: 0, y: -offset };
     case "left":
       // Vem da esquerda: x negativo, y centrado (0)
       return { x: -offset, y: 0 };

@@ -12,25 +12,33 @@ import {
   get_next_player,
   handle_empty_hand,
   sanitize_state,
+  check_championship_status,
 } from "../services/gameService";
 import { calculate_score } from "../../common/utils/scoring";
 import { validate_sequence } from "../../common/utils/rules_logic";
 import { type PlayerID } from "../types";
+import type { Card } from "../../common/types/card";
 
+/**
+ * Envia as atualizações de estado do jogo para todos os jogadores conectados na sala.
+ */
 export const broadcast_game_update = (io: Server, roomId: string) => {
   const game = games[roomId];
   if (!game) return;
 
-  // Persist state on every update
+  // Persiste o estado no arquivo de backup (persistência em caso de crash)
   saveState();
 
-  // Envia para cada socket individualmente o seu estado filtrado
+  // Envia para cada socket individualmente o seu estado filtrado (para um jogador não ver as cartas do outro)
   game.players_connected.forEach((socketId) => {
     const sanitized = sanitize_state(game, socketId);
     io.to(socketId).emit("game_update", sanitized);
   });
 };
 
+/**
+ * Inicia o processamento do turno de um Bot.
+ */
 export const process_bot_turn = (io: Server, roomId: string) => {
   const game = games[roomId];
   if (!game || game.status !== "PLAYING") return;
@@ -38,33 +46,34 @@ export const process_bot_turn = (io: Server, roomId: string) => {
   const pData = game.players_data[game.current_player as PlayerID];
   if (!pData || !pData.isBot) return;
 
-  console.log(
-    `[BOT] Processing turn for ${pData.userName} (${game.current_player})`,
-  );
+  console.log(`[BOT] Turno do Bot: ${pData.userName} (${game.current_player})`);
 
-  // Add simulated delay
+  // Adiciona um atraso simulado de 2 segundos para o bot não jogar instantaneamente (melhora a UX)
   setTimeout(() => {
     execute_bot_move(io, roomId);
   }, 2000);
 };
 
+/**
+ * Executa as ações reais do bot (Comprar -> Agir -> Descartar).
+ */
 const execute_bot_move = (io: Server, roomId: string) => {
   const game = games[roomId];
   if (!game) return;
 
-  // Double check it's still bot turn
   const pData = game.players_data[game.current_player as PlayerID];
   if (!pData || !pData.isBot) return;
 
   const my_hand = game.hands[game.current_player];
-  if (!my_hand) return; // Safety check
+  if (!my_hand) return;
 
   const team_id = get_team(game.current_player);
   const team_melds = game.team_melds[team_id];
-  if (!team_melds) return; // Safety check
+  if (!team_melds) return;
 
   const my_team_idx = team_id - 1;
 
+  // Verifica se a equipe já possui canastra limpa para saber se pode bater
   const has_clean = team_melds.some((meld) => {
     const v = validate_sequence(meld);
     return (
@@ -75,11 +84,11 @@ const execute_bot_move = (io: Server, roomId: string) => {
     );
   });
 
-  // DRAW PHASE
+  // --- FASE 1: COMPRA (DRAW) ---
   if (game.turn_phase === "DRAW") {
-    // 1. SAFETY CHECK: Check for game end by exhaustion (No deck, no dead piles)
+    // Verifica se o jogo acabou por exaustão do deck
     if (game.deck.length === 0 && game.dead_piles.length === 0) {
-      console.log(`[BOT] Game End: Deck and Dead Piles exhausted.`);
+      console.log(`[BOT] Fim de Jogo: Cartas esgotadas.`);
 
       const t1_hand_1 = game.hands[1] ?? [];
       const t1_hand_2 = game.hands[3] ?? [];
@@ -95,7 +104,7 @@ const execute_bot_move = (io: Server, roomId: string) => {
       const t1_score = calculate_score(
         t1_melds,
         [t1_hand_1, t1_hand_2],
-        false, // No one beat, game ended by exhaustion
+        false, // Ninguém bateu, acabou por exaustão
         !t1_taken,
       );
       const t2_score = calculate_score(
@@ -105,21 +114,21 @@ const execute_bot_move = (io: Server, roomId: string) => {
         !t2_taken,
       );
 
-      game.status = "FINISHED";
-      game.final_score = {
-        team_1: t1_score.total_score,
-        team_2: t2_score.total_score,
-        details_t1: t1_score,
-        details_t2: t2_score,
-      };
+      check_championship_status(
+        game,
+        t1_score.total_score,
+        t2_score.total_score,
+        t1_score,
+        t2_score,
+      );
       broadcast_game_update(io, roomId);
       return;
     }
 
+    // TENTA PEGAR DO LIXO
     if (game.discard_pile.length > 0) {
       const top_discard = game.discard_pile[0];
       if (top_discard) {
-        // Pass pile size to analyze_discard_pickup
         const has_taken = game.has_taken_dead_pile[my_team_idx as 0 | 1];
 
         const action = analyze_discard_pickup(
@@ -129,124 +138,76 @@ const execute_bot_move = (io: Server, roomId: string) => {
           has_taken,
           has_clean,
           game.discard_pile.length,
+          game.deck.length,
         );
 
         if (action) {
-          console.log(`[BOT] Pickup from discard: ${action.type}`);
+          console.log(`[BOT] Bot pegou do lixo: ${action.type}`);
 
           if (action.type === "NEW_MELD") {
             const card_ids = action.cards.map((c) => c.id);
             const combined = [...action.cards, top_discard];
-
-            // Bot takes the rest of the discard pile
             const rest_of_discard = game.discard_pile.slice(1);
             game.discard_pile = [];
 
             const new_hand = my_hand.filter((c) => !card_ids.includes(c.id));
             new_hand.push(...rest_of_discard);
             game.hands[game.current_player] = sort_cards(new_hand);
-
             team_melds.push(organize_meld(combined));
           } else if (action.type === "ADD_TO_MELD") {
             const target_meld = team_melds[action.meld_index];
             const card_ids = action.cards.map((c) => c.id);
-
-            // Combine existing meld + bridge cards + discard
             const new_meld_cards = [
               ...(target_meld ?? []),
               ...action.cards,
               top_discard,
             ];
-
             const rest_of_discard = game.discard_pile.slice(1);
             game.discard_pile = [];
 
             const new_hand = my_hand.filter((c) => !card_ids.includes(c.id));
             new_hand.push(...rest_of_discard);
             game.hands[game.current_player] = sort_cards(new_hand);
-
             team_melds[action.meld_index] = organize_meld(new_meld_cards);
           }
 
           game.turn_phase = "ACTION";
           broadcast_game_update(io, roomId);
-
-          // Bot continues to ACTION phase immediately
           setTimeout(() => execute_bot_move(io, roomId), 1500);
           return;
         }
       }
     }
 
-    // Draw from deck
-    console.log(
-      `[BOT DEBUG] ${pData.userName} drawing from deck. Remaining: ${game.deck.length}`,
-    );
-    if (game.deck.length === 0) {
-      // Handle Deck Empty logic (move dead pile or finish)
-      // Simplified: just finish if empty for bot for now
-      if (game.dead_piles.length > 0) {
-        console.log(`[BOT DEBUG] Deck empty, taking card from dead pile.`);
-        const next_deck = game.dead_piles.shift();
-        if (next_deck) {
-          game.deck = next_deck;
-        }
-      } else {
-        console.log(`[BOT DEBUG] Deck and dead piles empty. Finishing game.`);
-        game.status = "FINISHED"; // Quick finish
-        broadcast_game_update(io, roomId);
-        return;
-      }
+    // COMPRA DO MONTE (se não pegou do lixo)
+    console.log(`[BOT] ${pData.userName} comprando do monte.`);
+    if (game.deck.length === 0 && game.dead_piles.length > 0) {
+      game.deck = game.dead_piles.shift() || [];
     }
 
     const card = game.deck.shift();
     if (card) {
-      const current_h = game.hands[game.current_player];
-      if (current_h) {
-        current_h.unshift(card);
-        game.turn_phase = "ACTION";
-        broadcast_game_update(io, roomId);
-        setTimeout(() => execute_bot_move(io, roomId), 1500);
-      }
+      game.hands[game.current_player]?.unshift(card);
+      game.turn_phase = "ACTION";
+      broadcast_game_update(io, roomId);
+      setTimeout(() => execute_bot_move(io, roomId), 1500);
     }
     return;
   }
 
-  // ACTION PHASE
+  // --- FASE 2: AÇÃO (ACTION) ---
   if (game.turn_phase === "ACTION") {
     const has_taken = game.has_taken_dead_pile[my_team_idx as 0 | 1];
 
-    // A. Meld
-    const new_meld_cards = find_meld_in_hand(
-      my_hand,
-      team_melds,
-      has_taken,
-      has_clean,
-    );
-    if (new_meld_cards) {
-      const card_ids = new_meld_cards.map((c) => c.id);
-
-      game.hands[game.current_player] = my_hand.filter(
-        (c) => !card_ids.includes(c.id),
-      );
-      team_melds.push(organize_meld(new_meld_cards));
-
-      const updated_hand = game.hands[game.current_player];
-      if (updated_hand && updated_hand.length === 0)
-        handle_empty_hand(game, game.current_player as PlayerID, "DIRECT");
-
-      broadcast_game_update(io, roomId);
-      setTimeout(() => execute_bot_move(io, roomId), 1500); // Try more actions
-      return;
-    }
-
-    // B. Add to Meld
+    // A. Adicionar a Jogos Existentes (PRIORIDADE)
+    // Isso evita fragmentar sequências.
     for (let i = 0; i < team_melds.length; i++) {
       const meld = team_melds[i];
       if (!meld) continue;
 
       const card_to_add = find_card_to_add(my_hand, meld, has_taken, has_clean);
       if (card_to_add) {
+        console.log(`[BOT] Adicionando ${card_to_add.value} ao jogo ${i}.`);
         game.hands[game.current_player] = my_hand.filter(
           (c) => c.id !== card_to_add.id,
         );
@@ -262,34 +223,51 @@ const execute_bot_move = (io: Server, roomId: string) => {
       }
     }
 
-    // C. Discard
+    // B. Baixar Novo Jogo
+    const new_meld_cards = find_meld_in_hand(
+      my_hand,
+      team_melds,
+      has_taken,
+      has_clean,
+    );
+    if (new_meld_cards) {
+      console.log(`[BOT] Baixando novo jogo.`);
+      const card_ids = new_meld_cards.map((c) => c.id);
+      game.hands[game.current_player] = my_hand.filter(
+        (c) => !card_ids.includes(c.id),
+      );
+      team_melds.push(organize_meld(new_meld_cards));
+
+      const updated_hand = game.hands[game.current_player];
+      if (updated_hand && updated_hand.length === 0)
+        handle_empty_hand(game, game.current_player as PlayerID, "DIRECT");
+
+      broadcast_game_update(io, roomId);
+      setTimeout(() => execute_bot_move(io, roomId), 1500);
+      return;
+    }
+
+    // C. Descarte (Finaliza o turno)
     const opponent_team = team_id === 1 ? 2 : 1;
     const opponent_melds = game.team_melds[opponent_team] || [];
-    // Determine if my team has taken dead pile
     const my_team_has_taken = game.has_taken_dead_pile[my_team_idx as 0 | 1];
 
-    // Pass all parameters to improve intelligence and prevent undefined behavior
-    let discard_card = choose_discard(
+    let discard_card: Card = choose_discard(
       my_hand,
       opponent_melds,
-      game.discard_pile[0],
+      game.discard_pile[0] ?? null,
       my_team_has_taken,
       game.deck.length,
-      [], // all_played_cards - Optional/Optimization not yet fully tracked in game state for bots
       game.discard_pile.length,
-      0, // partner_hand_size - Optional, defaults to 0
+      0, // partner_hand_size (opcional)
     );
 
-    // FALLBACK SAFETY: Ensure we ALWAYS discard if we have cards
     if (!discard_card && my_hand.length > 0) {
-      console.warn(
-        `[BOT WARNING] choose_discard returned null for ${pData.userName}. Forcing discard of first card.`,
-      );
-      const fallback = my_hand[0];
-      if (fallback) discard_card = fallback;
+      discard_card = my_hand[0] as Card;
     }
 
     if (discard_card) {
+      console.log(`[BOT] Descartando ${discard_card.value}.`);
       game.hands[game.current_player] = my_hand.filter(
         (c) => c.id !== discard_card.id,
       );
@@ -307,7 +285,7 @@ const execute_bot_move = (io: Server, roomId: string) => {
 
       broadcast_game_update(io, roomId);
 
-      // Check if next player is bot
+      // Se o próximo jogador também for bot, agenda o turno dele
       const nextPData = game.players_data[game.current_player as PlayerID];
       if (nextPData && nextPData.isBot) {
         process_bot_turn(io, roomId);

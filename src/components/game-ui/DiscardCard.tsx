@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { type Card as CardType } from "../../../common/types/card";
 import { SuitIcon } from "./SuitIcon";
+import { useGameStore } from "../../store/useGameStore";
 import {
   type ScreenDirection,
   getAnimationOrigin,
@@ -38,6 +39,9 @@ export const DiscardCard = ({
   originDirection = "bottom",
   quantity = 0,
 }: DiscardCardProps) => {
+  const isAccessibilityMode = useGameStore(
+    (state) => state.isAccessibilityMode,
+  );
   if (!card) {
     return (
       <div
@@ -62,7 +66,7 @@ export const DiscardCard = ({
   // Se vem de outros, usamos animação explícita de entrada.
   // MAS sempre mantemos layoutId para permitir que a carta "voe" para a mão de quem pegar o lixo.
   const isFromMe = originDirection === "bottom";
-  
+
   const animationProps = {
     layoutId: card.id,
     ...(isFromMe
@@ -87,6 +91,35 @@ export const DiscardCard = ({
   const showLayer6 = quantity > 15;
 
   const baseLayerStyle = `absolute inset-0 bg-white rounded-md border border-slate-300 shadow-sm select-none`;
+
+  // Accessibility Styles
+  const valueClass = (isMini: boolean) =>
+    isAccessibilityMode
+      ? `${isMini ? "text-lg" : "md:text-4xl text-2xl"} font-bold scale-y-125 origin-top ${card?.value === "10" ? "tracking-tighter" : ""}`
+      : `${isMini ? "text-sm" : "md:text-2xl"} font-black`;
+
+  const suitClass = (isMini: boolean) =>
+    isAccessibilityMode
+      ? `${isMini ? "w-5 h-5" : "w-5 h-5 md:w-8 md:h-8"}`
+      : `${isMini ? "w-4 h-4" : "w-3 h-3 md:w-5 md:h-5"}`;
+
+  let textColorClass = isRed ? "text-red-600" : "text-slate-900";
+  if (isAccessibilityMode) {
+    switch (card.suit.name) {
+      case "copas":
+        textColorClass = "text-red-600";
+        break;
+      case "ouro":
+        textColorClass = "text-orange-600";
+        break;
+      case "espadas":
+        textColorClass = "text-slate-900";
+        break;
+      case "paus":
+        textColorClass = "text-blue-900";
+        break;
+    }
+  }
 
   return (
     <div
@@ -132,7 +165,7 @@ export const DiscardCard = ({
         onClick={onClick}
         className={`
         relative rounded-md shadow-lg border bg-white select-none
-         flex flex-col items-center p-1 font-black z-10
+         flex flex-col items-center p-1 z-10
         ${
           mini
             ? "w-10 h-14 justify-center"
@@ -147,42 +180,34 @@ export const DiscardCard = ({
           highlight
             ? "ring-4 ring-yellow-400/40 shadow-yellow-500/50 shadow-2xl z-50 border-transparent"
             : subtleHighlight
-            ? "ring-4 ring-red-500/40 shadow-[0_0_15px_rgba(239,68,68,0.4)] z-10 border-transparent"
-            : "border-slate-300"
+              ? "ring-4 ring-red-500/40 shadow-[0_0_15px_rgba(239,68,68,0.4)] z-10 border-transparent"
+              : "border-slate-300"
         }
-        ${isRed ? "text-red-600" : "text-slate-900"}
+        ${textColorClass}
       `}
       >
-        <div className="md:self-start flex flex-col items-center leading-none">
-          <span className={`${mini ? "text-sm" : "md:text-2xl"}`}>
-            {card.value}
-          </span>
-          <SuitIcon
-            suit={card.suit.name}
-            className={mini ? "w-4 h-4" : "w-3 h-3 md:w-5 md:h-5"}
-          />
+        <div
+          className={`md:self-start flex flex-col ${isAccessibilityMode ? "gap-y-1 md:gap-y-2" : ""} items-center leading-none z-10`}
+        >
+          <span className={valueClass(!!mini)}>{card.value}</span>
+          <SuitIcon suit={card.suit.name} className={suitClass(!!mini)} />
         </div>
         {!mini && (
           <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2
-           -translate-y-1/2 pointer-events-none opacity-20"
+            className={`absolute top-1/2 left-1/2 -translate-x-1/2
+           -translate-y-1/2 pointer-events-none ${isAccessibilityMode ? "opacity-5" : "opacity-20"}`}
           >
             <SuitIcon
               suit={card.suit.name}
-              className={mini ? "w-5 h-5" : "w-8 h-8 md:w-16 md:h-16"}
+              className={mini ? "w-5 h-5" : "w-8 h-8 md:w-10 md:h-10"}
             />
           </div>
         )}
 
-        {!mini && (
-          <div className="self-end flex flex-col items-center leading-none rotate-180">
-            <span className={`${mini ? "text-[10px]" : "text-xs md:text-2xl"}`}>
-              {card.value}
-            </span>
-            <SuitIcon
-              suit={card.suit.name}
-              className={mini ? "w-2.5 h-2.5" : "w-3 h-3 md:w-5 md:h-5"}
-            />
+        {!mini && !isAccessibilityMode && (
+          <div className="self-end flex flex-col items-center leading-none rotate-180 z-10">
+            <span className={valueClass(!!mini)}>{card.value}</span>
+            <SuitIcon suit={card.suit.name} className={suitClass(!!mini)} />
           </div>
         )}
       </motion.div>

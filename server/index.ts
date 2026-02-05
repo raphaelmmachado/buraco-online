@@ -18,7 +18,12 @@ process.on("uncaughtException", (err) => {
 });
 
 process.on("unhandledRejection", (reason, promise) => {
-  console.error("CRITICAL ERROR: Unhandled Rejection at:", promise, "reason:", reason);
+  console.error(
+    "CRITICAL ERROR: Unhandled Rejection at:",
+    promise,
+    "reason:",
+    reason,
+  );
 });
 
 // Configuração do Express para responder ao Health Check do Render

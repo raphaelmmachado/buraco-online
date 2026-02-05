@@ -21,19 +21,12 @@ export interface ScoreResult {
   has_taken_dead_pile: boolean;
   did_beat: boolean;
 }
-/**
- * Calcula a pontuação final de uma equipe.
- * @param {Card[][]} melds - Todos os jogos que a equipe baixou na mesa.
- * @param {Card[][]} hands_to_penalize - Array de mãos dos jogadores da equipe (para subtrair pontos).
- * @param {boolean} did_beat - Se a equipe foi a que bateu.
- * @param {boolean} did_not_take_dead_pile - Se a equipe não pegou o morto.
- * @returns {ScoreResult} - O objeto com o resultado detalhado da pontuação.
- */
+
 export const calculate_score = (
   melds: Card[][],
   hands_to_penalize: Card[][] = [],
   did_beat: boolean = false,
-  did_not_take_dead_pile: boolean = false
+  did_not_take_dead_pile: boolean = false,
 ): ScoreResult => {
   let base_points = 0;
   let bonus_points = 0;
@@ -104,7 +97,7 @@ export const calculate_score = (
  * Útil para a UI exibir informações detalhadas sobre cada sequência na mesa.
  */
 export const calculate_meld_score = (
-  meld: Card[]
+  meld: Card[],
 ): { score: number; type: keyof typeof MELD_POINTS; length: number } => {
   let score = 0;
   for (const card of meld) {

@@ -4,9 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start": "tsx index.ts",
-    "start:dist": "bun run server_dist.ts",
-    "dev": "bun run index.ts"
+    "server:dist": "bun run server_dist.ts",
+    "server": "bun run index.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

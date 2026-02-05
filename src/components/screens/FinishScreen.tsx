@@ -1,8 +1,8 @@
 import { type ScoreResult } from "../../../common/utils/scoring";
-import { MELD_POINTS, BONUS_POINTS } from "../../../common/types/card";
 import { StyledButton } from "../ui/StyledButton";
 import { RotateCcw, LogOut, Trophy, Target, Hash } from "lucide-react";
 import { type WinCondition } from "../../store/useGameStore";
+import { type GameRules } from "../../../common/types/rules";
 
 interface FinishScreenProps {
   finalScore: {
@@ -14,6 +14,7 @@ interface FinishScreenProps {
   cumulativeScore?: { team_1: number; team_2: number };
   roundCount?: number;
   winCondition?: WinCondition;
+  rules: GameRules;
   isRoundOver?: boolean;
   myTeam: number;
   myPlayerId?: string; // SocketID logic? Or just ID. We need to check against rematchVotes keys.
@@ -31,6 +32,7 @@ export const FinishScreen = ({
   cumulativeScore,
   roundCount = 1,
   winCondition,
+  rules,
   isRoundOver = false,
   myPlayerId,
   rematchVotes = {},
@@ -130,7 +132,7 @@ export const FinishScreen = ({
           
           <div className="text-5xl font-black text-white text-center py-4">+{finalScore.team_1}</div>
           
-          <ScoreBreakdown result={finalScore.details_t1} />
+          <ScoreBreakdown result={finalScore.details_t1} rules={rules} />
         </div>
 
         {/* TEAM 2 */}
@@ -157,7 +159,7 @@ export const FinishScreen = ({
           
           <div className="text-5xl font-black text-white text-center py-4">+{finalScore.team_2}</div>
           
-          <ScoreBreakdown result={finalScore.details_t2} />
+          <ScoreBreakdown result={finalScore.details_t2} rules={rules} />
         </div>
 
       </div>
@@ -199,15 +201,15 @@ export const FinishScreen = ({
   );
 };
 
-const ScoreBreakdown = ({ result }: { result: ScoreResult }) => {
+const ScoreBreakdown = ({ result, rules }: { result: ScoreResult, rules: GameRules }) => {
   // Positive Points Logic
-  const cleanPoints = result.details.CLEAN * MELD_POINTS.CLEAN;
-  const dirtyPoints = result.details.DIRTY * MELD_POINTS.DIRTY;
-  const realPoints = result.details.ACE * MELD_POINTS.ACE + result.details.KING * MELD_POINTS.KING;
-  const beatBonus = result.did_beat ? BONUS_POINTS.BEAT : 0;
+  const cleanPoints = result.details.CLEAN * rules.pointsCleanCanastra;
+  const dirtyPoints = result.details.DIRTY * rules.pointsDirtyCanastra;
+  const realPoints = result.details.ACE * rules.pointsAceCanastra + result.details.KING * rules.pointsKingCanastra;
+  const beatBonus = result.did_beat ? rules.pointsForEnding : 0;
   
   // Penalty Logic
-  const deadPilePenalty = !result.has_taken_dead_pile ? Math.abs(BONUS_POINTS.DID_NOT_TAKE_DEAD_PILE) : 0;
+  const deadPilePenalty = !result.has_taken_dead_pile ? Math.abs(rules.penaltyDeadPileNotTaken) : 0;
   const handPenalty = result.penalty_points - deadPilePenalty;
 
   return (
@@ -225,13 +227,13 @@ const ScoreBreakdown = ({ result }: { result: ScoreResult }) => {
         <div className="p-2 space-y-1">
           {/* Canastras */}
           {result.details.CLEAN > 0 && (
-            <DetailRow label="Canastra Limpa" count={result.details.CLEAN} multiplier={MELD_POINTS.CLEAN} value={cleanPoints} color="text-green-300" icon="✨" />
+            <DetailRow label="Canastra Limpa" count={result.details.CLEAN} multiplier={rules.pointsCleanCanastra} value={cleanPoints} color="text-green-300" icon="✨" />
           )}
           {result.details.DIRTY > 0 && (
-            <DetailRow label="Canastra Suja" count={result.details.DIRTY} multiplier={MELD_POINTS.DIRTY} value={dirtyPoints} color="text-green-200/70" icon="🃏" />
+            <DetailRow label="Canastra Suja" count={result.details.DIRTY} multiplier={rules.pointsDirtyCanastra} value={dirtyPoints} color="text-green-200/70" icon="🃏" />
           )}
           {(result.details.ACE + result.details.KING) > 0 && (
-            <DetailRow label="Canastra Real/500" value={realPoints} color="text-purple-300" icon="👑" />
+            <DetailRow label="Canastra Real/Especiais" value={realPoints} color="text-purple-300" icon="👑" />
           )}
 
           {/* Batida */}

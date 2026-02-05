@@ -44,6 +44,7 @@ export const useGameBots = () => {
             has_clean,
             store.discard_pile.length,
             store.deck.length,
+            store.rules
           );
 
           if (action) {
@@ -102,6 +103,7 @@ export const useGameBots = () => {
           has_clean,
           is_desperate,
           store.mode === "2v2",
+          store.rules
         );
         if (new_meld) {
           console.log(`🤖 Bot ${store.current_player} baixou um novo jogo.`);

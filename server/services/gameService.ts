@@ -173,6 +173,13 @@ export const handle_empty_hand = (
 
   const has_taken = game.has_taken_dead_pile[team_idx];
 
+  // Regra customizada: Se o time já pegou o morto, mas a regra permite pegar os dois, 
+  // e ainda há mortos disponíveis, o jogador pode pegar.
+  const can_take_extra_dead_pile = 
+    has_taken && 
+    game.rules.teamCanTakeBothDeadPiles && 
+    game.dead_piles.length > 0;
+
   // Common variables for score calculation
   const t1_hand_1 = game.hands[1] ?? [];
   const t1_hand_2 = game.hands[3] ?? [];
@@ -182,7 +189,7 @@ export const handle_empty_hand = (
   const t1_melds = game.team_melds[1] ?? [];
   const t2_melds = game.team_melds[2] ?? [];
 
-  if (has_taken) {
+  if (has_taken && !can_take_extra_dead_pile) {
     const t1_taken = game.has_taken_dead_pile[0];
     const t2_taken = game.has_taken_dead_pile[1];
 
@@ -194,13 +201,15 @@ export const handle_empty_hand = (
       t1_melds,
       [t1_hand_1, t1_hand_2],
       team_id === 1,
-      !t1_taken
+      !t1_taken,
+      game.rules
     );
     const t2_score = calculate_score(
       t2_melds,
       [t2_hand_1, t2_hand_2],
       team_id === 2,
-      !t2_taken
+      !t2_taken,
+      game.rules
     );
 
     check_championship_status(game, t1_score.total_score, t2_score.total_score, t1_score, t2_score);
@@ -226,13 +235,15 @@ export const handle_empty_hand = (
       t1_melds,
       [t1_hand_1, t1_hand_2],
       team_id === 1,
-      !t1_taken
+      !t1_taken,
+      game.rules
     );
     const t2_score = calculate_score(
       t2_melds,
       [t2_hand_1, t2_hand_2],
       team_id === 2,
-      !t2_taken
+      !t2_taken,
+      game.rules
     );
 
     check_championship_status(game, t1_score.total_score, t2_score.total_score, t1_score, t2_score);

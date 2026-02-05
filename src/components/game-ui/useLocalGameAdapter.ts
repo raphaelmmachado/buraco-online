@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import type { Card } from "../../../common/types/card";
 import type { ScoreResult } from "../../../common/utils/scoring";
 import type { WinCondition } from "../../store/useGameStore";
+import { type GameRules } from "../../../common/types/rules";
 
 // This interface mirrors the one in useGameStore (Online)
 // We are making the Local Store look like the Online Store
@@ -15,6 +16,7 @@ export interface GameAdapterInterface {
   my_player_number: number | null;
   my_player_name: string | null;
   players_data: Record<number, { socketId: string; userName: string; isBot?: boolean }>;
+  rules: GameRules;
 
   deck_count: number;
   discard_pile: Card[];
@@ -86,6 +88,7 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       my_player_number: 1, // Always Player 1 in local mode
       my_player_name: "Você",
       players_data,
+      rules: local.rules,
 
       deck_count: local.deck.length,
       discard_pile: local.discard_pile,

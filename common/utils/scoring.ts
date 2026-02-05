@@ -5,11 +5,11 @@
 // =============================================================================
 
 import {
-  BONUS_POINTS,
   CARD_POINTS,
   MELD_POINTS,
   type Card,
 } from "../types/card";
+import { type GameRules, DEFAULT_RULES } from "../types/rules";
 import { validate_sequence } from "./rules_logic";
 
 export interface ScoreResult {
@@ -27,6 +27,7 @@ export const calculate_score = (
   hands_to_penalize: Card[][] = [],
   did_beat: boolean = false,
   did_not_take_dead_pile: boolean = false,
+  rules: GameRules = DEFAULT_RULES
 ): ScoreResult => {
   let base_points = 0;
   let bonus_points = 0;
@@ -52,7 +53,18 @@ export const calculate_score = (
       if (validation_result.is_valid) {
         // Verifica o discriminador
         const { canastra_type } = validation_result; // Agora é seguro desestruturar
-        bonus_points += MELD_POINTS[canastra_type];
+        
+        // Aplica pontos baseados nas regras customizadas
+        let points = 0;
+        switch (canastra_type) {
+            case "CLEAN": points = rules.pointsCleanCanastra; break;
+            case "DIRTY": points = rules.pointsDirtyCanastra; break;
+            case "KING": points = rules.pointsKingCanastra; break;
+            case "ACE": points = rules.pointsAceCanastra; break;
+            default: points = 0;
+        }
+        
+        bonus_points += points;
         details[canastra_type]++;
       }
     }
@@ -60,7 +72,7 @@ export const calculate_score = (
 
   // 3. Adiciona bônus pela batida
   if (did_beat) {
-    bonus_points += BONUS_POINTS.BEAT;
+    bonus_points += rules.pointsForEnding;
   }
 
   // 4. Calcula as penalidades
@@ -73,9 +85,7 @@ export const calculate_score = (
 
   // b. Morto não pego
   if (did_not_take_dead_pile) {
-    // A constante é -100, mas aqui calculamos PONTOS DE PENALIDADE (positivo)
-    // para subtrair depois.
-    penalty_points += Math.abs(BONUS_POINTS.DID_NOT_TAKE_DEAD_PILE);
+    penalty_points += Math.abs(rules.penaltyDeadPileNotTaken);
   }
 
   // 5. Calcula o placar final
@@ -98,6 +108,7 @@ export const calculate_score = (
  */
 export const calculate_meld_score = (
   meld: Card[],
+  rules: GameRules = DEFAULT_RULES
 ): { score: number; type: keyof typeof MELD_POINTS; length: number } => {
   let score = 0;
   for (const card of meld) {
@@ -110,7 +121,16 @@ export const calculate_meld_score = (
     const validation = validate_sequence(meld);
     if (validation.is_valid) {
       type = validation.canastra_type;
-      score += MELD_POINTS[type];
+      
+      let points = 0;
+      switch (type) {
+          case "CLEAN": points = rules.pointsCleanCanastra; break;
+          case "DIRTY": points = rules.pointsDirtyCanastra; break;
+          case "KING": points = rules.pointsKingCanastra; break;
+          case "ACE": points = rules.pointsAceCanastra; break;
+          default: points = 0;
+      }
+      score += points;
     }
   } else if (meld.length >= 3) {
     type = "INSUFFICIENT";

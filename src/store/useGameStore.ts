@@ -4,6 +4,7 @@ import type { Card } from "../../common/types/card";
 import { SERVER_ADDRESS } from "../../common/const/server-address";
 
 import { type ScoreResult } from "../../common/utils/scoring";
+import { type GameRules, DEFAULT_RULES } from "../../common/types/rules";
 
 export type WinCondition = 
   | { type: "POINTS"; value: number }
@@ -24,6 +25,7 @@ interface IncomingServerState {
     number,
     { socketId: string; userName: string; isBot?: boolean; playerId: string; isReady?: boolean }
   >;
+  rules: GameRules;
   turn_start_time?: number;
   last_drawn_card_id: string | null;
   has_taken_dead_pile: [boolean, boolean];
@@ -83,6 +85,7 @@ interface GameState {
   has_taken_dead_pile: [boolean, boolean];
   turn_phase: "DRAW" | "ACTION" | "DISCARD";
   current_player: number;
+  rules: GameRules;
   turn_start_time?: number;
   last_drawn_card_id: string | null;
   final_score: {
@@ -115,6 +118,7 @@ interface GameActions {
   kickPlayer: (playerId: number) => void;
   startGame: (winCondition?: WinCondition) => void;
   nextRound: () => void;
+  setRules: (rules: GameRules) => void;
   leaveGame: () => void;
   closeRoom: () => void;
   switchTeam: () => void;
@@ -173,6 +177,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   has_taken_dead_pile: [false, false],
   turn_phase: "DRAW",
   current_player: 1,
+  rules: { ...DEFAULT_RULES },
   last_drawn_card_id: null,
   final_score: null,
   cumulative_score: { team_1: 0, team_2: 0 },
@@ -513,6 +518,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       },
       hands: server_data.hands,
       players_data: server_data.players_data,
+      rules: server_data.rules || DEFAULT_RULES,
       last_drawn_card_id: server_data.last_drawn_card_id,
       final_score: server_data.final_score,
       cumulative_score: server_data.cumulative_score || { team_1: 0, team_2: 0 },
@@ -596,6 +602,11 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   startGame: (winCondition) => {
     const { roomId } = get();
     socket.emit("action_start_game", { roomId, winCondition });
+  },
+
+  setRules: (rules) => {
+    const { roomId } = get();
+    socket.emit("action_update_rules", { roomId, rules });
   },
 
   nextRound: () => {

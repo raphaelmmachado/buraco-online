@@ -1,6 +1,7 @@
 import { useGameStore, type WinCondition } from "../../store/useGameStore";
-import { Users, Bot, Loader2, Wifi, WifiOff } from "lucide-react";
+import { Users, Bot, Loader2, Wifi, WifiOff, Settings2 } from "lucide-react";
 import { useState } from "react";
+import { GameRulesModal } from "../game-ui/GameRulesModal";
 
 const ConnectionBadge = () => {
     const connectionStatus = useGameStore((state) => state.connectionStatus);
@@ -167,7 +168,11 @@ export const LobbyScreen = () => {
   const mode = useGameStore((state) => state.mode);
   const my_player_number = useGameStore((state) => state.my_player_number);
   const startGame = useGameStore((state) => state.startGame);
+  const rules = useGameStore((state) => state.rules);
+  const setRules = useGameStore((state) => state.setRules);
   
+  const [showRules, setShowRules] = useState(false);
+
   const maxPlayers = mode === "1v1" ? 2 : 4;
   const missingCount = maxPlayers - Object.keys(players_data).length;
   
@@ -234,6 +239,13 @@ export const LobbyScreen = () => {
 
              {/* Actions */}
              <div className="flex gap-3">
+               <button
+                  onClick={() => setShowRules(true)}
+                  className="flex-1 bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 py-3 rounded-lg font-bold text-xs uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
+               >
+                 <Settings2 size={16} /> Regras da Mesa
+               </button>
+
                {my_player_number === 1 && missingCount > 0 && (
                   <button
                     onClick={useGameStore.getState().addBot}
@@ -310,6 +322,15 @@ export const LobbyScreen = () => {
       <p className="mt-8 text-slate-500/50 text-[9px] uppercase tracking-[0.5em] font-mono">
         ID: {roomId}
       </p>
+
+      {showRules && (
+        <GameRulesModal 
+            rules={rules} 
+            onRulesChange={setRules} 
+            onClose={() => setShowRules(false)} 
+            isHost={my_player_number === 1}
+        />
+      )}
     </div>
   );
 };

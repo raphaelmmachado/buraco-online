@@ -69,13 +69,15 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
             t1_melds,
             [t1_hand_1, t1_hand_2],
             false,
-            !t1_taken
+            !t1_taken,
+            game.rules
           );
           const t2_score = calculate_score(
             t2_melds,
             [t2_hand_1, t2_hand_2],
             false,
-            !t2_taken
+            !t2_taken,
+            game.rules
           );
 
           check_championship_status(game, t1_score.total_score, t2_score.total_score, t1_score, t2_score);
@@ -139,7 +141,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
 
       const combined = [...hand_cards, top_discard];
 
-      const is_valid_pickup = validate_discard_pickup(top_discard, hand_cards);
+      const is_valid_pickup = validate_discard_pickup(top_discard, hand_cards, game.rules);
       console.log(`[PICKUP RESULT] Valid: ${is_valid_pickup}`);
 
       const validation = validate_sequence(combined);
@@ -270,7 +272,8 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       const validation = validate_discard_add_to_meld(
         target_meld,
         hand_cards,
-        top_discard
+        top_discard,
+        game.rules
       );
 
       if (!validation.valid) {

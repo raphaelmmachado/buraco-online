@@ -7,6 +7,7 @@ import { broadcast_game_update, process_bot_turn } from "../services/botService"
 import { type PlayerID, type GameMode, type WinCondition } from "../types";
 import { startTurnTimer } from "../services/timerService";
 import { type Card } from "../../common/types/card";
+import { DEFAULT_RULES, type GameRules } from "../../common/types/rules";
 
 const broadcast_rooms_list = (io: Server) => {
     // QUICK CLEANUP: Se houver salas vazias sem timeout agendado (ex: após restart), limpa agora
@@ -190,6 +191,18 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
     }
   });
 
+  socket.on("action_update_rules", ({ roomId, rules }: { roomId: string, rules: GameRules }) => {
+    const game = games[roomId];
+    if (!game || game.status !== "LOBBY") return;
+
+    const player_id = get_player_id_by_socket(game, socket.id);
+    if (player_id !== 1) return; // Only host
+
+    game.rules = rules;
+    broadcast_game_update(io, roomId);
+    saveState();
+  });
+
   socket.on("action_switch_team", ({ roomId }: { roomId: string }) => {
     const game = games[roomId];
     if (!game || game.mode !== "2v2" || game.status !== "LOBBY") return;
@@ -353,6 +366,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
           final_score: null,
           cumulative_score: { team_1: 0, team_2: 0 },
           round_count: 1,
+          rules: { ...DEFAULT_RULES },
         };
         saveState();
       }

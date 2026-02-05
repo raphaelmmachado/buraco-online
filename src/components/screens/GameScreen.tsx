@@ -55,10 +55,10 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   const canAction = isMyTurn && game.turn_phase === "ACTION";
   // Safe calculation even if game data is incomplete initially
   const myScore = game.team_melds?.[my_team]
-    ? calculate_score(game.team_melds[my_team]).total_score
+    ? calculate_score(game.team_melds[my_team], [], false, false, game.rules).total_score
     : 0;
   const oppScore = game.team_melds?.[opponent_team]
-    ? calculate_score(game.team_melds[opponent_team]).total_score
+    ? calculate_score(game.team_melds[opponent_team], [], false, false, game.rules).total_score
     : 0;
 
   const myTeamHasTaken = game.has_taken_dead_pile?.[my_team - 1] ?? false;
@@ -163,6 +163,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
         cumulativeScore={game.cumulative_score}
         roundCount={game.round_count}
         winCondition={game.win_condition}
+        rules={game.rules}
         rematchVotes={game.rematch_votes}
         totalHumanPlayers={totalHumanPlayers}
         myPlayerId={mySocketId}

@@ -1,6 +1,7 @@
 import { type Card, SUITS } from "../types/card";
-import { validate_sequence, get_sequence_details, type ValidSequence, validate_discard_add_to_meld } from "./rules_logic";
+import { validate_sequence, get_sequence_details, type ValidSequence, validate_discard_add_to_meld, validate_discard_pickup } from "./rules_logic";
 import { sort_cards, organize_meld } from "./sort_cards";
+import { type GameRules, DEFAULT_RULES } from "../types/rules";
 
 /**
  * =============================================================================
@@ -54,7 +55,8 @@ export const find_meld_in_hand = (
   has_taken_dead_pile: boolean = false,
   has_clean_canastra: boolean = false,
   is_desperate_to_close: boolean = false,
-  is_2v2: boolean = false
+  is_2v2: boolean = false,
+  rules: GameRules = DEFAULT_RULES
 ): Card[] | null => {
   const all_potential_melds: PotentialMeld[] = [];
   const suits = group_by_suit(hand);
@@ -130,7 +132,7 @@ export const find_meld_in_hand = (
   }
 
   // Avalia todos os jogos potenciais encontrados e escolhe o que tem maior pontuação estratégica
-  const bestMeld = evaluate_potential_melds(all_potential_melds, hand, team_melds, has_taken_dead_pile, has_clean_canastra, is_desperate_to_close, is_2v2);
+  const bestMeld = evaluate_potential_melds(all_potential_melds, hand, team_melds, has_taken_dead_pile, has_clean_canastra, is_desperate_to_close, is_2v2, rules);
 
   return bestMeld ? bestMeld.cards : null;
 };
@@ -192,7 +194,8 @@ const evaluate_potential_melds = (
   hasTakenDeadPile: boolean,
   hasCleanCanastra: boolean,
   isDesperate: boolean = false,
-  is_2v2: boolean = false
+  is_2v2: boolean = false,
+  rules: GameRules = DEFAULT_RULES
 ): PotentialMeld | null => {
   let bestMeld: PotentialMeld | null = null;
   let highestScore = -Infinity;
@@ -207,10 +210,15 @@ const evaluate_potential_melds = (
     // CRITÉRIO 1: Tamanho e tipo de Canastra
     score += cards.length * 10;
 
-    // Valoriza muito canastras Reais ou de Ás/K
+    // Valoriza muito canastras baseando-se nos pontos REAIS das regras
     if (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE') {
-      score += 500;
-      if (validation.is_clean) score += 200;
+      let bonus = rules.pointsCleanCanastra;
+      if (validation.canastra_type === 'KING') bonus = rules.pointsKingCanastra;
+      if (validation.canastra_type === 'ACE') bonus = rules.pointsAceCanastra;
+      
+      score += bonus * 2; // Peso estratégico (2x o valor do ponto)
+    } else if (validation.canastra_type === 'DIRTY') {
+      score += rules.pointsDirtyCanastra;
     } else if (validation.is_clean) {
       score += 50; // Bônus por ser limpo
     } else {
@@ -304,7 +312,7 @@ const evaluate_potential_melds = (
       for (const existingMeld of team_melds) {
         const meldSuitName = existingMeld.find(c => c.value !== "2")?.suit.name;
         if (meldSuitName === card.suit.name || card.value === "2") {
-           if (find_card_to_add([card], existingMeld, hasTakenDeadPile, hasCleanCanastra, isDesperate)) {
+           if (find_card_to_add([card], existingMeld, hasTakenDeadPile, hasCleanCanastra, isDesperate, [], is_2v2)) {
               cardsThatCouldBeAdded++;
               break;
            }
@@ -390,7 +398,13 @@ export const find_card_to_add = (
 
         // Proteção contra ficar "preso" com 1 carta sem ter canastra limpa
         if (has_taken_dead_pile && !has_clean_canastra) {
-            const is_now_canastra = validation.is_valid && (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE');
+            const is_now_canastra = validation.is_valid && (
+                validation.canastra_type === 'CLEAN' || 
+                validation.canastra_type === 'KING' || 
+                validation.canastra_type === 'ACE'
+            );
+            
+            // Aqui usamos rules para saber se o bot precisa de canastra limpa para esvaziar a mão
             if (!is_now_canastra && hand.length <= 2) {
                  continue;
             }
@@ -467,7 +481,8 @@ export const analyze_discard_pickup = (
   has_taken_dead_pile: boolean = false,
   has_clean_canastra: boolean = false,
   discard_pile_size: number = 0,
-  deck_size: number = 0 
+  deck_size: number = 0,
+  rules: GameRules = DEFAULT_RULES
 ): PickupAction | null => {
   
   const desperation_factor = deck_size < 10 ? (10 - deck_size) * 5 : 0;
@@ -515,7 +530,7 @@ export const analyze_discard_pickup = (
           const validation = validate_sequence(attempt);
 
           if (validation.is_valid) {
-              const ruleCheck = validate_discard_add_to_meld(meld, [card], top_discard);
+              const ruleCheck = validate_discard_add_to_meld(meld, [card], top_discard, rules);
               if (!ruleCheck.valid) continue;
 
               const meld_val = validate_sequence(meld);
@@ -536,18 +551,22 @@ export const analyze_discard_pickup = (
   }
 
   // 3. Tenta criar um NOVO jogo usando a carta do lixo
-  // Regra: Para pegar o lixo para um jogo novo, ele deve ser obrigatoriamente LIMPO (3 naturais).
-  const same_suit = hand.filter((c) => c.suit.name === top_discard.suit.name && c.value !== "2");
+  // Regra base: Para pegar o lixo para um jogo novo, ele deve ser obrigatoriamente LIMPO (3 naturais).
+  // Se rules.canPickUpDiscardWithJoker for true, permite usar curinga da mão.
+  const suit_candidates = hand.filter((c) => c.suit.name === top_discard.suit.name || (c.value === "2" && rules.canPickUpDiscardWithJoker));
   
-  if (same_suit.length >= 2) {
-    for (let i = 0; i < same_suit.length; i++) {
-      for (let j = i + 1; j < same_suit.length; j++) {
-        const c1 = same_suit[i]!;
-        const c2 = same_suit[j]!;
+  if (suit_candidates.length >= 2) {
+    for (let i = 0; i < suit_candidates.length; i++) {
+      for (let j = i + 1; j < suit_candidates.length; j++) {
+        const c1 = suit_candidates[i]!;
+        const c2 = suit_candidates[j]!;
         const attempt = [top_discard, c1, c2];
-        const validation = validate_sequence(attempt);
         
-        if (validation.is_valid && validation.is_clean) {
+        const is_valid_pickup = validate_discard_pickup(top_discard, [c1, c2], rules);
+        if (!is_valid_pickup) continue;
+
+        const validation = validate_sequence(attempt);
+        if (validation.is_valid) {
           const new_meld_details = get_sequence_details(attempt);
           if (!new_meld_details.is_valid) continue;
 

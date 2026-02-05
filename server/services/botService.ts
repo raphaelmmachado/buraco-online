@@ -106,12 +106,14 @@ const execute_bot_move = (io: Server, roomId: string) => {
         [t1_hand_1, t1_hand_2],
         false, // Ninguém bateu, acabou por exaustão
         !t1_taken,
+        game.rules
       );
       const t2_score = calculate_score(
         t2_melds,
         [t2_hand_1, t2_hand_2],
         false,
         !t2_taken,
+        game.rules
       );
 
       check_championship_status(
@@ -131,16 +133,16 @@ const execute_bot_move = (io: Server, roomId: string) => {
       if (top_discard) {
         const has_taken = game.has_taken_dead_pile[my_team_idx as 0 | 1];
 
-        const action = analyze_discard_pickup(
-          my_hand,
-          top_discard,
-          team_melds,
-          has_taken,
-          has_clean,
-          game.discard_pile.length,
-          game.deck.length,
-        );
-
+                  const action = analyze_discard_pickup(
+                    my_hand,
+                    top_discard,
+                    team_melds,
+                    has_taken,
+                    has_clean,
+                    game.discard_pile.length,
+                    game.deck.length,
+                    game.rules
+                  );
         if (action) {
           console.log(`[BOT] Bot pegou do lixo: ${action.type}`);
 
@@ -205,7 +207,7 @@ const execute_bot_move = (io: Server, roomId: string) => {
       const meld = team_melds[i];
       if (!meld) continue;
 
-      const card_to_add = find_card_to_add(my_hand, meld, has_taken, has_clean);
+      const card_to_add = find_card_to_add(my_hand, meld, has_taken, has_clean, false, [], game.mode === "2v2");
       if (card_to_add) {
         console.log(`[BOT] Adicionando ${card_to_add.value} ao jogo ${i}.`);
         game.hands[game.current_player] = my_hand.filter(
@@ -229,6 +231,9 @@ const execute_bot_move = (io: Server, roomId: string) => {
       team_melds,
       has_taken,
       has_clean,
+      false,
+      game.mode === "2v2",
+      game.rules
     );
     if (new_meld_cards) {
       console.log(`[BOT] Baixando novo jogo.`);

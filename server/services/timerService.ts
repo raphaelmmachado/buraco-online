@@ -203,12 +203,14 @@ const finishGame = (io: Server, roomId: string) => {
     [t1_hand_1, t1_hand_2],
     false,
     !t1_taken,
+    game.rules
   );
   const t2_score = calculate_score(
     t2_melds,
     [t2_hand_1, t2_hand_2],
     false,
     !t2_taken,
+    game.rules
   );
 
   check_championship_status(game, t1_score.total_score, t2_score.total_score, t1_score, t2_score);

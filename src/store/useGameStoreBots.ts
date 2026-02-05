@@ -612,7 +612,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       get().internal_handle_empty_hand("INDIRECT");
     }
 
-    if (get().status !== "FINISHED") {
+    if (get().status === "PLAYING") {
       const next_player = get_next_player(current_player, mode);
       set({ current_player: next_player, turn_phase: "DRAW" });
     }

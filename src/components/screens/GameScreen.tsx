@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { LayoutGroup, MotionConfig, motion } from "framer-motion";
+import { LayoutGroup, MotionConfig, motion, AnimatePresence } from "framer-motion";
 import { calculate_score } from "../../../common/utils/scoring";
 import { getPlayerDirection } from "../../utils/animation_utils";
 // UI Components
@@ -46,6 +46,9 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     Record<string, { x: number; y: number }>
   >({});
 
+  // Delay for Finish Screen
+  const [showFinishScreen, setShowFinishScreen] = useState(false);
+
   // Computed Values
   const my_player_id = game.my_player_number ?? 1;
   const my_team = my_player_id % 2 !== 0 ? 1 : 2;
@@ -53,6 +56,17 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   const isMyTurn = game.current_player === my_player_id;
   const canDraw = isMyTurn && game.turn_phase === "DRAW";
   const canAction = isMyTurn && game.turn_phase === "ACTION";
+
+  // Effect to delay finish screen
+  useEffect(() => {
+    if (game.status === "FINISHED" || game.status === "ROUND_OVER") {
+      const timer = setTimeout(() => {
+        setShowFinishScreen(true);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [game.status]);
+
   // Safe calculation even if game data is incomplete initially
   const myScore = game.team_melds?.[my_team]
     ? calculate_score(game.team_melds[my_team]).total_score
@@ -144,6 +158,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
 
   // --- RENDER FINISH SCREEN ---
   if (
+    showFinishScreen &&
     (game.status === "FINISHED" || game.status === "ROUND_OVER") &&
     game.final_score
   ) {
@@ -152,9 +167,14 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
       <FinishScreen
         finalScore={game.final_score}
         myTeam={my_team}
-        onPlayAgain={() =>
-          isRoundOver ? game.nextRound() : game.startGame(game.win_condition)
-        }
+        onPlayAgain={() => {
+          setShowFinishScreen(false);
+          if (isRoundOver) {
+            game.nextRound();
+          } else {
+            game.startGame(game.win_condition);
+          }
+        }}
         onLeave={game.leaveGame}
         isRoundOver={isRoundOver}
         cumulativeScore={game.cumulative_score}
@@ -259,6 +279,37 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
       }
     >
       <LayoutGroup>
+        <AnimatePresence>
+          {(game.status === "FINISHED" || game.status === "ROUND_OVER") && !showFinishScreen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[200] flex items-center justify-center bg-black/20 pointer-events-none"
+            >
+              <motion.div
+                initial={{ scale: 0.8, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                className="text-center bg-black/40 backdrop-blur-sm px-12 py-8 rounded-[3rem] border border-white/10 shadow-2xl"
+              >
+                <h2 className="text-5xl md:text-7xl font-black text-white uppercase tracking-tighter drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">
+                  {game.status === "FINISHED" ? "Fim de Jogo!" : "Fim da Rodada!"}
+                </h2>
+                <div className="flex flex-col gap-2 mt-4">
+                  <p className="text-yellow-400 uppercase tracking-[0.4em] text-sm font-black drop-shadow-md">
+                    {game.final_score?.details_t1.did_beat || game.final_score?.details_t2.did_beat 
+                      ? "Batida realizada!" 
+                      : "Cartas esgotadas!"}
+                  </p>
+                  <p className="text-white/40 uppercase tracking-[0.2em] text-[10px] font-black">
+                    Preparando placar...
+                  </p>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <OpponentsHandsLayer game={game} visible={showOpponentHands} />
         <main
           id="game-screen"
@@ -271,7 +322,11 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               {Object.entries(playerPositions).map(([id, pos]) => {
                 const playerEvent = [...(game.recentEvents || [])]
                   .reverse()
-                  .find((e) => e.playerId === Number(id) && e.type === "info");
+                  .find(
+                    (e) =>
+                      e.playerId === Number(id) &&
+                      (e.type === "info" || e.type === "success"),
+                  );
 
                 if (playerEvent) {
                   // Determine team

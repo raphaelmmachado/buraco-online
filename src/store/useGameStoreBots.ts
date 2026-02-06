@@ -11,10 +11,12 @@ import {
   validate_sequence,
   type MeldValidation,
   validate_discard_add_to_meld,
+  validate_discard_pickup,
 } from "../../common/utils/rules_logic";
 
 import { calculate_score, type ScoreResult } from "../../common/utils/scoring";
 import { type WinCondition } from "./useGameStore";
+import { type GameRules, DEFAULT_RULES } from "../../common/types/rules";
 
 type PlayerID = 1 | 2 | 3 | 4;
 type TeamID = 1 | 2;
@@ -31,6 +33,7 @@ interface GameState {
   has_taken_dead_pile: Record<TeamID, boolean>;
   turn_phase: "DRAW" | "ACTION" | "DISCARD";
   current_player: PlayerID;
+  rules: GameRules;
   last_drawn_card_id: string | null;
   final_score: { team_1: ScoreResult; team_2: ScoreResult } | null;
   cumulative_score: { team_1: number; team_2: number };
@@ -48,7 +51,7 @@ interface GameState {
 }
 
 interface GameActions {
-  start_game: (config?: WinCondition | GameMode) => void;
+  start_game: (config?: WinCondition | GameMode, rules?: GameRules) => void;
   next_round: () => void;
   draw_card_from_deck: () => void;
   discard_card: (card_id: string) => void;
@@ -89,6 +92,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
   has_taken_dead_pile: { 1: false, 2: false },
   turn_phase: "DRAW",
   current_player: 1,
+  rules: { ...DEFAULT_RULES },
   last_drawn_card_id: null,
   final_score: null,
   cumulative_score: { team_1: 0, team_2: 0 },
@@ -112,6 +116,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       has_taken_dead_pile: { 1: false, 2: false },
       turn_phase: "DRAW",
       current_player: 1,
+      rules: { ...DEFAULT_RULES },
       last_drawn_card_id: null,
       final_score: null,
       cumulative_score: { team_1: 0, team_2: 0 },
@@ -144,9 +149,10 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
     });
   },
 
-  start_game: (config) => {
+  start_game: (config, customRules) => {
     let mode = get().mode;
     let winCondition: WinCondition = { type: "POINTS", value: 3000 };
+    const rules = customRules || DEFAULT_RULES;
 
     if (typeof config === "string") {
       mode = config as GameMode;
@@ -174,6 +180,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       team_melds: { 1: [], 2: [] },
       turn_phase: "DRAW",
       current_player: 1,
+      rules,
       last_drawn_card_id: null,
       final_score: null,
       cumulative_score: { team_1: 0, team_2: 0 },
@@ -225,13 +232,15 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
           team_melds[1],
           mode === "1v1" ? [hands[1]] : [hands[1], hands[3]],
           false,
-          !get().has_taken_dead_pile[1]
+          !get().has_taken_dead_pile[1],
+          get().rules
         );
         const t2_score = calculate_score(
           team_melds[2],
           mode === "1v1" ? [hands[2]] : [hands[2], hands[4]],
           false,
-          !get().has_taken_dead_pile[2]
+          !get().has_taken_dead_pile[2],
+          get().rules
         );
 
         const next_cumulative = {
@@ -292,17 +301,13 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
     );
 
     const validation = validate_sequence(potential_meld);
-    console.log(
-      `[LOCAL PICKUP RESULT] Valid: ${validation.is_valid}, Clean: ${
-        validation.is_valid ? validation.is_clean : "N/A"
-      }`
-    );
+    const is_valid_pickup = validate_discard_pickup(top_card, selected_cards, get().rules);
 
-    if (!validation.is_valid || !validation.is_clean) {
+    if (!is_valid_pickup) {
       set({
-        last_error: validation.is_valid
-          ? "Para pegar o lixo, o novo jogo deve ser limpo."
-          : validation.error,
+        last_error: !validation.is_valid
+          ? validation.error
+          : "Para pegar o lixo, o novo jogo deve ser limpo.",
       });
       return;
     }
@@ -381,7 +386,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       proposed_meld.map((c) => `${c.value}${c.suit.icon}`)
     );
 
-    const validation = validate_discard_add_to_meld(target_meld, bridge_cards, top_card);
+    const validation = validate_discard_add_to_meld(target_meld, bridge_cards, top_card, get().rules);
     console.log(`[LOCAL PICKUP ADD RESULT] Valid: ${validation.valid}`);
 
     if (!validation.valid) {
@@ -652,21 +657,25 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       mode,
     } = get();
     const team_id = get_team(current_player);
+    const has_taken = has_taken_dead_pile[team_id];
+    const can_take_extra = has_taken && get().rules.teamCanTakeBothDeadPiles && dead_piles.length > 0;
 
-    if (has_taken_dead_pile[team_id]) {
+    if (has_taken && !can_take_extra) {
       console.log(`[GAME] Jogador ${current_player} bateu final!`);
       get().addEvent("Bateu!", "success", current_player);
       const t1_score = calculate_score(
         team_melds[1],
         mode === "1v1" || team_id === 2 ? [hands[1]] : [],
         team_id === 1,
-        !has_taken_dead_pile[1]
+        !has_taken_dead_pile[1],
+        get().rules
       );
       const t2_score = calculate_score(
         team_melds[2],
         mode === "1v1" || team_id === 1 ? [hands[2]] : [],
         team_id === 2,
-        !has_taken_dead_pile[2]
+        !has_taken_dead_pile[2],
+        get().rules
       );
 
       const next_cumulative = {
@@ -714,13 +723,15 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         team_melds[1],
         mode === "1v1" ? [hands[1]] : [hands[1], hands[3]],
         false,
-        !get().has_taken_dead_pile[1]
+        !get().has_taken_dead_pile[1],
+        get().rules
       );
       const t2_score = calculate_score(
         team_melds[2],
         mode === "1v1" ? [hands[2]] : [hands[2], hands[4]],
         false,
-        !get().has_taken_dead_pile[2]
+        !get().has_taken_dead_pile[2],
+        get().rules
       );
 
       const next_cumulative = {

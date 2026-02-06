@@ -14,6 +14,7 @@ import {
   GAME_RULES,
   MELD_POINTS,
 } from "../types/card";
+import { type GameRules, DEFAULT_RULES } from "../types/rules";
 
 /** Detalhes de uma sequência que foi validada com sucesso. */
 export interface ValidSequence {
@@ -234,25 +235,38 @@ export const validate_sequence = (cards: Card[]): MeldValidation => {
 /** Valida se o jogador pode pegar o lixo para criar um NOVO jogo. */
 export const validate_discard_pickup = (
   discard_top_card: Card,
-  selected_hand_cards: Card[]
+  selected_hand_cards: Card[],
+  rules: GameRules = DEFAULT_RULES
 ): boolean => {
   if (selected_hand_cards.length < GAME_RULES.MIN_CARDS_FOR_MELD - 1) return false;
   const potential_meld = [discard_top_card, ...selected_hand_cards];
   const validation_result = validate_sequence(potential_meld);
-  // REGRA: Pegar lixo para novo jogo exige que ele seja LIMPO.
-  return validation_result.is_valid && validation_result.is_clean;
+
+  if (!validation_result.is_valid) return false;
+
+  // Se a regra permite pegar com curinga, basta ser válido.
+  // Se NÃO permite (padrão), o jogo resultante deve ser LIMPO.
+  if (rules.canPickUpDiscardWithJoker) {
+    return true;
+  }
+
+  return validation_result.is_clean;
 };
 
 /** Valida se a adição de cartas do lixo a um jogo já existente na mesa é legal. */
 export const validate_discard_add_to_meld = (
   target_meld: Card[],
   bridge_cards: Card[],
-  discard_card: Card
+  discard_card: Card,
+  rules: GameRules = DEFAULT_RULES
 ): { valid: boolean; error?: string } => {
   const proposed_meld = [...target_meld, ...bridge_cards, discard_card];
   const details = get_sequence_details(proposed_meld);
 
   if (!details.is_valid) return { valid: false, error: details.error };
+
+  // Se a regra permite pegar com curinga da mão, não precisamos validar a 'limpeza' da pegada
+  if (rules.canPickUpDiscardWithJoker) return { valid: true };
 
   // REGRA ESPECIAL: "Proibido pegar lixo com curinga da mão" se o jogo original era limpo.
   const original_details = get_sequence_details(target_meld);

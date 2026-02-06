@@ -2,10 +2,16 @@ import { motion } from "framer-motion";
 import { type Card as CardType } from "../../../common/types/card";
 import { calculate_meld_score } from "../../../common/utils/scoring";
 import { useGameStore } from "../../store/useGameStore";
+import { useGameStoreBots } from "../../store/useGameStoreBots";
 
 export const MeldBadge = ({ meld }: { meld: CardType[] }) => {
+  const isLocal = !useGameStore.getState().roomId;
+  const onlineRules = useGameStore((s) => s.rules);
+  const localRules = useGameStoreBots((s) => s.rules);
   const showAnimations = useGameStore((s) => s.showAnimations);
-  const { score, type, length } = calculate_meld_score(meld);
+  
+  const rules = isLocal ? localRules : onlineRules;
+  const { score, type, length } = calculate_meld_score(meld, rules);
   if (length < 3) return null;
 
   let color: string;

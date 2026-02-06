@@ -1,6 +1,7 @@
 import { useGameStore, type WinCondition } from "../../store/useGameStore";
-import { Users, Bot, Loader2, Wifi, WifiOff } from "lucide-react";
+import { Users, Bot, Loader2, Wifi, WifiOff, Settings2 } from "lucide-react";
 import { useState } from "react";
+import { GameRulesModal } from "../game-ui/GameRulesModal";
 
 const ConnectionBadge = () => {
     const connectionStatus = useGameStore((state) => state.connectionStatus);
@@ -41,7 +42,7 @@ const TeamList = ({
     myPlayerNumber
   }: {
     teamName: string;
-    players: { userName: string; isBot?: boolean; playerId?: string; slotId: number }[];
+    players: { userName: string; isBot?: boolean; playerId?: string; slotId: number; isReady?: boolean }[];
     color: string;
     myPlayerNumber: number | null;
   }) => (
@@ -56,6 +57,8 @@ const TeamList = ({
                 {p.isBot ? <Bot size={14} className="opacity-50 shrink-0" /> : <Users size={14} className="opacity-50 shrink-0" />}
                 <span className="truncate" title={p.userName}>{p.userName}</span>
                 {p.isBot && <span className="text-[9px] bg-white/10 px-1 rounded text-white/40">BOT</span>}
+                {!p.isBot && p.isReady && <span className="text-[9px] bg-green-500 text-black px-1 rounded font-black">PRONTO</span>}
+                {!p.isBot && !p.isReady && p.slotId !== 1 && <span className="text-[9px] bg-yellow-500/10 text-yellow-500 px-1 rounded font-black border border-yellow-500/20">...</span>}
              </div>
              
              {/* KICK BUTTON (Only for Host, never on self) */}
@@ -165,7 +168,11 @@ export const LobbyScreen = () => {
   const mode = useGameStore((state) => state.mode);
   const my_player_number = useGameStore((state) => state.my_player_number);
   const startGame = useGameStore((state) => state.startGame);
+  const rules = useGameStore((state) => state.rules);
+  const setRules = useGameStore((state) => state.setRules);
   
+  const [showRules, setShowRules] = useState(false);
+
   const maxPlayers = mode === "1v1" ? 2 : 4;
   const missingCount = maxPlayers - Object.keys(players_data).length;
   
@@ -186,6 +193,11 @@ export const LobbyScreen = () => {
       (my_player_number === 3 && !isTeam2Full) || // Sou Time 1, quero ir pro 2
       ((my_player_number === 2 || my_player_number === 4) && !isTeam1Full) // Sou Time 2, quero ir pro 1
   );
+
+  // Check Readiness for Host Start
+  const nonHostPlayers = allPlayers.filter(p => p.slotId !== 1);
+  const allOthersReady = nonHostPlayers.every(p => p.isBot || p.isReady);
+  const myPlayerReady = players_data[my_player_number!]?.isReady;
 
   return (
     <div className="min-h-screen bg-[#0f2e1a] flex flex-col items-center justify-center text-white p-6 font-sans relative overflow-hidden">
@@ -227,6 +239,13 @@ export const LobbyScreen = () => {
 
              {/* Actions */}
              <div className="flex gap-3">
+               <button
+                  onClick={() => setShowRules(true)}
+                  className="flex-1 bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 py-3 rounded-lg font-bold text-xs uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
+               >
+                 <Settings2 size={16} /> Regras da Mesa
+               </button>
+
                {my_player_number === 1 && missingCount > 0 && (
                   <button
                     onClick={useGameStore.getState().addBot}
@@ -247,11 +266,33 @@ export const LobbyScreen = () => {
              </div>
 
             {my_player_number === 1 && missingCount === 0 ? (
-                <GameConfig onStart={startGame} />
+                <div>
+                    {!allOthersReady && (
+                        <div className="text-[10px] text-yellow-500/80 text-center font-bold uppercase tracking-widest mb-2 animate-pulse">
+                            Aguardando jogadores ficarem prontos...
+                        </div>
+                    )}
+                    <div className={!allOthersReady ? "opacity-50 pointer-events-none grayscale" : ""}>
+                        <GameConfig onStart={startGame} />
+                    </div>
+                </div>
             ) : (
-                missingCount === 0 && (
-                    <div className="w-full bg-slate-700/30 text-slate-400 py-4 rounded-xl font-bold text-xs uppercase tracking-[0.2em] border border-white/5 mt-2 text-center">
-                        Aguardando anfitrião iniciar...
+                missingCount === 0 ? (
+                    <div className="w-full flex flex-col gap-2 mt-2">
+                        <button
+                            onClick={() => useGameStore.getState().toggleReady()}
+                            className={`w-full py-4 rounded-xl font-black text-lg shadow-[0_0_20px_rgba(34,197,94,0.4)] transition-all hover:scale-[1.02] active:scale-95 uppercase tracking-[0.2em] border border-white/10 ${myPlayerReady ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-yellow-600 hover:bg-yellow-500 text-black'}`}
+                        >
+                            {myPlayerReady ? "ESTOU PRONTO!" : "FICAR PRONTO"}
+                        </button>
+                        <div className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                             {myPlayerReady ? "Aguardando anfitrião iniciar..." : "Clique para confirmar presença"}
+                        </div>
+                    </div>
+                ) : (
+                    // Missing Count > 0 (Waiting for players)
+                     <div className="w-full bg-slate-700/30 text-slate-400 py-4 rounded-xl font-bold text-xs uppercase tracking-[0.2em] border border-white/5 mt-2 text-center">
+                        Aguardando jogadores...
                     </div>
                 )
             )}
@@ -281,6 +322,15 @@ export const LobbyScreen = () => {
       <p className="mt-8 text-slate-500/50 text-[9px] uppercase tracking-[0.5em] font-mono">
         ID: {roomId}
       </p>
+
+      {showRules && (
+        <GameRulesModal 
+            rules={rules} 
+            onRulesChange={setRules} 
+            onClose={() => setShowRules(false)} 
+            isHost={my_player_number === 1}
+        />
+      )}
     </div>
   );
 };

@@ -74,10 +74,22 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
 
   // Safe calculation even if game data is incomplete initially
   const myScore = game.team_melds?.[my_team]
-    ? calculate_score(game.team_melds[my_team]).total_score
+    ? calculate_score(
+        game.team_melds[my_team],
+        [],
+        false,
+        !(game.has_taken_dead_pile?.[my_team - 1]),
+        game.rules
+      ).total_score
     : 0;
   const oppScore = game.team_melds?.[opponent_team]
-    ? calculate_score(game.team_melds[opponent_team]).total_score
+    ? calculate_score(
+        game.team_melds[opponent_team],
+        [],
+        false,
+        !(game.has_taken_dead_pile?.[opponent_team - 1]),
+        game.rules
+      ).total_score
     : 0;
 
   const myTeamHasTaken = game.has_taken_dead_pile?.[my_team - 1] ?? false;
@@ -168,23 +180,24 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     game.final_score
   ) {
     const isRoundOver = game.status === "ROUND_OVER";
+    const totalHumanPlayers = game.players_data
+      ? Object.values(game.players_data).filter((p) => !p.isBot).length
+      : 0;
+    const mySocketId = game.players_data?.[my_player_id]?.socketId;
+
     return (
       <FinishScreen
         finalScore={game.final_score}
         myTeam={my_team}
-        onPlayAgain={() => {
-          setShowFinishScreen(false);
-          if (isRoundOver) {
-            game.nextRound();
-          } else {
-            game.startGame(game.win_condition);
-          }
-        }}
+        onPlayAgain={() => game.voteNext()}
         onLeave={game.leaveGame}
         isRoundOver={isRoundOver}
         cumulativeScore={game.cumulative_score}
         roundCount={game.round_count}
         winCondition={game.win_condition}
+        rematchVotes={game.rematch_votes}
+        totalHumanPlayers={totalHumanPlayers}
+        myPlayerId={mySocketId}
       />
     );
   }
@@ -344,10 +357,9 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               {Object.entries(playerPositions).map(([id, pos]) => {
                 const playerEvent = [...(game.recentEvents || [])]
                   .reverse()
-                  .find(
-                    (e) =>
-                      e.playerId === Number(id) &&
-                      (e.type === "info" || e.type === "success"),
+                  .find((e) =>
+                    e.playerId === Number(id) &&
+                    ["info", "warning", "success"].includes(e.type)
                   );
 
                 if (playerEvent) {
@@ -357,11 +369,16 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                   const eventPlayerTeam = eventPlayerId % 2;
                   const team = myTeam === eventPlayerTeam ? "mine" : "opponent";
 
+                  let customColor = undefined;
+                  if (playerEvent.type === "warning") customColor = "bg-red-600";
+                  if (playerEvent.type === "success") customColor = "bg-green-600";
+
                   return (
                     <EventBalloon
                       key={playerEvent.id}
                       message={playerEvent.message}
                       team={team}
+                      customColor={customColor}
                       x={pos.x}
                       y={pos.y}
                     />

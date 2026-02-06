@@ -1,5 +1,6 @@
 import { type Card } from "../common/types/card";
 import { type ScoreResult } from "../common/utils/scoring";
+import { type GameRules } from "../common/types/rules";
 import { type PlayerData, type GameMode, type TeamID, type PlayerID, type WinCondition } from "./types";
 import * as fs from "fs";
 import * as path from "path";
@@ -17,11 +18,13 @@ export interface ServerGameState {
   current_player: number;
   players_connected: string[];
   players_data: Partial<Record<PlayerID, PlayerData>>;
+  rules: GameRules;
   
   // Championship State
   win_condition?: WinCondition;
   cumulative_score: { team_1: number; team_2: number };
   round_count: number;
+  rematch_votes?: Record<string, boolean>; // New: socketId -> wantsRematch
 
   turn_start_time?: number;
   last_drawn_card_id: string | null;

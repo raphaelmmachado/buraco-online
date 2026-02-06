@@ -11,6 +11,7 @@ export interface PlayerData {
   userName: string;
   playerId: string;
   isBot?: boolean;
+  isReady?: boolean; // New: Lobby readiness
   botTakeoverTimeout?: NodeJS.Timeout | null;
 }
 

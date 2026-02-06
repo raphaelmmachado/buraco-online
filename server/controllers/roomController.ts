@@ -7,6 +7,44 @@ import { broadcast_game_update, process_bot_turn } from "../services/botService"
 import { type PlayerID, type GameMode, type WinCondition } from "../types";
 import { startTurnTimer } from "../services/timerService";
 import { type Card } from "../../common/types/card";
+import { DEFAULT_RULES, type GameRules } from "../../common/types/rules";
+
+const broadcast_rooms_list = (io: Server) => {
+    // QUICK CLEANUP: Se houver salas vazias sem timeout agendado (ex: após restart), limpa agora
+    for (const roomId in games) {
+      const game = games[roomId];
+      if (!game) continue;
+      if (game.players_connected.length === 0 && !game.disconnectTimeout) {
+          delete games[roomId];
+      }
+    }
+
+    const room_list = Object.entries(games).map(([roomId, game]) => {
+      const filledSlots = Object.keys(game.players_data).length;
+      return {
+        roomId,
+        mode: game.mode,
+        playerCount: filledSlots,
+        maxPlayers: game.mode === "1v1" ? 2 : 4,
+        status: game.status,
+      };
+    });
+
+    const allHumanPlayers = Object.values(games)
+      .flatMap((g) => Object.values(g.players_data))
+      .filter((p) => !p.isBot);
+
+    const totalOnline = allHumanPlayers.length;
+    const onlineNames = Array.from(
+      new Set(allHumanPlayers.map((p) => p.userName))
+    );
+
+    io.emit("rooms_list", {
+      rooms: room_list,
+      totalOnline,
+      onlineNames,
+    });
+};
 
 export const registerRoomHandlers = (io: Server, socket: Socket) => {
   socket.on("disconnect", () => {
@@ -34,11 +72,38 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
             const [pNum, pData] = playerEntry;
             console.log(`Socket de ${pData.userName} (${pNum}) desconectado.`);
 
+            // Notify everyone immediately
+            io.to(roomId).emit("player_disconnected", { 
+                playerNumber: Number(pNum), 
+                userName: pData.userName 
+            });
+
             if (game.status === "PLAYING") {
               console.log(
-                `Jogador ${pData.userName} (${pNum}) caiu. Aguardando reconexão.`
+                `Jogador ${pData.userName} (${pNum}) caiu. Iniciando timer de 10 segundos para Bot.`
               );
-              // Não transformamos mais em BOT para evitar instabilidade no Render
+              
+              // Clear any existing timeout just in case
+              if (pData.botTakeoverTimeout) clearTimeout(pData.botTakeoverTimeout);
+
+              pData.botTakeoverTimeout = setTimeout(() => {
+                  console.log(`Tempo esgotado para ${pData.userName}. Substituindo por BOT.`);
+                  pData.isBot = true;
+                  pData.socketId = "BOT";
+                  pData.botTakeoverTimeout = null; // Clear ref
+
+                  io.to(roomId).emit("bot_takeover", { 
+                      playerNumber: Number(pNum), 
+                      userName: pData.userName 
+                  });
+                  broadcast_game_update(io, roomId);
+                  saveState();
+                  
+                  // Trigger bot action immediately if it was their turn
+                  if (game.current_player === Number(pNum)) {
+                      process_bot_turn(io, roomId);
+                  }
+              }, 10000); // 10 seconds
             }
             // No Lobby, mantemos os dados para permitir reconexão rápida (ex: refresh)
             // O host pode expulsar se o jogador não retornar.
@@ -78,41 +143,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
   });
 
   socket.on("request_rooms", () => {
-    // QUICK CLEANUP: Se houver salas vazias sem timeout agendado (ex: após restart), limpa agora
-    for (const roomId in games) {
-      const game = games[roomId];
-      if (!game) continue;
-      if (game.players_connected.length === 0 && !game.disconnectTimeout) {
-          // Se não tem ninguém e não tem timer de espera, deleta para não poluir o feed
-          delete games[roomId];
-      }
-    }
-
-    const room_list = Object.entries(games).map(([roomId, game]) => {
-      const filledSlots = Object.keys(game.players_data).length;
-      return {
-        roomId,
-        mode: game.mode,
-        playerCount: filledSlots,
-        maxPlayers: game.mode === "1v1" ? 2 : 4,
-        status: game.status,
-      };
-    });
-
-    const allHumanPlayers = Object.values(games)
-      .flatMap((g) => Object.values(g.players_data))
-      .filter((p) => !p.isBot);
-
-    const totalOnline = allHumanPlayers.length;
-    const onlineNames = Array.from(
-      new Set(allHumanPlayers.map((p) => p.userName))
-    );
-
-    socket.emit("rooms_list", {
-      rooms: room_list,
-      totalOnline,
-      onlineNames,
-    });
+    broadcast_rooms_list(io);
   });
 
   socket.on("action_add_bot", ({ roomId }: { roomId: string }) => {
@@ -160,6 +191,18 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
     }
   });
 
+  socket.on("action_update_rules", ({ roomId, rules }: { roomId: string, rules: GameRules }) => {
+    const game = games[roomId];
+    if (!game || game.status !== "LOBBY") return;
+
+    const player_id = get_player_id_by_socket(game, socket.id);
+    if (player_id !== 1) return; // Only host
+
+    game.rules = rules;
+    broadcast_game_update(io, roomId);
+    saveState();
+  });
+
   socket.on("action_switch_team", ({ roomId }: { roomId: string }) => {
     const game = games[roomId];
     if (!game || game.mode !== "2v2" || game.status !== "LOBBY") return;
@@ -196,6 +239,20 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
         
         // Atualiza o cliente sobre seu novo número
         socket.emit("player_assignment", targetSlot, currentData.userName);
+        broadcast_game_update(io, roomId);
+    }
+  });
+
+  socket.on("action_toggle_ready", ({ roomId }: { roomId: string }) => {
+    const game = games[roomId];
+    if (!game || game.status !== "LOBBY") return;
+
+    const player_id = get_player_id_by_socket(game, socket.id);
+    if (!player_id) return;
+
+    const pData = game.players_data[player_id];
+    if (pData) {
+        pData.isReady = !pData.isReady;
         broadcast_game_update(io, roomId);
     }
   });
@@ -309,6 +366,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
           final_score: null,
           cumulative_score: { team_1: 0, team_2: 0 },
           round_count: 1,
+          rules: { ...DEFAULT_RULES },
         };
         saveState();
       }
@@ -356,6 +414,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
 
         socket.join(roomId);
         socket.emit("player_assignment", Number(pNum), pData.userName);
+        io.to(roomId).emit("player_reconnected", { userName: pData.userName });
         broadcast_game_update(io, roomId);
         return;
       }
@@ -393,6 +452,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
       socket.emit("player_assignment", myPlayerNumber, userName);
 
       broadcast_game_update(io, roomId);
+      broadcast_rooms_list(io);
     }
   );
 
@@ -458,6 +518,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
 
       socket.join(roomId);
       socket.emit("player_assignment", Number(pNum), pData.userName);
+      io.to(roomId).emit("player_reconnected", { userName: pData.userName });
       broadcast_game_update(io, roomId);
     }
   );
@@ -480,6 +541,18 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
     if (filledSlots !== maxPlayers) {
       socket.emit("error_msg", "Aguardando todos os jogadores entrarem.");
       return;
+    }
+
+    // Check Readiness
+    // Actually, explicit is better. Host should also be ready? 
+    // Usually host clicking start implies they are ready. 
+    // But let's check non-host humans.
+    const nonHostPlayers = Object.entries(game.players_data).filter(([pid]) => pid !== "1");
+    const allOthersReady = nonHostPlayers.every(([, p]) => p.isBot || p.isReady);
+
+    if (!allOthersReady) {
+        socket.emit("error_msg", "Todos os jogadores precisam estar PRONTOS.");
+        return;
     }
 
     if (game.status !== "LOBBY") {
@@ -545,6 +618,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
     // Ideally, let client handle the redirect.
     delete games[roomId];
     saveState();
+    broadcast_rooms_list(io);
   });
 
   socket.on("leave_game", ({ roomId }: { roomId: string }) => {
@@ -567,10 +641,39 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
 
     if (playerEntry) {
       const [pId, pData] = playerEntry;
+      const pNum = Number(pId);
       
       if (game.status === "PLAYING") {
-        console.log(`Jogador ${pData.userName} saiu da partida.`);
-        // No futuro poderíamos encerrar a partida aqui, por enquanto o jogo fica parado.
+        console.log(`Jogador ${pData.userName} (${pNum}) saiu da partida. Iniciando timer de 10s para Bot.`);
+        
+        // Notify others
+        io.to(roomId).emit("player_disconnected", { 
+            playerNumber: pNum, 
+            userName: pData.userName 
+        });
+
+        // Clear any existing timeout just in case
+        if (pData.botTakeoverTimeout) clearTimeout(pData.botTakeoverTimeout);
+
+        pData.botTakeoverTimeout = setTimeout(() => {
+            console.log(`Tempo esgotado para ${pData.userName}. Substituindo por BOT (leave).`);
+            pData.isBot = true;
+            pData.socketId = "BOT";
+            pData.botTakeoverTimeout = null; // Clear ref
+
+            io.to(roomId).emit("bot_takeover", { 
+                playerNumber: pNum, 
+                userName: pData.userName 
+            });
+            broadcast_game_update(io, roomId);
+            saveState();
+            
+            // Trigger bot action immediately if it was their turn
+            if (game.current_player === pNum) {
+                process_bot_turn(io, roomId);
+            }
+        }, 10000); // 10 seconds
+
       } else {
         // No Lobby ou fim de jogo, removemos para liberar a vaga
         delete game.players_data[Number(pId) as PlayerID];
@@ -601,5 +704,6 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
       broadcast_game_update(io, roomId);
     }
     saveState();
+    broadcast_rooms_list(io);
   });
 };

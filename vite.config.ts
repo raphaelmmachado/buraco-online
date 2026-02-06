@@ -23,6 +23,8 @@ export default defineConfig({
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,mp3}"],
+        skipWaiting: true,
+        clientsClaim: true,
       },
       manifest: {
         name: "Baralho Resenha",

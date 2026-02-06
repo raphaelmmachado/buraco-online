@@ -5,7 +5,15 @@ import App from "./App.tsx";
 import { registerSW } from 'virtual:pwa-register';
 
 // Auto-update SW
-registerSW({ immediate: true });
+registerSW({
+  immediate: true,
+  onRegisteredSW(swUrl, r) {
+    r?.update();
+  },
+  onNeedRefresh() {
+    window.location.reload();
+  },
+});
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

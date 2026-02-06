@@ -1,5 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { LayoutGroup, MotionConfig, motion, AnimatePresence } from "framer-motion";
+import {
+  LayoutGroup,
+  MotionConfig,
+  motion,
+  AnimatePresence,
+} from "framer-motion";
 import { calculate_score } from "../../../common/utils/scoring";
 import { getPlayerDirection } from "../../utils/animation_utils";
 // UI Components
@@ -280,34 +285,51 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     >
       <LayoutGroup>
         <AnimatePresence>
-          {(game.status === "FINISHED" || game.status === "ROUND_OVER") && !showFinishScreen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[200] flex items-center justify-center bg-black/20 pointer-events-none"
-            >
+          {(game.status === "FINISHED" || game.status === "ROUND_OVER") &&
+            !showFinishScreen && (
               <motion.div
-                initial={{ scale: 0.8, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                className="text-center bg-black/40 backdrop-blur-sm px-12 py-8 rounded-[3rem] border border-white/10 shadow-2xl"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[200] flex items-center justify-center bg-black/10 pointer-events-none"
               >
-                <h2 className="text-5xl md:text-7xl font-black text-white uppercase tracking-tighter drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">
-                  {game.status === "FINISHED" ? "Fim de Jogo!" : "Fim da Rodada!"}
-                </h2>
-                <div className="flex flex-col gap-2 mt-4">
-                  <p className="text-yellow-400 uppercase tracking-[0.4em] text-sm font-black drop-shadow-md">
-                    {game.final_score?.details_t1.did_beat || game.final_score?.details_t2.did_beat 
-                      ? "Batida realizada!" 
-                      : "Cartas esgotadas!"}
-                  </p>
-                  <p className="text-white/40 uppercase tracking-[0.2em] text-[10px] font-black">
-                    Preparando placar...
-                  </p>
-                </div>
+                <motion.div
+                  initial={{ scale: 0.9, y: 30 }}
+                  animate={{ scale: 1, y: 0 }}
+                  className="text-center bg-black/60 backdrop-blur-md px-16 py-10 rounded-[3.5rem] border border-white/20 shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+                >
+                  <h2 className="text-2xl md:text-5xl font-black text-white uppercase tracking-tighter drop-shadow-2xl mb-4">
+                    {game.status === "FINISHED"
+                      ? "Fim de Jogo!"
+                      : "Fim da Rodada!"}
+                  </h2>
+
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="h-px w-24 bg-white/20"></div>
+
+                    <p className="text-yellow-400 text-xl md:text-3xl font-black uppercase tracking-[0.2em] drop-shadow-lg">
+                      {(() => {
+                        const t1Beat = game.final_score?.details_t1.did_beat;
+                        const t2Beat = game.final_score?.details_t2.did_beat;
+                        if (t1Beat)
+                          return my_team === 1
+                            ? "VOCÊS BATERAM!"
+                            : "ELES BATERAM!";
+                        if (t2Beat)
+                          return my_team === 2
+                            ? "VOCÊS BATERAM!"
+                            : "ELES BATERAM!";
+                        return "AS CARTAS ACABARAM!";
+                      })()}
+                    </p>
+
+                    <p className="text-white/40 uppercase tracking-[0.3em] text-xs font-bold animate-pulse">
+                      Computando Placar Final...
+                    </p>
+                  </div>
+                </motion.div>
               </motion.div>
-            </motion.div>
-          )}
+            )}
         </AnimatePresence>
 
         <OpponentsHandsLayer game={game} visible={showOpponentHands} />

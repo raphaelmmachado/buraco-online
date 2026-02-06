@@ -7,7 +7,7 @@ import { registerSW } from 'virtual:pwa-register';
 // Auto-update SW
 registerSW({
   immediate: true,
-  onRegisteredSW(swUrl, r) {
+  onRegistered(r) {
     r?.update();
   },
   onNeedRefresh() {

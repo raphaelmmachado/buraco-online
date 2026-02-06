@@ -15,6 +15,14 @@ registerSW({
   },
 });
 
+// Detect when a new service worker takes over and reload the page
+let refreshing = false;
+navigator.serviceWorker?.addEventListener('controllerchange', () => {
+  if (refreshing) return;
+  refreshing = true;
+  window.location.reload();
+});
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <App />

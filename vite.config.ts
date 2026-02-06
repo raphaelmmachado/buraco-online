@@ -20,6 +20,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
+      filename: `sw-${pkg.version}.js`,
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,mp3}"],

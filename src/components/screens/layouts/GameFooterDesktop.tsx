@@ -16,7 +16,7 @@ export const GameFooterDesktop = ({
   onDeckClick,
   onDiscardClick,
   toggleSelect,
-  my_player_id
+  my_player_id,
 }: GameLayoutProps & { my_player_id: number }) => {
   return (
     <>
@@ -38,7 +38,6 @@ export const GameFooterDesktop = ({
           flex items-center justify-center rounded-full shadow-lg border border-white/20`}
         >
           <Skull size={16} />: {game.dead_piles_count}{" "}
-          <span className="font-light">{"/2"}</span>
         </div>
       </div>
 

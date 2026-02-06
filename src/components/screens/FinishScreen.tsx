@@ -1,14 +1,16 @@
 import { type ScoreResult } from "../../../common/utils/scoring";
-import { MELD_POINTS, BONUS_POINTS } from "../../../common/types/card";
+import { MELD_POINTS } from "../../../common/types/card";
 import { StyledButton } from "../ui/StyledButton";
 import {
   RotateCcw,
   LogOut,
   Trophy,
-  Target,
-  Hash,
   Sparkles,
   XCircle,
+  Target,
+  Hash,
+  Crown,
+  TrendingUp,
 } from "lucide-react";
 import { type WinCondition } from "../../store/useGameStore";
 import { motion } from "framer-motion";
@@ -57,16 +59,6 @@ export const FinishScreen = ({
   const amIWinner =
     (myTeam === 1 && isT1Winner) || (myTeam === 2 && isT2Winner);
 
-  const title = isRoundOver
-    ? `Rodada ${roundCount}`
-    : isDraw
-      ? "Empate!"
-      : amIWinner
-        ? "Vitória!"
-        : "Derrota";
-
-  const subtitle = isRoundOver ? "Placar da Rodada" : "Fim de Campeonato";
-
   // Voting Logic
   const votesCount = Object.values(rematchVotes).filter(Boolean).length;
   const iVoted = myPlayerId && rematchVotes[myPlayerId];
@@ -78,98 +70,126 @@ export const FinishScreen = ({
       animate={{ opacity: 1 }}
       className="fixed inset-0 bg-[#061a0d] bg-radial-gradient from-[#0f2e1a] to-[#061a0d] text-white overflow-y-auto overflow-x-hidden flex flex-col items-center py-8 px-4 font-sans z-[300]"
     >
-      {/* HEADER: CONSOLIDATED SCORE & ROUND */}
+      {/* 1. CAMPEONATO HEADER (PROGRESSO TOTAL) */}
       <motion.div
-        initial={{ y: -20, opacity: 0 }}
+        initial={{ y: -30, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className={`w-full max-w-4xl p-8 md:p-12 rounded-[3rem] border backdrop-blur-xl shadow-2xl mb-10 overflow-hidden relative flex flex-col items-center gap-8 ${
-          amIWinner
-            ? "bg-yellow-500/5 border-yellow-500/20"
-            : "bg-white/5 border-white/10"
-        }`}
+        className="w-full max-w-5xl mb-12 relative flex flex-col items-center"
       >
-        <div
-          className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full blur-[120px] rounded-full pointer-events-none ${amIWinner ? "bg-yellow-500/10" : "bg-blue-500/5"}`}
-        ></div>
-
-        {/* Round Info */}
-        <div className="relative z-10 flex flex-col items-center">
-          <h2
-            className={`text-4xl md:text-6xl font-black uppercase tracking-tighter mb-2 ${
-              amIWinner
-                ? "text-transparent bg-clip-text bg-linear-to-b from-yellow-100 via-yellow-400 to-yellow-600 drop-shadow-[0_4px_12px_rgba(234,179,8,0.4)]"
-                : "text-white/80"
-            }`}
-          >
-            {title}
-          </h2>
-          <p className="text-white/30 uppercase tracking-[0.4em] text-[10px] font-black">
-            {subtitle}
-          </p>
+        <div className="flex items-center gap-4 mb-8">
+            <div className="h-px w-12 md:w-32 bg-linear-to-r from-transparent to-white/20"></div>
+            <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-1.5 rounded-full backdrop-blur-md shadow-xl">
+                <Crown size={14} className="text-yellow-500" />
+                <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-white/70">
+                    {isRoundOver ? `Rodada ${roundCount}` : "Resultado Final"}
+                </span>
+            </div>
+            <div className="h-px w-12 md:w-32 bg-linear-to-l from-transparent to-white/20"></div>
         </div>
 
-        {/* Scores */}
-        <div className="flex gap-8 md:gap-20 items-center justify-center relative z-10">
-          <ScoreTeamDisplay
-            label="NÓS"
-            score={effectiveScore.team_1}
-            isActive={myTeam === 1}
-            isWinner={isT1Winner}
-            color="text-blue-400"
-          />
-          <div className="text-white/10 font-black text-2xl italic">VS</div>
-          <ScoreTeamDisplay
-            label="ELES"
-            score={effectiveScore.team_2}
-            isActive={myTeam === 2}
-            isWinner={isT2Winner}
-            color="text-red-400"
-          />
+        {/* COMPARATIVO DE PONTOS ACUMULADOS */}
+        <div className="grid grid-cols-3 w-full items-center gap-4 md:gap-12 px-4">
+            {/* TIME 1 */}
+            <div className="flex flex-col items-end">
+                <span className={`text-[10px] md:text-xs font-black mb-2 tracking-widest ${myTeam === 1 ? 'text-blue-400' : 'text-white/20'}`}>NÓS</span>
+                <div className="relative">
+                    <span className={`text-5xl md:text-9xl font-black tabular-nums tracking-tighter ${isT1Winner ? 'text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.3)]' : 'text-white/20'}`}>
+                        {effectiveScore.team_1}
+                    </span>
+                    {isT1Winner && !isDraw && (
+                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-4 -right-4 md:-top-8 md:-right-8 bg-yellow-500 text-black p-1.5 md:p-2 rounded-full shadow-lg">
+                            <Trophy size={isRoundOver ? 16 : 24} />
+                        </motion.div>
+                    )}
+                </div>
+            </div>
+
+            {/* VS & META */}
+            <div className="flex flex-col items-center gap-4">
+                <span className="text-2xl md:text-4xl font-black italic text-white/10 tracking-widest">VS</span>
+                
+                {winCondition && (
+                    <div className="flex flex-col items-center gap-1.5 bg-black/40 border border-white/5 px-4 md:px-6 py-2 rounded-2xl shadow-2xl backdrop-blur-xl">
+                        <div className="flex items-center gap-2 text-yellow-500/80">
+                            {winCondition.type === "POINTS" ? <Target size={14} /> : <Hash size={14} />}
+                            <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest">Meta</span>
+                        </div>
+                        <span className="text-lg md:text-2xl font-black text-white/90 tabular-nums">{winCondition.value}</span>
+                        
+                        {/* Progress Bar (if points) */}
+                        {winCondition.type === "POINTS" && (
+                            <div className="w-20 md:w-32 h-1 bg-white/5 rounded-full mt-1 overflow-hidden">
+                                <motion.div 
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${Math.min(100, (Math.max(effectiveScore.team_1, effectiveScore.team_2) / winCondition.value) * 100)}%` }}
+                                    className="h-full bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.5)]"
+                                />
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* TIME 2 */}
+            <div className="flex flex-col items-start">
+                <span className={`text-[10px] md:text-xs font-black mb-2 tracking-widest ${myTeam === 2 ? 'text-red-400' : 'text-white/20'}`}>ELES</span>
+                <div className="relative">
+                    <span className={`text-5xl md:text-9xl font-black tabular-nums tracking-tighter ${isT2Winner ? 'text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.3)]' : 'text-white/20'}`}>
+                        {effectiveScore.team_2}
+                    </span>
+                    {isT2Winner && !isDraw && (
+                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-4 -left-4 md:-top-8 md:-left-8 bg-yellow-500 text-black p-1.5 md:p-2 rounded-full shadow-lg">
+                            <Trophy size={isRoundOver ? 16 : 24} />
+                        </motion.div>
+                    )}
+                </div>
+            </div>
         </div>
 
-        {/* Goal/Meta */}
-        {winCondition && (
-          <div className="relative z-10 flex items-center gap-3 px-6 py-2 bg-black/40 rounded-full text-xs font-bold text-white/70 border border-white/10 shadow-xl backdrop-blur-md">
-            {winCondition.type === "POINTS" ? (
-              <Target size={16} className="text-yellow-400/70" />
-            ) : (
-              <Hash size={16} className="text-blue-400/70" />
-            )}
-            <span className="tracking-widest uppercase">
-              {winCondition.type === "POINTS"
-                ? `Meta: ${winCondition.value} Pontos`
-                : `Melhor de ${winCondition.value} Rodadas`}
-            </span>
-          </div>
-        )}
+        {/* MENSAGEM DE STATUS */}
+        <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="mt-8 text-center"
+        >
+            <h2 className={`text-2xl md:text-4xl font-black uppercase tracking-tight ${amIWinner ? 'text-yellow-400' : isDraw ? 'text-white/60' : 'text-red-400'}`}>
+                {isDraw 
+                    ? "Partida Empatada" 
+                    : isRoundOver 
+                        ? (amIWinner ? "Liderança de Vocês!" : "Vantagem Deles!")
+                        : (amIWinner ? "Vocês Venceram!" : "Eles Venceram!")
+                }
+            </h2>
+        </motion.div>
       </motion.div>
 
-      {/* ROUND DETAILS */}
-      <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-        <TeamScoreCard
-          name="NÓS"
-          teamId={1}
-          isMyTeam={myTeam === 1}
-          score={finalScore.team_1}
-          details={finalScore.details_t1}
-          delay={0.3}
+      {/* 2. DETALHAMENTO DA RODADA (CARDS) */}
+      <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+        <TeamRoundCard 
+            title="NÓS"
+            teamId={1}
+            isMyTeam={myTeam === 1}
+            score={finalScore.team_1}
+            details={finalScore.details_t1}
+            delay={0.4}
         />
-        <TeamScoreCard
-          name="ELES"
-          teamId={2}
-          isMyTeam={myTeam === 2}
-          score={finalScore.team_2}
-          details={finalScore.details_t2}
-          delay={0.4}
+        <TeamRoundCard 
+            title="ELES"
+            teamId={2}
+            isMyTeam={myTeam === 2}
+            score={finalScore.team_2}
+            details={finalScore.details_t2}
+            delay={0.5}
         />
       </div>
 
-      {/* FOOTER ACTIONS */}
+      {/* 3. AÇÕES FIXAS NO RODAPÉ */}
       <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.5 }}
-        className="flex flex-col md:flex-row gap-4 w-full max-w-xl mt-auto"
+        transition={{ delay: 0.6 }}
+        className="flex flex-col md:flex-row gap-4 w-full max-w-xl mt-auto pb-8"
       >
         <StyledButton
           onClick={onPlayAgain}
@@ -204,240 +224,126 @@ export const FinishScreen = ({
   );
 };
 
-const ScoreTeamDisplay = ({
-  label,
-  score,
-  isActive,
-  isWinner,
-  color,
-}: {
-  label: string;
-  score: number;
-  isActive: boolean;
-  isWinner: boolean;
-  color: string;
+/* --- COMPONENTES AUXILIARES INTERNOS --- */
+
+const TeamRoundCard = ({ title, teamId, isMyTeam, score, details, delay }: {
+    title: string; teamId: number; isMyTeam: boolean; score: number; details: ScoreResult; delay: number;
 }) => (
-  <div className="text-center">
-    <span
-      className={`block text-xs font-black uppercase tracking-widest mb-1 ${isActive ? color : "text-white/20"}`}
+    <motion.div
+        initial={{ x: teamId === 1 ? -20 : 20, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ delay }}
+        className={`flex flex-col rounded-[2.5rem] border backdrop-blur-md overflow-hidden shadow-2xl ${
+            isMyTeam ? 'bg-blue-600/5 border-blue-500/20' : 'bg-white/[0.02] border-white/5'
+        }`}
     >
-      {label}
-    </span>
-    <span
-      className={`text-5xl md:text-7xl font-black tabular-nums ${isWinner ? "text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]" : "text-white/30"}`}
-    >
-      {score}
-    </span>
-  </div>
+        <div className="p-8 md:p-10">
+            {/* Header do Card */}
+            <div className="flex justify-between items-start mb-8 border-b border-white/5 pb-6">
+                <div className="flex flex-col gap-1">
+                    <span className={`text-xs font-black tracking-[0.3em] ${isMyTeam ? 'text-blue-400' : 'text-white/40'}`}>
+                        {title} <span className="text-[10px] opacity-30 ml-2">TIME {teamId}</span>
+                    </span>
+                    <div className="flex gap-2 mt-3">
+                        {details.did_beat && (
+                            <Badge label="BATEU" color="bg-yellow-500/20 text-yellow-400 border-yellow-500/20" />
+                        )}
+                        {details.has_taken_dead_pile && (
+                            <Badge label="PEGOU MORTO" color="bg-blue-500/20 text-blue-300 border-blue-500/20" />
+                        )}
+                    </div>
+                </div>
+                <div className="text-right">
+                    <div className="flex items-center justify-end gap-2 text-[10px] font-bold text-white/20 uppercase tracking-widest mb-1">
+                        <TrendingUp size={12} /> Pontos Rodada
+                    </div>
+                    <div className={`text-5xl font-black tabular-nums tracking-tighter ${score >= 0 ? 'text-white' : 'text-red-500'}`}>
+                        {score > 0 && '+'}{score}
+                    </div>
+                </div>
+            </div>
+
+            <DetailedScoreBreakdown result={details} />
+        </div>
+    </motion.div>
 );
 
-const TeamScoreCard = ({
-  name,
-  teamId,
-  isMyTeam,
-  score,
-  details,
-  delay,
-}: {
-  name: string;
-  teamId: number;
-  isMyTeam: boolean;
-  score: number;
-  details: ScoreResult;
-  delay: number;
-}) => (
-  <motion.div
-    initial={{ scale: 0.95, opacity: 0 }}
-    animate={{ scale: 1, opacity: 1 }}
-    transition={{ delay }}
-    className={`flex flex-col rounded-[2rem] border transition-all shadow-xl relative overflow-hidden ${
-      isMyTeam
-        ? "border-blue-500/30 bg-blue-600/5"
-        : "border-white/10 bg-white/[0.03]"
-    }`}
-  >
-    <div className="p-6 md:p-8 flex flex-col h-full relative z-10">
-      <div className="flex justify-between items-start mb-6 border-b border-white/5 pb-4">
-        <div>
-          <span
-            className={`text-sm font-black uppercase tracking-widest ${isMyTeam ? "text-blue-400" : "text-white/40"}`}
-          >
-            {name} <span className="text-[10px] opacity-30">TIME {teamId}</span>
-          </span>
-          <div className="flex gap-2 mt-2">
-            {details.did_beat && (
-              <Badge
-                label="BATEU"
-                color="bg-yellow-500/20 text-yellow-400 border-yellow-500/20"
-              />
-            )}
-            {details.has_taken_dead_pile && (
-              <Badge
-                label="PEGOU MORTO"
-                color="bg-blue-500/20 text-blue-300 border-blue-500/20"
-              />
-            )}
-          </div>
-        </div>
-        <div className="text-right">
-          <span className="text-[10px] font-black text-white/20 uppercase tracking-tighter">
-            Total Rodada
-          </span>
-          <div
-            className={`text-4xl font-black tabular-nums ${score >= 0 ? "text-white" : "text-red-400"}`}
-          >
-            {score > 0 && "+"}
-            {score}
-          </div>
-        </div>
-      </div>
+const DetailedScoreBreakdown = ({ result }: { result: ScoreResult }) => {
+    // Calculamos o bônus de batida subtraindo canastras do bônus total
+    const canastraPointsTotal = (result.details.CLEAN * MELD_POINTS.CLEAN + result.details.DIRTY * MELD_POINTS.DIRTY + result.details.KING * MELD_POINTS.KING + result.details.ACE * MELD_POINTS.ACE);
+    const beatBonus = result.did_beat ? (result.bonus_points - canastraPointsTotal) : 0;
+    
+    // Penalidades
+    const deadPilePenalty = !result.has_taken_dead_pile ? 100 : 0;
+    const handPenalty = result.penalty_points - deadPilePenalty;
 
-      <ScoreBreakdown result={details} />
-    </div>
-  </motion.div>
-);
+    return (
+        <div className="flex flex-col gap-6">
+            {/* GANHOS */}
+            <div className="space-y-1">
+                <div className="flex items-center gap-2 mb-3 text-green-400/50">
+                    <Sparkles size={14} />
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em]">Bonificações</span>
+                </div>
+                <StatRow label="Canastras Limpas" count={result.details.CLEAN} total={result.details.CLEAN * MELD_POINTS.CLEAN} color="text-blue-400" />
+                <StatRow label="Canastras Sujas" count={result.details.DIRTY} total={result.details.DIRTY * MELD_POINTS.DIRTY} color="text-orange-400" />
+                <StatRow label="Excelente (3 a K)" count={result.details.KING} total={result.details.KING * MELD_POINTS.KING} color="text-violet-400" />
+                <StatRow label="Perfeita (A a A)" count={result.details.ACE} total={result.details.ACE * MELD_POINTS.ACE} color="text-green-400" />
+                {beatBonus > 0 && (
+                    <div className="flex justify-between items-center py-2 border-b border-white/5 border-dashed">
+                        <span className="text-sm font-black text-yellow-400/80">Bônus de Batida</span>
+                        <span className="font-mono text-lg font-black text-yellow-400">+{beatBonus}</span>
+                    </div>
+                )}
+                <div className="flex justify-between items-center py-2">
+                    <span className="text-sm font-medium text-white/40">Soma das Cartas (Mesa)</span>
+                    <span className="font-mono text-lg font-black text-white/60">+{result.base_points}</span>
+                </div>
+                
+                <div className="bg-green-500/10 rounded-xl px-4 py-3 flex justify-between items-center mt-2 border border-green-500/10">
+                    <span className="text-xs font-black uppercase tracking-widest text-green-400">Total Ganhos</span>
+                    <span className="text-2xl font-black text-green-400">+{result.base_points + result.bonus_points}</span>
+                </div>
+            </div>
+
+            {/* PERDAS */}
+            <div className="space-y-1 pt-4 border-t border-white/5">
+                <div className="flex items-center gap-2 mb-3 text-red-400/50">
+                    <XCircle size={14} />
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em]">Penalidades</span>
+                </div>
+                {deadPilePenalty > 0 && (
+                    <div className="flex justify-between items-center py-2 text-red-400">
+                        <span className="text-sm font-black">Não pegou o Morto</span>
+                        <span className="font-mono text-lg font-black">-100</span>
+                    </div>
+                )}
+                <div className="flex justify-between items-center py-2">
+                    <span className="text-sm font-medium text-red-300/40">Cartas na Mão</span>
+                    <span className="font-mono text-lg font-black text-red-400/60">-{handPenalty}</span>
+                </div>
+
+                <div className="bg-red-500/10 rounded-xl px-4 py-3 flex justify-between items-center mt-2 border border-red-500/10">
+                    <span className="text-xs font-black uppercase tracking-widest text-red-400">Total Perdas</span>
+                    <span className="text-2xl font-black text-red-500">-{result.penalty_points}</span>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const StatRow = ({ label, count, total, color }: { label: string; count: number; total: number; color: string }) => {
+    if (count === 0) return null;
+    return (
+        <div className="flex justify-between items-center py-2 border-b border-white/5 border-dashed last:border-0">
+            <span className="text-sm font-bold text-white/80">({count}) {label}</span>
+            <span className={`font-mono text-lg font-black ${color}`}>+{total}</span>
+        </div>
+    );
+};
 
 const Badge = ({ label, color }: { label: string; color: string }) => (
-  <span
-    className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${color}`}
-  >
-    {label}
-  </span>
-);
-
-const ScoreBreakdown = ({ result }: { result: ScoreResult }) => {
-  const beatBonus = result.did_beat ? BONUS_POINTS.BEAT : 0;
-  const deadPilePenalty = !result.has_taken_dead_pile ? 100 : 0;
-  const handPenalty = result.penalty_points - deadPilePenalty;
-
-  return (
-    <div className="space-y-4 w-full">
-      {/* GANHOS */}
-      <div className="bg-black/40 border border-white/5 rounded-2xl overflow-hidden">
-        <div className="bg-green-500/10 px-4 py-2 border-b border-white/5 flex items-center gap-2">
-          <Sparkles size={14} className="text-green-400" />
-          <h4 className="text-xs font-black uppercase text-green-400/80 tracking-widest">
-            Ganhos
-          </h4>
-        </div>
-        <div className="p-2 space-y-0.5">
-          <StatRow
-            label="Canastras Limpas"
-            value={result.details.CLEAN}
-            points={result.details.CLEAN * MELD_POINTS.CLEAN}
-            color="text-blue-400"
-          />
-          <StatRow
-            label="Canastras Sujas"
-            value={result.details.DIRTY}
-            points={result.details.DIRTY * MELD_POINTS.DIRTY}
-            color="text-orange-400"
-          />
-          <StatRow
-            label="Excelentes (500)"
-            value={result.details.KING}
-            points={result.details.KING * MELD_POINTS.KING}
-            color="text-violet-400"
-          />
-          <StatRow
-            label="Perfeitas (1000)"
-            value={result.details.ACE}
-            points={result.details.ACE * MELD_POINTS.ACE}
-            color="text-green-400"
-          />
-          {beatBonus > 0 && (
-            <DetailRow
-              label="Bônus de Batida"
-              value={beatBonus}
-              color="text-yellow-400"
-              isBold
-            />
-          )}
-          <DetailRow
-            label="Cartas na Mesa"
-            value={result.base_points}
-            color="text-white/70"
-          />
-        </div>
-      </div>
-
-      {/* PERDAS */}
-      <div className="bg-black/40 border border-white/5 rounded-2xl overflow-hidden">
-        <div className="bg-red-500/10 px-4 py-2 border-b border-white/5 flex items-center gap-2">
-          <XCircle size={14} className="text-red-400" />
-          <h4 className="text-xs font-black uppercase text-red-400/80 tracking-widest">
-            Perdas
-          </h4>
-        </div>
-        <div className="p-2 space-y-0.5">
-          {deadPilePenalty > 0 && (
-            <DetailRow
-              label="Não pegou o Morto"
-              value="-100"
-              color="text-red-400"
-              isBold
-            />
-          )}
-          <DetailRow
-            label="Cartas na Mão"
-            value={`-${handPenalty}`}
-            color="text-red-300/60"
-          />
-          <div className="mt-2 pt-2 border-t border-white/10 px-3 flex justify-between items-center bg-red-950/20 -mx-2 -mb-2 py-3">
-            <span className="text-xs font-black uppercase tracking-widest text-red-400">
-              Total Perdas
-            </span>
-            <span className="text-xl font-black text-red-500">
-              -{result.penalty_points}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const StatRow = ({
-  label,
-  value,
-  points,
-  color,
-}: {
-  label: string;
-  value: number;
-  points: number;
-  color: string;
-}) => {
-  if (value === 0) return null;
-  return (
-    <div className="flex justify-between items-center px-3 py-2 rounded-lg hover:bg-white/5">
-      <span className="text-sm font-bold text-white/80">
-        ({value}) {label}
-      </span>
-      <span className={`font-mono text-base font-black ${color}`}>
-        +{points}
-      </span>
-    </div>
-  );
-};
-
-const DetailRow = ({
-  label,
-  value,
-  color,
-  isBold = false,
-}: {
-  label: string;
-  value: string | number;
-  color: string;
-  isBold?: boolean;
-}) => (
-  <div className="flex justify-between items-center px-3 py-2 rounded-lg hover:bg-white/5">
-    <span
-      className={`text-sm ${isBold ? "font-black" : "font-medium text-white/50"}`}
-    >
-      {label}
+    <span className={`text-[9px] font-black px-3 py-1 rounded-full border shadow-sm ${color}`}>
+        {label}
     </span>
-    <span className={`font-mono text-base font-black ${color}`}>{value}</span>
-  </div>
 );

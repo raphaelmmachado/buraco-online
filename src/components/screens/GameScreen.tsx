@@ -73,13 +73,15 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   }, [game.status]);
 
   // Safe calculation even if game data is incomplete initially
+  const isGameOver = game.status === "FINISHED" || game.status === "ROUND_OVER";
+
   const myScore = game.team_melds?.[my_team]
     ? calculate_score(
         game.team_melds[my_team],
         [],
         false,
-        !(game.has_taken_dead_pile?.[my_team - 1]),
-        game.rules
+        isGameOver && !game.has_taken_dead_pile?.[my_team - 1],
+        game.rules,
       ).total_score
     : 0;
   const oppScore = game.team_melds?.[opponent_team]
@@ -87,8 +89,8 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
         game.team_melds[opponent_team],
         [],
         false,
-        !(game.has_taken_dead_pile?.[opponent_team - 1]),
-        game.rules
+        isGameOver && !game.has_taken_dead_pile?.[opponent_team - 1],
+        game.rules,
       ).total_score
     : 0;
 

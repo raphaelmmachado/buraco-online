@@ -20,12 +20,12 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
-      filename: `sw-${pkg.version}.js`,
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,mp3}"],
         skipWaiting: true,
         clientsClaim: true,
+        cleanupOutdatedCaches: true,
       },
       manifest: {
         name: "Baralho Resenha",

@@ -35,14 +35,14 @@ export const MeldBadge = ({ meld }: { meld: CardType[] }) => {
       label = "Perfeita!";
       break;
     default:
-      label = `Faltam ${Math.abs(length - 7)}`;
-      color = "bg-slate-700";
+      label = `${length}/7`;
+      color = "bg-slate-800/80 backdrop-blur-sm";
   }
 
   return (
-    <div className="flex flex-col items-center z-20">
-      <motion.span
-        key={label} // Animate on change
+    <div className="flex flex-col items-center z-20 w-full">
+      <motion.div
+        key={label}
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={
@@ -50,17 +50,18 @@ export const MeldBadge = ({ meld }: { meld: CardType[] }) => {
             ? { type: "spring", stiffness: 500, damping: 20 }
             : { duration: 0 }
         }
-        className={`w-full ${color} text-center text-[11px] md:text-sm
-         text-white font-black p-1 rounded-md rounded-tl-none rounded-tr-none shadow-lg uppercase tracking-widest border border-white/10`}
+        className={`w-full ${color} flex flex-col items-center justify-center p-1 rounded-md rounded-tl-none rounded-tr-none shadow-lg border border-white/10`}
       >
-        {label}
-      </motion.span>
+        <span className="text-xs md:text-sm text-white font-black uppercase tracking-widest">
+          {label}
+        </span>
+      </motion.div>
       <motion.span
         key={score}
         initial={{ scale: 1.5, color: "#ffff00" }}
         animate={{ scale: 1, color: "#ffffff" }}
         transition={showAnimations ? {} : { duration: 0 }}
-        className="text-xs text-white font-black drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] mt-0.5"
+        className="text-[10px] md:text-xs text-white/60 font-black drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] mt-0.5"
       >
         {score} pts
       </motion.span>

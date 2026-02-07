@@ -9,7 +9,7 @@ export const GameSeparatorDesktop = ({
   playerRefs,
 }: GameLayoutProps & { my_player_id: number }) => {
   return (
-    <div className="flex h-full gap-2 items-center w-full justify-between mx-12 overflow-x-auto scrollbar-hide">
+    <div className="flex h-full gap-2 items-center w-full justify-center mx-12 overflow-x-auto scrollbar-hide">
       {Object.entries(game.players_data).map(([id, p]) => {
         return (
           <Fragment key={`${id}_${p.userName}`}>

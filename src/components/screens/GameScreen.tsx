@@ -39,7 +39,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   // State
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
-  const [showOpponentHands, setShowOpponentHands] = useState(false);
+  const [showOpponentHands, setShowOpponentHands] = useState(true);
   const [hoveredMeld, setHoveredMeld] = useState<{
     teamId: number;
     index: number;
@@ -458,8 +458,8 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               </div>
             </div>
             {/* PLACAR */}
-            <TookDeadPile took={oppTeamHasTaken} position="right-1 bottom-10" />
-            <CurrentGamePoints points={oppScore} position="right-1 bottom-1" />
+            <TookDeadPile took={oppTeamHasTaken} position="right-5 bottom-10" />
+            <CurrentGamePoints points={oppScore} position="right-5 bottom-1" />
           </section>
 
           {/* SEPARATOR / INFO BAR (Draggable) */}
@@ -472,7 +472,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
            px-2 md:px-8 border-y border-white/5 shadow-2xl z-30 shrink-0
             cursor-grab active:cursor-grabbing select-none active:bg-white/10 transition-colors group"
           >
-            <div className="flex h-full items-center justify-between">
+            <div className="flex h-full items-center justify-between px-2 md:px-0">
               {isMobile ? (
                 <GameSeparatorMobile
                   {...layoutProps}
@@ -548,8 +548,8 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
             </div>
 
             {/* PLACAR */}
-            <TookDeadPile took={myTeamHasTaken} position="right-1 top-10" />
-            <CurrentGamePoints points={myScore} position="right-1 top-1" />
+            <TookDeadPile took={myTeamHasTaken} position="right-5 top-10" />
+            <CurrentGamePoints points={myScore} position="right-5 top-1" />
           </section>
 
           {/* FOOTER: [MONTE] [MÃO] [LIXO] */}

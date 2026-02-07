@@ -1,17 +1,24 @@
 import { useMemo } from "react";
 import { type GameAdapterInterface } from "./useLocalGameAdapter";
-import { getPlayerDirection, type ScreenDirection } from "../../utils/animation_utils";
+import {
+  getPlayerDirection,
+  type ScreenDirection,
+} from "../../utils/animation_utils";
 import { CardBack } from "./CardBack";
 import Portal from "../ui/Portal";
+import { useMobileCheck } from "../../hooks/useMobileCheck";
 
 interface OpponentsHandsLayerProps {
   game: GameAdapterInterface;
   visible: boolean;
 }
 
-export const OpponentsHandsLayer = ({ game, visible }: OpponentsHandsLayerProps) => {
+export const OpponentsHandsLayer = ({
+  game,
+  visible,
+}: OpponentsHandsLayerProps) => {
   const myPlayerId = game.my_player_number ?? 1;
-
+  const { isMobile } = useMobileCheck();
   const cardWidth = 40;
   const cardHeight = 56;
 
@@ -22,8 +29,9 @@ export const OpponentsHandsLayer = ({ game, visible }: OpponentsHandsLayerProps)
       .map((id) => {
         const direction = getPlayerDirection(id, myPlayerId, game.mode);
         const handData = game.hands[id];
-        const count = typeof handData === "number" ? handData : handData?.length || 0;
-        
+        const count =
+          typeof handData === "number" ? handData : handData?.length || 0;
+
         const myTeamMod = myPlayerId % 2;
         const playerTeamMod = id % 2;
         const isTeammate = game.mode === "2v2" && myTeamMod === playerTeamMod;
@@ -37,10 +45,12 @@ export const OpponentsHandsLayer = ({ game, visible }: OpponentsHandsLayerProps)
       });
   }, [game.players_data, game.hands, game.mode, myPlayerId]);
 
-  const getContainerStyle = (direction: ScreenDirection): React.CSSProperties => {
+  const getContainerStyle = (
+    direction: ScreenDirection,
+  ): React.CSSProperties => {
     const baseStyle: React.CSSProperties = {
       position: "absolute",
-      width: `${cardWidth}px`, 
+      width: `${cardWidth}px`,
       height: `${cardHeight}px`,
       zIndex: 100,
     };
@@ -49,18 +59,18 @@ export const OpponentsHandsLayer = ({ game, visible }: OpponentsHandsLayerProps)
       case "top":
         return {
           ...baseStyle,
-          top: "0", 
+          top: "0",
           left: "50%",
-          transform: "translate(-50%, -85%)", 
+          transform: `translate(-50%, ${isMobile ? "-90%" : "-85%"})`,
         };
       case "left":
         return {
           ...baseStyle,
           left: "0",
           // Alinhado com a barra separadora (inicia em 35% + metade da altura da barra)
-          top: "37.5%", 
+          top: "37.5%",
           transformOrigin: "center center",
-          transform: "translate(-50%, -50%) rotate(90deg) translateY(35%)", 
+          transform: `translate(-50%, -50%) rotate(90deg) translateY(${isMobile ? "40%" : "35%"})`,
         };
       case "right":
         return {
@@ -68,7 +78,7 @@ export const OpponentsHandsLayer = ({ game, visible }: OpponentsHandsLayerProps)
           right: "0",
           top: "37.5%",
           transformOrigin: "center center",
-          transform: "translate(50%, -50%) rotate(-90deg) translateY(35%)",
+          transform: `translate(50%, -50%) rotate(-90deg) translateY(${isMobile ? "40%" : "35%"})`,
         };
       default:
         return { display: "none" };
@@ -83,17 +93,21 @@ export const OpponentsHandsLayer = ({ game, visible }: OpponentsHandsLayerProps)
         {othersHands.map((hand) => {
           const centerIndex = (hand.count - 1) / 2;
           return (
-            <div key={hand.id} style={getContainerStyle(hand.direction)} className="pointer-events-auto filter drop-shadow-md transition-transform duration-300">
+            <div
+              key={hand.id}
+              style={getContainerStyle(hand.direction)}
+              className="pointer-events-auto filter drop-shadow-md transition-transform duration-300"
+            >
               {Array.from({ length: hand.count }).map((_, i) => {
                 const offset = i - centerIndex;
                 return (
-                  <div 
-                    key={i} 
-                    style={{ 
+                  <div
+                    key={i}
+                    style={{
                       position: "absolute",
                       top: 0,
                       left: 0,
-                      width: "100%", 
+                      width: "100%",
                       height: "100%",
                       transformOrigin: "center center",
                       // Espalhamento linear bem mais perceptível (8px por carta)

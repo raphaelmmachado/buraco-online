@@ -28,7 +28,7 @@ export const PlayerTimerBadge = ({
   const status = useGameStore((s) => s.status);
   const isMuted = useGameStore((s) => s.isMuted);
   const isAccessibilityMode = useGameStore((s) => s.isAccessibilityMode);
-  const { isMobile } = useMobileCheck();
+  const { isMobile, isSmallMobile } = useMobileCheck();
 
   const ticTacAudio = useMemo(() => new Audio(tic_tac_sound), []);
   const lastTickRef = useRef<number | null>(null);
@@ -97,8 +97,10 @@ export const PlayerTimerBadge = ({
 
   // Effect to show events for this player for 2s
   useEffect(() => {
-    const lastEvent = [...recentEvents].reverse().find((e) => e.playerId === playerId);
-    
+    const lastEvent = [...recentEvents]
+      .reverse()
+      .find((e) => e.playerId === playerId);
+
     if (lastEvent && lastEvent.id !== lastProcessedEventId.current) {
       lastProcessedEventId.current = lastEvent.id;
       // Use setTimeout to avoid synchronous setState inside effect error
@@ -114,7 +116,9 @@ export const PlayerTimerBadge = ({
       <div ref={innerRef} className="relative mx-0.5">
         <div
           className={`
-          relative flex items-center gap-1.5 px-2 py-1 rounded-full border backdrop-blur-md transition-all duration-300 min-w-[80px]
+          relative flex items-center transition-all duration-300
+          ${isSmallMobile ? "gap-1 px-1.5 py-0.5 min-w-[70px]" : "gap-1.5 px-2 py-1 min-w-[80px]"}
+          rounded-full border backdrop-blur-md
           ${
             isCurrentPlayer
               ? isCritical
@@ -141,8 +145,12 @@ export const PlayerTimerBadge = ({
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -5 }}
-              className={`text-[10px] font-black uppercase truncate max-w-[60px] ${
-                activeEvent ? "text-yellow-400" : (isCurrentPlayer ? "text-white" : "opacity-70 text-white")
+              className={`text-[10px] uppercase truncate ${isSmallMobile ? "font-black max-w-[50px]" : "md:font-black max-w-[60px]"} ${
+                activeEvent
+                  ? "text-yellow-400"
+                  : isCurrentPlayer
+                    ? "text-white"
+                    : "opacity-70 text-white"
               }`}
             >
               {activeEvent ? activeEvent : userName.substring(0, 4)}
@@ -150,10 +158,10 @@ export const PlayerTimerBadge = ({
           </AnimatePresence>
 
           {/* Cards Count Badge */}
-          <div className="flex items-center gap-0.5 bg-white/10 px-1 rounded-md">
-            <Hand size={12} className="opacity-60" />
+          <div className={`flex items-center bg-white/10 rounded-md ${isSmallMobile ? "gap-0.5 px-0.5" : "gap-0.5 px-1"}`}>
+            <Hand size={isSmallMobile ? 10 : 12} className="opacity-60" />
             <span
-              className={`text-xs
+              className={`${isSmallMobile ? "text-[10px]" : "text-xs"}
               font-mono font-bold`}
             >
               {handSize}
@@ -168,9 +176,9 @@ export const PlayerTimerBadge = ({
               }
             >
               {turnPhase === "DRAW" ? (
-                <ArrowDownToLine size={12} />
+                <ArrowDownToLine size={isSmallMobile ? 10 : 12} />
               ) : (
-                <ArrowUpFromLine size={12} />
+                <ArrowUpFromLine size={isSmallMobile ? 10 : 12} />
               )}
             </span>
           )}

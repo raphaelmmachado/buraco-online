@@ -66,11 +66,11 @@ export const MeldCard = ({
   // Accessibility Styles
   const valueClass = isAccessibilityMode
     ? `font-bold text-xl md:text-3xl scale-y-125 origin-top ${card.value === "10" ? "tracking-tighter" : ""}`
-    : "font-black text-base md:text-2xl";
+    : "font-black text-sm md:text-2xl";
 
   const suitClass = isAccessibilityMode
     ? "w-4 h-4 md:w-6 md:h-6"
-    : "w-3 h-3 md:w-4 md:h-4";
+    : "w-2.5 h-2.5 md:w-4 md:h-4";
 
   let textColorClass = isRed ? "text-red-600" : "text-slate-900";
   if (isAccessibilityMode) {
@@ -97,7 +97,7 @@ export const MeldCard = ({
       className={`
         relative rounded-bl-none rounded-br-none rounded-md shadow-lg border bg-white select-none
         flex flex-col items-center justify-between p-0.5
-        w-12 h-12 md:w-16 md:h-20
+        w-11 h-10 md:w-16 md:h-20
         ${
           highlight
             ? "border-yellow-400 ring-2 ring-yellow-400/50 z-50 shadow-yellow-500/30"
@@ -116,7 +116,7 @@ export const MeldCard = ({
       <div
         className={`absolute -bottom-4 -right-4 -translate-x-1/2 -translate-y-1/2 pointer-events-none ${isAccessibilityMode ? "opacity-0" : "opacity-10"}`}
       >
-        <SuitIcon suit={card.suit.name} className="w-8 h-8 md:w-10 md:h-10" />
+        <SuitIcon suit={card.suit.name} className="w-6 h-6 md:w-10 md:h-10" />
       </div>
     </motion.div>
   );

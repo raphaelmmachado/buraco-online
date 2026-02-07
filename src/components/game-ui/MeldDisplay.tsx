@@ -24,7 +24,7 @@ export const MeldDisplay = memo(
     onClick,
     onMouseEnter,
     onMouseLeave,
-    scale = "scale-75 md:scale-100",
+    scale = "scale-100",
     interactive = false,
     enterFrom = "bottom",
   }: MeldDisplayProps) => {
@@ -45,7 +45,7 @@ export const MeldDisplay = memo(
             interactive && isHovered ? "scale-95 md:scale-105" : ""
           }`}
         >
-          <div className="flex -space-x-7.5 md:-space-x-10 transition-all">
+          <div className="flex -space-x-7 md:-space-x-10 transition-all">
             {organizedCards.map((card, i) => (
               <MeldCard
                 key={card.id}
@@ -60,7 +60,7 @@ export const MeldDisplay = memo(
         </div>
       </AnimatePresence>
     );
-  }
+  },
 );
 
 MeldDisplay.displayName = "MeldDisplay";

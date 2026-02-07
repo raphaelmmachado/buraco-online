@@ -9,7 +9,7 @@ export const MeldBadge = ({ meld }: { meld: CardType[] }) => {
   const onlineRules = useGameStore((s) => s.rules);
   const localRules = useGameStoreBots((s) => s.rules);
   const showAnimations = useGameStore((s) => s.showAnimations);
-  
+
   const rules = isLocal ? localRules : onlineRules;
   const { score, type, length } = calculate_meld_score(meld, rules);
   if (length < 3) return null;
@@ -50,7 +50,7 @@ export const MeldBadge = ({ meld }: { meld: CardType[] }) => {
             ? { type: "spring", stiffness: 500, damping: 20 }
             : { duration: 0 }
         }
-        className={`w-full ${color} text-center text-xs md:text-sm
+        className={`w-full ${color} text-center text-[11px] md:text-sm
          text-white font-black p-1 rounded-md rounded-tl-none rounded-tr-none shadow-lg uppercase tracking-widest border border-white/10`}
       >
         {label}

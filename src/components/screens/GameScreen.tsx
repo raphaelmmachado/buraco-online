@@ -355,51 +355,50 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           {/* == PORTAL RENDERER FOR EVENTS == */}
           <Portal>
             {/* Event Balloons (for info/success messages) */}
-              {Object.entries(playerPositions).map(([id, pos]) => {
-                const playerEvent = [...(game.recentEvents || [])]
-                  .reverse()
-                  .find(
-                    (e) =>
-                      e.playerId === Number(id) &&
-                      ["info", "warning", "success"].includes(e.type),
-                  );
+            {Object.entries(playerPositions).map(([id, pos]) => {
+              const playerEvent = [...(game.recentEvents || [])]
+                .reverse()
+                .find(
+                  (e) =>
+                    e.playerId === Number(id) &&
+                    ["info", "warning", "success"].includes(e.type),
+                );
 
-                if (playerEvent) {
-                  // Determine team
-                  const eventPlayerId = playerEvent.playerId!;
-                  const myTeam = my_player_id % 2;
-                  const eventPlayerTeam = eventPlayerId % 2;
-                  const team = myTeam === eventPlayerTeam ? "mine" : "opponent";
+              if (playerEvent) {
+                // Determine team
+                const eventPlayerId = playerEvent.playerId!;
+                const myTeam = my_player_id % 2;
+                const eventPlayerTeam = eventPlayerId % 2;
+                const team = myTeam === eventPlayerTeam ? "mine" : "opponent";
 
-                  let customColor = undefined;
-                  if (playerEvent.type === "warning")
-                    customColor = "bg-red-600";
-                  if (playerEvent.type === "success")
-                    customColor = "bg-green-600";
+                let customColor = undefined;
+                if (playerEvent.type === "warning") customColor = "bg-red-600";
+                if (playerEvent.type === "success")
+                  customColor = "bg-green-600";
 
-                  return (
-                    <EventBalloon
-                      key={playerEvent.id}
-                      message={playerEvent.message}
-                      team={team}
-                      customColor={customColor}
-                      x={pos.x}
-                      y={pos.y}
-                    />
-                  );
-                }
-                return null;
-              })}
+                return (
+                  <EventBalloon
+                    key={playerEvent.id}
+                    message={playerEvent.message}
+                    team={team}
+                    customColor={customColor}
+                    x={pos.x}
+                    y={pos.y}
+                  />
+                );
+              }
+              return null;
+            })}
 
-              {/* Persistent Timer Balloon for Current Player */}
-              {(() => {
-                const currentPos = playerPositions[game.current_player];
-                if (currentPos && game.status === "PLAYING") {
-                  return <TimerBalloon x={currentPos.x} y={currentPos.y} />;
-                }
-                return null;
-              })()}
-            </Portal>
+            {/* Persistent Timer Balloon for Current Player */}
+            {(() => {
+              const currentPos = playerPositions[game.current_player];
+              if (currentPos && game.status === "PLAYING") {
+                return <TimerBalloon x={currentPos.x} y={currentPos.y} />;
+              }
+              return null;
+            })()}
+          </Portal>
           {/* Connection Overlay (Only for Online Game) */}
           {game.roomId !== "LOCAL_DEBUG" && <ConnectionOverlay />}
 
@@ -440,12 +439,11 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
             style={{ height: `${opponentHeight}%` }}
             className="bg-red-950/10 border-b border-white/5 px-1 md:px-6 py-1 flex flex-col relative z-10 min-h-0 transition-[height] duration-75 ease-linear"
           >
-            <div className="flex-1 flex flex-wrap content-start md:gap-x-4 gap-y-1.5 md:gap-y-8 overflow-y-auto scrollbar-hide pt-1">
+            <div className="flex-1 flex flex-wrap content-start gap-x-2 md:gap-x-4 gap-y-1.5 md:gap-y-8 overflow-y-auto scrollbar-hide pt-1">
               {game.team_melds[opponent_team]?.map((meld, idx) => (
                 <MeldDisplay
                   key={idx}
                   meld={meld}
-                  scale="scale-75 md:scale-100"
                   enterFrom={activePlayerDirection}
                 />
               ))}
@@ -491,7 +489,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
             className="flex-1 bg-blue-950/10 px-1 md:px-6 py-1 flex flex-col relative z-10 min-h-0"
           >
             <div
-              className="flex-1 flex flex-wrap content-start md:gap-x-4
+              className="flex-1 flex flex-wrap content-start gap-x-2 md:gap-x-4
            gap-y-1.5 md:gap-y-8 overflow-y-auto scrollbar-hide pt-1 pb-16"
             >
               {game.team_melds[my_team]?.map((meld, idx) => {
@@ -517,7 +515,6 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                       setHoveredMeld({ teamId: my_team, index: idx })
                     }
                     onMouseLeave={() => setHoveredMeld(null)}
-                    scale="scale-75 md:scale-100"
                     enterFrom={activePlayerDirection}
                   />
                 );

@@ -54,14 +54,16 @@ export const PlayerTimerBadge = ({
         const currentSecond = Math.ceil(remaining);
         if (lastTickRef.current !== currentSecond) {
           ticTacAudio.currentTime = 0;
-          ticTacAudio.play().catch((e) => console.warn("Audio play blocked:", e));
+          ticTacAudio
+            .play()
+            .catch((e) => console.warn("Audio play blocked:", e));
           lastTickRef.current = currentSecond;
         }
       } else {
         lastTickRef.current = null;
         // Pause if we are above threshold (e.g. if timer reset but still playing)
         // Though logically we only play short clips, for safety:
-        // ticTacAudio.pause(); 
+        // ticTacAudio.pause();
       }
     };
 
@@ -74,7 +76,15 @@ export const PlayerTimerBadge = ({
       ticTacAudio.pause();
       ticTacAudio.currentTime = 0;
     };
-  }, [turn_start_time, status, isCurrentPlayer, duration, isMuted, ticTacAudio, criticalThreshold]);
+  }, [
+    turn_start_time,
+    status,
+    isCurrentPlayer,
+    duration,
+    isMuted,
+    ticTacAudio,
+    criticalThreshold,
+  ]);
 
   const progress = Math.min(100, Math.max(0, (timeLeft / duration) * 100));
   const isCritical = timeLeft <= criticalThreshold;
@@ -107,25 +117,19 @@ export const PlayerTimerBadge = ({
 
           {/* Initials or Short Name */}
           <span
-            className={`${
-              isAccessibilityMode ? "text-xs" : "text-[10px]"
-            } font-black ${
+            className={`text-xs font-black ${
               isCurrentPlayer ? "text-white" : "opacity-70 text-white"
             }`}
           >
-            {userName.substring(0, 3).toUpperCase()}
+            {userName.substring(0, 4).toUpperCase()}
           </span>
 
           {/* Cards Count Badge */}
           <div className="flex items-center gap-0.5 bg-white/10 px-1 rounded-md">
-            <Hand
-              size={isAccessibilityMode ? 12 : 10}
-              className="opacity-60"
-            />
+            <Hand size={12} className="opacity-60" />
             <span
-              className={`${
-                isAccessibilityMode ? "text-xs" : "text-[10px]"
-              } font-mono font-bold`}
+              className={`text-xs
+              font-mono font-bold`}
             >
               {handSize}
             </span>
@@ -139,9 +143,9 @@ export const PlayerTimerBadge = ({
               }
             >
               {turnPhase === "DRAW" ? (
-                <ArrowDownToLine size={isAccessibilityMode ? 12 : 10} />
+                <ArrowDownToLine size={12} />
               ) : (
-                <ArrowUpFromLine size={isAccessibilityMode ? 12 : 10} />
+                <ArrowUpFromLine size={12} />
               )}
             </span>
           )}
@@ -176,7 +180,9 @@ export const PlayerTimerBadge = ({
         <div className="relative flex items-center gap-2 z-10 w-full justify-between min-w-[90px]">
           <span
             className={`${
-              isAccessibilityMode ? "text-xs md:text-sm" : "text-[10px] md:text-xs"
+              isAccessibilityMode
+                ? "text-xs md:text-sm"
+                : "text-[10px] md:text-xs"
             } font-bold tracking-wide truncate max-w-[80px]`}
           >
             {userName.toUpperCase()}
@@ -185,7 +191,9 @@ export const PlayerTimerBadge = ({
           <div className="flex items-center gap-1.5">
             <span
               className={`${
-                isAccessibilityMode ? "text-xs md:text-sm" : "text-[10px] md:text-xs"
+                isAccessibilityMode
+                  ? "text-xs md:text-sm"
+                  : "text-[10px] md:text-xs"
               } flex gap-1 items-center font-mono font-bold opacity-90`}
             >
               <Hand

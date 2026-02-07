@@ -34,8 +34,12 @@ export const GameMenu = ({
   const [isOpen, setIsOpen] = useState(false);
   const toggleMute = useGameStore((state) => state.toggleMute);
   const isMuted = useGameStore((state) => state.isMuted);
-  const toggleAccessibilityMode = useGameStore((state) => state.toggleAccessibilityMode);
-  const isAccessibilityMode = useGameStore((state) => state.isAccessibilityMode);
+  const toggleAccessibilityMode = useGameStore(
+    (state) => state.toggleAccessibilityMode,
+  );
+  const isAccessibilityMode = useGameStore(
+    (state) => state.isAccessibilityMode,
+  );
 
   const [showConfirmLeave, setShowConfirmLeave] = useState(false);
 
@@ -78,9 +82,7 @@ export const GameMenu = ({
                 }`}
               >
                 <Type size={16} />
-                {isAccessibilityMode
-                  ? "Acessibilidade: ON"
-                  : "Acessibilidade: OFF"}
+                {isAccessibilityMode ? "+ Legível: ON" : "+ Legível: OFF"}
               </button>
 
               {toggleAnimations && (
@@ -159,10 +161,7 @@ export const GameMenu = ({
       )}
 
       {isOpen && (
-        <div
-          className="fixed inset-0 z-[-1]"
-          onClick={handleClose}
-        ></div>
+        <div className="fixed inset-0 z-[-1]" onClick={handleClose}></div>
       )}
     </div>
   );

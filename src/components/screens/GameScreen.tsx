@@ -359,9 +359,10 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               {Object.entries(playerPositions).map(([id, pos]) => {
                 const playerEvent = [...(game.recentEvents || [])]
                   .reverse()
-                  .find((e) =>
-                    e.playerId === Number(id) &&
-                    ["info", "warning", "success"].includes(e.type)
+                  .find(
+                    (e) =>
+                      e.playerId === Number(id) &&
+                      ["info", "warning", "success"].includes(e.type),
                   );
 
                 if (playerEvent) {
@@ -372,8 +373,10 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                   const team = myTeam === eventPlayerTeam ? "mine" : "opponent";
 
                   let customColor = undefined;
-                  if (playerEvent.type === "warning") customColor = "bg-red-600";
-                  if (playerEvent.type === "success") customColor = "bg-green-600";
+                  if (playerEvent.type === "warning")
+                    customColor = "bg-red-600";
+                  if (playerEvent.type === "success")
+                    customColor = "bg-green-600";
 
                   return (
                     <EventBalloon
@@ -469,7 +472,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
            px-2 md:px-8 border-y border-white/5 shadow-2xl z-30 shrink-0
             cursor-grab active:cursor-grabbing select-none active:bg-white/10 transition-colors group"
           >
-            <div className="flex h-full items-center justify-center">
+            <div className="flex h-full items-center justify-between">
               {isMobile ? (
                 <GameSeparatorMobile
                   {...layoutProps}

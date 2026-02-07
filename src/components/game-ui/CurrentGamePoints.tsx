@@ -14,9 +14,7 @@ export default function CurrentGamePoints({
       >
         <span className="text-sm font-mono text-white leading-none">
           {points}{" "}
-          <span className="text-[5px] md:text-[10px] text-gray-400 uppercase ml-1">
-            pt
-          </span>
+          <span className="text-[10px] text-gray-400 uppercase ml-1">pts</span>
         </span>
       </div>{" "}
     </>

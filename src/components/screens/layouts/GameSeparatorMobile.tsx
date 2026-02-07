@@ -2,6 +2,7 @@ import { Skull } from "lucide-react";
 import { PileCard } from "../../game-ui/PileCard";
 import { DiscardCard } from "../../game-ui/DiscardCard";
 import { PlayerTimerBadge } from "../../game-ui/PlayerTimerBadge";
+import CurrentGamePoints from "../../game-ui/CurrentGamePoints";
 import { type GameLayoutProps } from "../types/GameLayoutProps";
 import { type Card } from "../../../../common/types/card";
 
@@ -17,11 +18,15 @@ export const GameSeparatorMobile = ({
   onDiscardClick,
   my_player_id,
   playerRefs,
+  myScore,
+  oppScore,
+  myTeamHasTaken,
+  oppTeamHasTaken,
 }: GameLayoutProps & { my_player_id: number }) => {
   return (
-    <div className="flex w-full items-center justify-between px-1 h-full">
+    <div className="flex w-full items-center justify-between px-1 h-full gap-1">
       {/* MEU TIME (NÓS) - LEFT SIDE */}
-      <div className="flex flex-col items-center leading-none px-0.5 gap-0 shrink-0">
+      <div className="flex items-center gap-1.5 shrink-0">
         <div className="flex flex-col gap-0.5">
           {Object.entries(game.players_data)
             .filter(([id]) => Number(id) % 2 === my_player_id % 2)
@@ -46,21 +51,29 @@ export const GameSeparatorMobile = ({
               />
             ))}
         </div>
+        
+        <CurrentGamePoints
+          points={myScore}
+          hasTakenDeadPile={myTeamHasTaken}
+          showSkull={true}
+          maxDeadPiles={game.rules.teamCanTakeBothDeadPiles ? 2 : 1}
+          className="min-w-[45px]"
+        />
       </div>
 
       {/* CENTER: DECK AND DISCARD */}
-      <div className="flex items-center justify-center gap-6 flex-1">
-        {/* MOBILE: DECK */}
-        <div className="relative h-full flex flex-col-reverse gap-y-0.5 items-center shrink-0 no-drag">
-                                  <PileCard
-                                    onClick={onDeckClick}
-                                    active={canDraw}
-                                    mini={true}
-                                    quantity={game.deck_count}
-                                    draw_phase={game.turn_phase === "DRAW"}
-                                    dead_piles={game.dead_piles_count}
-                                  />
-                                </div>        {/* MOBILE: DISCARD */}
+      <div className="flex items-center justify-center gap-4 flex-1">
+        <div className="relative h-full flex items-center shrink-0 no-drag">
+          <PileCard
+            onClick={onDeckClick}
+            active={canDraw}
+            mini={true}
+            quantity={game.deck_count}
+            draw_phase={game.turn_phase === "DRAW"}
+            dead_piles={game.dead_piles_count}
+          />
+        </div>
+
         <div className="relative h-full flex items-center shrink-0 no-drag">
           <DiscardCard
             card={game.discard_pile[0]}
@@ -76,7 +89,14 @@ export const GameSeparatorMobile = ({
       </div>
 
       {/* TIME DELES (ELES) - RIGHT SIDE */}
-      <div className="flex flex-col items-center leading-none px-0.5 gap-0 shrink-0">
+      <div className="flex items-center gap-1.5 shrink-0">
+        <CurrentGamePoints
+          points={oppScore}
+          hasTakenDeadPile={oppTeamHasTaken}
+          showSkull={true}
+          maxDeadPiles={game.rules.teamCanTakeBothDeadPiles ? 2 : 1}
+          className="min-w-[45px]"
+        />
         <div className="flex flex-col gap-0.5">
           {Object.entries(game.players_data)
             .filter(([id]) => Number(id) % 2 !== my_player_id % 2)

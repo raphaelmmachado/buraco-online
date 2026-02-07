@@ -23,7 +23,6 @@ import { useGameAudio } from "../../hooks/useGameAudio";
 import { useMobileCheck } from "../../hooks/useMobileCheck";
 import CurrentGamePoints from "../game-ui/CurrentGamePoints";
 import { ConnectionOverlay } from "./ConnectionOverlay";
-import TookDeadPile from "../game-ui/TookDeadPile";
 import { EventBalloon } from "../game-ui/EventBalloon";
 import Portal from "../ui/Portal";
 import { TimerBalloon } from "../game-ui/TimerBalloon";
@@ -437,7 +436,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           <section
             id="opponent-area"
             style={{ height: `${opponentHeight}%` }}
-            className="bg-red-950/10 border-b border-white/5 px-1 md:px-6 py-1 flex flex-col relative z-10 min-h-0 transition-[height] duration-75 ease-linear"
+            className="bg-red-950/10 border-b border-white/5 px-4 md:px-6 py-1 flex flex-col relative z-10 min-h-0 transition-[height] duration-75 ease-linear"
           >
             <div className="flex-1 flex flex-wrap content-start gap-x-2 md:gap-x-4 gap-y-1.5 md:gap-y-8 overflow-y-auto scrollbar-hide pt-1">
               {game.team_melds[opponent_team]?.map((meld, idx) => (
@@ -453,10 +452,17 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                 </span>
               </div>
             </div>
-            {/* PLACAR */}
-            <TookDeadPile took={oppTeamHasTaken} position="right-2 bottom-8" />
-            <CurrentGamePoints points={oppScore} position="right-2 bottom-1" />
-          </section>
+                        {/* PLACAR UNIFICADO (DESKTOP ONLY) */}
+                        {!isMobile && (
+                          <CurrentGamePoints 
+                            points={oppScore} 
+                            className="absolute right-2 bottom-1"
+                            hasTakenDeadPile={oppTeamHasTaken}
+                            showSkull={true}
+                            maxDeadPiles={game.rules.teamCanTakeBothDeadPiles ? 2 : 1}
+                            invert={true}
+                          />
+                        )}          </section>
 
           {/* SEPARATOR / INFO BAR (Draggable) */}
           <motion.section
@@ -486,7 +492,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           {/* ÁREA DO JOGADOR (Resizable) */}
           <section
             id="player-area"
-            className="flex-1 bg-blue-950/10 px-1 md:px-6 py-1 flex flex-col relative z-10 min-h-0"
+            className="flex-1 bg-blue-950/10 px-4 md:px-6 py-1 flex flex-col relative z-10 min-h-0"
           >
             <div
               className="flex-1 flex flex-wrap content-start gap-x-2 md:gap-x-4
@@ -542,9 +548,16 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               )}{" "}
             </div>
 
-            {/* PLACAR */}
-            <TookDeadPile took={myTeamHasTaken} position="right-2 top-8" />
-            <CurrentGamePoints points={myScore} position="right-2 top-1" />
+            {/* PLACAR UNIFICADO (DESKTOP ONLY) */}
+            {!isMobile && (
+              <CurrentGamePoints
+                points={myScore}
+                className="absolute right-2 top-1"
+                hasTakenDeadPile={myTeamHasTaken}
+                showSkull={true}
+                maxDeadPiles={game.rules.teamCanTakeBothDeadPiles ? 2 : 1}
+              />
+            )}
           </section>
 
           {/* FOOTER: [MONTE] [MÃO] [LIXO] */}

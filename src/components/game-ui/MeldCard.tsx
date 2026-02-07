@@ -97,7 +97,7 @@ export const MeldCard = ({
       className={`
         relative rounded-bl-none rounded-br-none rounded-md shadow-lg border bg-white select-none
         flex flex-col items-center justify-between p-0.5
-        w-11 h-10 md:w-16 md:h-20
+        w-11  md:w-16 md:h-20 ${isAccessibilityMode ? "h-12" : "h-11"}
         ${
           highlight
             ? "border-yellow-400 ring-2 ring-yellow-400/50 z-50 shadow-yellow-500/30"
@@ -114,7 +114,7 @@ export const MeldCard = ({
       </div>
 
       <div
-        className={`absolute -bottom-4 -right-4 -translate-x-1/2 -translate-y-1/2 pointer-events-none ${isAccessibilityMode ? "opacity-0" : "opacity-10"}`}
+        className={`${isAccessibilityMode ? "opacity-0" : "opacity-10"} absolute -bottom-4 -right-4 -translate-x-1/2 -translate-y-1/2 pointer-events-none `}
       >
         <SuitIcon suit={card.suit.name} className="w-6 h-6 md:w-10 md:h-10" />
       </div>

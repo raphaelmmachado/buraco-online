@@ -50,7 +50,7 @@ export const GameSeparatorMobile = ({
   return (
     <>
       {/* MOBILE: DECK ON LEFT */}
-      <div className="relative h-full py-1 flex flex-col-reverse gap-y-1 items-center shrink-0 no-drag">
+      <div className="relative h-full flex flex-col-reverse gap-y-0.5 items-center shrink-0 no-drag">
         <PileCard
           onClick={onDeckClick}
           active={canDraw}
@@ -59,14 +59,14 @@ export const GameSeparatorMobile = ({
           draw_phase={game.turn_phase === "DRAW"}
           dead_piles={game.dead_piles_count}
         />
-        <div className="bg-red-900 text-white text-xs font-black px-0.5 flex items-center justify-center rounded-md border border-white/20">
-          <Skull size={14} /> : {game.dead_piles_count}
+        <div className="bg-red-900 text-white text-[10px] font-black px-0.5 flex items-center justify-center rounded border border-white/20">
+          <Skull size={10} />:{game.dead_piles_count}
         </div>
       </div>
 
       {/* MEU TIME (NÓS) */}
-      <div className="flex flex-col items-center leading-none px-1 gap-0.5">
-        <div className="flex flex-col md:flex-row gap-1">
+      <div className="flex flex-col items-center leading-none px-0.5 gap-0">
+        <div className="flex flex-col gap-0.5">
           {Object.entries(game.players_data)
             .filter(([id]) => Number(id) % 2 === my_player_id % 2)
             .map(([id, p]) => (
@@ -93,7 +93,7 @@ export const GameSeparatorMobile = ({
       </div>
 
       {/* CENTER: TURN INFO OR EVENT BAR */}
-      <div className="flex flex-col items-center bg-black/40 backdrop-blur-sm px-3 py-1 rounded-lg border border-white/10 shadow-lg mx-1 min-w-[80px] h-[38px] justify-center relative overflow-hidden">
+      <div className="flex flex-col items-center px-1 py-0.5 mx-0.5 min-w-[60px] h-[30px] justify-center relative overflow-hidden">
         {game.recentEvents && game.recentEvents.length > 0 ? (
           <EventBar
             message={game.recentEvents[game.recentEvents.length - 1].message}
@@ -103,20 +103,20 @@ export const GameSeparatorMobile = ({
           <div className="flex flex-col items-center">
             <div className="flex items-center gap-1">
               <span
-                className={`text-xs font-black ${
+                className={`text-[10px] font-black ${
                   isMyTurn ? "text-yellow-400 animate-pulse" : "text-white/40"
-                } uppercase tracking-widest`}
+                } uppercase tracking-tighter`}
               >
                 {isMyTurn ? "SUA VEZ" : "VEZ DELES"}
               </span>
             </div>
 
             <span
-              className={`text-xs text-gray-400 font-bold tracking-tight mt-0.5`}
+              className={`text-[9px] text-gray-400 font-bold tracking-tight mt-0`}
             >
               {status === "PLAYING" && (
                 <span
-                  className={`text-xs font-black flex items-center gap-0.5 ${
+                  className={`flex items-center gap-0.5 ${
                     timeLeft < 15
                       ? "text-red-500 animate-pulse"
                       : "text-white/40"
@@ -131,8 +131,8 @@ export const GameSeparatorMobile = ({
       </div>
 
       {/* TIME DELES (ELES) */}
-      <div className="flex flex-col items-center leading-none px-1 gap-0.5">
-        <div className="flex flex-col md:flex-row gap-1">
+      <div className="flex flex-col items-center leading-none px-0.5 gap-0">
+        <div className="flex flex-col gap-0.5">
           {Object.entries(game.players_data)
             .filter(([id]) => Number(id) % 2 !== my_player_id % 2)
             .map(([id, p]) => (
@@ -159,7 +159,7 @@ export const GameSeparatorMobile = ({
       </div>
 
       {/* MOBILE: DISCARD ON RIGHT */}
-      <div className="relative h-full py-1 flex items-center shrink-0 no-drag">
+      <div className="relative h-full flex items-center shrink-0 no-drag">
         <DiscardCard
           card={game.discard_pile[0]}
           quantity={game.discard_pile.length}

@@ -440,14 +440,14 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           <section
             id="opponent-area"
             style={{ height: `${opponentHeight}%` }}
-            className="bg-red-950/10 border-b border-white/5 px-2 md:px-6 py-2 flex flex-col relative z-10 min-h-0 transition-[height] duration-75 ease-linear"
+            className="bg-red-950/10 border-b border-white/5 px-1 md:px-6 py-1 flex flex-col relative z-10 min-h-0 transition-[height] duration-75 ease-linear"
           >
-            <div className="flex-1 flex flex-wrap content-start md:gap-x-4 gap-y-2 md:gap-y-8 overflow-y-auto scrollbar-hide pt-2">
+            <div className="flex-1 flex flex-wrap content-start md:gap-x-4 gap-y-1.5 md:gap-y-8 overflow-y-auto scrollbar-hide pt-1">
               {game.team_melds[opponent_team]?.map((meld, idx) => (
                 <MeldDisplay
                   key={idx}
                   meld={meld}
-                  scale="scale-90 md:scale-100"
+                  scale="scale-75 md:scale-100"
                   enterFrom={activePlayerDirection}
                 />
               ))}
@@ -458,8 +458,8 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               </div>
             </div>
             {/* PLACAR */}
-            <TookDeadPile took={oppTeamHasTaken} position="right-5 bottom-10" />
-            <CurrentGamePoints points={oppScore} position="right-5 bottom-1" />
+            <TookDeadPile took={oppTeamHasTaken} position="right-2 bottom-8" />
+            <CurrentGamePoints points={oppScore} position="right-2 bottom-1" />
           </section>
 
           {/* SEPARATOR / INFO BAR (Draggable) */}
@@ -469,10 +469,10 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
             onMouseDown={startDrag}
             onTouchStart={startDrag}
             className="md:h-[5%] bg-white/5 backdrop-blur-md
-           px-2 md:px-8 border-y border-white/5 shadow-2xl z-30 shrink-0
+           px-1 md:px-8 border-y border-white/5 shadow-2xl z-30 shrink-0
             cursor-grab active:cursor-grabbing select-none active:bg-white/10 transition-colors group"
           >
-            <div className="flex h-full items-center justify-between px-2 md:px-0">
+            <div className="flex h-full items-center justify-between px-1 md:px-0">
               {isMobile ? (
                 <GameSeparatorMobile
                   {...layoutProps}
@@ -490,11 +490,11 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           {/* ÁREA DO JOGADOR (Resizable) */}
           <section
             id="player-area"
-            className="flex-1 bg-blue-950/10 px-2 md:px-6 py-2 flex flex-col relative z-10 min-h-0"
+            className="flex-1 bg-blue-950/10 px-1 md:px-6 py-1 flex flex-col relative z-10 min-h-0"
           >
             <div
               className="flex-1 flex flex-wrap content-start md:gap-x-4
-           gap-y-2 md:gap-y-8 overflow-y-auto scrollbar-hide pt-2 pb-20"
+           gap-y-1.5 md:gap-y-8 overflow-y-auto scrollbar-hide pt-1 pb-16"
             >
               {game.team_melds[my_team]?.map((meld, idx) => {
                 // Logic: Can interact if (Draw Phase & Discard Avail) OR (Action Phase & Hand Cards Selected)
@@ -519,7 +519,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                       setHoveredMeld({ teamId: my_team, index: idx })
                     }
                     onMouseLeave={() => setHoveredMeld(null)}
-                    scale="scale-90 md:scale-100"
+                    scale="scale-75 md:scale-100"
                     enterFrom={activePlayerDirection}
                   />
                 );
@@ -535,11 +535,11 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               {(showNewMeldAction || showNewMeldPickUp) && (
                 <div
                   onClick={handleNewMeldClick}
-                  className="shrink-0 w-32 h-20 md:w-48 md:h-28 border-2 border-dotted border-yellow-600/40 bg-yellow-600/5 cursor-pointer hover:bg-yellow-600/10 shadow-sm rounded-xl flex flex-col items-center justify-center transition-all duration-300"
+                  className="shrink-0 w-24 h-16 md:w-48 md:h-28 border-2 border-dotted border-yellow-600/40 bg-yellow-600/5 cursor-pointer hover:bg-yellow-600/10 shadow-sm rounded-xl flex flex-col items-center justify-center transition-all duration-300"
                 >
                   <div className="flex items-center gap-3 text-yellow-600/60">
                     <span className="text-3xl md:text-5xl font-light"></span>
-                    <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-left leading-tight">
+                    <span className="text-[9px] md:text-xs font-black uppercase tracking-widest text-left leading-tight">
                       + Abaixar novo
                     </span>
                   </div>
@@ -548,15 +548,15 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
             </div>
 
             {/* PLACAR */}
-            <TookDeadPile took={myTeamHasTaken} position="right-5 top-10" />
-            <CurrentGamePoints points={myScore} position="right-5 top-1" />
+            <TookDeadPile took={myTeamHasTaken} position="right-2 top-8" />
+            <CurrentGamePoints points={myScore} position="right-2 top-1" />
           </section>
 
           {/* FOOTER: [MONTE] [MÃO] [LIXO] */}
           <footer
             id="game-footer"
-            className="h-36 md:h-[20%] bg-linear-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md px-2 pb-2 z-40
-           relative w-full flex items-end justify-between gap-2 md:gap-6 pointer-events-none"
+            className="h-32 md:h-[20%] bg-linear-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md px-1 pb-1 z-40
+           relative w-full flex items-end justify-between gap-1 md:gap-6 pointer-events-none"
           >
             {isMobile ? (
               <GameFooterMobile {...layoutProps} my_player_id={my_player_id} />

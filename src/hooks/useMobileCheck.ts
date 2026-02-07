@@ -4,7 +4,6 @@ export const useMobileCheck = () => {
   const [windowSize, setWindowSize] = useState({
     width: window.innerWidth,
     isMobile: window.innerWidth < 768,
-    isSmallMobile: window.innerWidth < 425,
   });
 
   useEffect(() => {
@@ -13,7 +12,6 @@ export const useMobileCheck = () => {
       setWindowSize({
         width,
         isMobile: width < 768,
-        isSmallMobile: width < 425,
       });
     };
 

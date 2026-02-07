@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "server:dist": "bun run server_dist.ts",
-    "server": "bun run index.ts"
+    "server": "bun run index.ts",
+    "tunnel": "cloudflared tunnel --url https://localhost:3050"
   },
   "devDependencies": {
     "@types/bun": "latest",

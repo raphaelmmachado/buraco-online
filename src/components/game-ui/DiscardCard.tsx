@@ -7,8 +7,6 @@ import {
   getAnimationOrigin,
 } from "../../utils/animation_utils";
 
-import { useMobileCheck } from "../../hooks/useMobileCheck";
-
 interface DiscardCardProps {
   card?: CardType;
   onClick: () => void;
@@ -41,7 +39,6 @@ export const DiscardCard = ({
   originDirection = "bottom",
   quantity = 0,
 }: DiscardCardProps) => {
-  const { isSmallMobile } = useMobileCheck();
   const isAccessibilityMode = useGameStore(
     (state) => state.isAccessibilityMode,
   );
@@ -49,7 +46,7 @@ export const DiscardCard = ({
     return (
       <div
         onClick={onClick}
-        className={`${mini ? (isSmallMobile ? "w-9 h-12" : "w-10 h-14") : "w-14 h-20 md:w-20 md:h-32"}
+        className={`${mini ? "w-10 h-14" : "w-14 h-20 md:w-20 md:h-32"}
           text-xs tracking-wider md:text-base border-2 border-dashed border-white/10 rounded-md
           flex items-center justify-center font-black text-white/10
         ${isActionable ? "cursor-pointer hover:bg-white/5" : ""}
@@ -99,7 +96,7 @@ export const DiscardCard = ({
   const valueClass = (isMini: boolean) =>
     isAccessibilityMode
       ? `${isMini ? "text-lg" : "md:text-4xl text-2xl"} font-bold scale-y-125 origin-top ${card?.value === "10" ? "tracking-tighter" : ""}`
-      : `${isMini ? "text-sm" : "md:text-2xl"} font-black`;
+      : `${isMini ? "text-sm" : "text-lg md:text-2xl"} font-black`;
 
   const suitClass = (isMini: boolean) =>
     isAccessibilityMode
@@ -127,7 +124,7 @@ export const DiscardCard = ({
   return (
     <div
       className={`relative ${
-        mini ? (isSmallMobile ? "w-9 h-12" : "w-10 h-14") : "w-14 h-20 md:w-20 md:h-32"
+        mini ? "w-10 h-14" : "w-14 h-20 md:w-20 md:h-32"
       } flex flex-col items-center justify-center`}
     >
       {/* Background Layers for "Messy Pile" effect */}
@@ -171,7 +168,7 @@ export const DiscardCard = ({
          flex flex-col items-center p-1 z-10
         ${
           mini
-            ? (isSmallMobile ? "w-9 h-12" : "w-10 h-14") + " justify-center"
+            ? "w-10 h-14 justify-center"
             : "w-14 h-20 md:w-20 md:h-32 justify-between"
         }
         ${

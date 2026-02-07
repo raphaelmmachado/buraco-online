@@ -1,5 +1,3 @@
-import { useMobileCheck } from "../../hooks/useMobileCheck";
-
 interface PileCardProps {
   onClick?: () => void;
   active?: boolean;
@@ -16,7 +14,6 @@ export const PileCard = ({
   quantity,
   dead_piles,
 }: PileCardProps) => {
-  const { isSmallMobile } = useMobileCheck();
   const displayQuantity = quantity === 0 && dead_piles > 0 ? 11 : quantity;
 
   if (displayQuantity === 0) {
@@ -40,7 +37,7 @@ export const PileCard = ({
     <div
       className={`relative group ${
         mini 
-          ? (isSmallMobile ? "w-9 h-12" : "w-10 h-14") 
+          ? "w-10 h-14" 
           : "w-14 h-20 md:w-20 md:h-32"
       } flex items-center justify-center`}
     >
@@ -91,7 +88,7 @@ export const PileCard = ({
         ></div>
 
         {/* Número da quantidade */}
-        <PileQuantity quantity={displayQuantity} mini={mini} isSmallMobile={isSmallMobile} />
+        <PileQuantity quantity={displayQuantity} mini={mini} />
 
         {/* Borda brilhante quando ativo */}
         {active && onClick && (
@@ -116,10 +113,10 @@ export const PileCard = ({
   );
 };
 
-const PileQuantity = ({ quantity, mini, isSmallMobile }: { quantity: number, mini?: boolean, isSmallMobile?: boolean }) => {
+const PileQuantity = ({ quantity, mini }: { quantity: number, mini?: boolean }) => {
   return (
     <>
-      <div className={`text-white rounded-xl font-bold ${mini ? (isSmallMobile ? 'text-sm' : 'text-base') : 'md:text-2xl'} drop-shadow-md z-20`}>
+      <div className={`text-white rounded-xl font-bold ${mini ? 'text-base' : 'text-xl md:text-2xl'} drop-shadow-md z-20`}>
         {quantity}
       </div>
     </>
@@ -133,11 +130,10 @@ const EmptyPile = ({
   onClick?: () => void;
   mini: boolean;
 }) => {
-  const { isSmallMobile } = useMobileCheck();
   return (
     <div
       onClick={onClick}
-      className={`${mini ? (isSmallMobile ? "w-9 h-12" : "w-10 h-14") : "w-14 h-20 md:w-20 md:h-32"}
+      className={`${mini ? "w-10 h-14" : "w-14 h-20 md:w-20 md:h-32"}
         text-xs tracking-wider md:text-base border-2 border-dashed border-white/10 rounded-md
         flex items-center justify-center font-black text-white/10 select-none
       `}

@@ -4,7 +4,6 @@ import { PlayerTimerBadge } from "../../game-ui/PlayerTimerBadge";
 import CurrentGamePoints from "../../game-ui/CurrentGamePoints";
 import { type GameLayoutProps } from "../types/GameLayoutProps";
 import { type Card } from "../../../../common/types/card";
-import { useMobileCheck } from "../../../hooks/useMobileCheck";
 
 export const GameSeparatorMobile = ({
   game,
@@ -23,13 +22,14 @@ export const GameSeparatorMobile = ({
   myTeamHasTaken,
   oppTeamHasTaken,
 }: GameLayoutProps & { my_player_id: number }) => {
-  const { isSmallMobile } = useMobileCheck();
-
-      return (
-
-        <div className={`flex w-full items-center justify-center h-full ${isSmallMobile ? "px-0 gap-2" : "px-1 gap-4"}`}>
-                  {/* MEU TIME (NÓS) - LEFT SIDE */}
-                  <div className={`flex items-center shrink-0 ${isSmallMobile ? "gap-1" : "gap-1.5"}`}>        <div className="flex flex-col gap-0.5">
+  return (
+    <div className="flex w-full h-full items-center justify-between px-1 gap-1">
+      {/* LEFT: MY TEAM BLOCK */}
+      <div className="flex flex-col gap-1 items-start min-w-[80px]">
+        {/* TOP SPACER to push names down */}
+        <div className="h-5 invisible select-none pointer-events-none" aria-hidden="true" />
+        
+        <div className="flex flex-col gap-0.5">
           {Object.entries(game.players_data)
             .filter(([id]) => Number(id) % 2 === my_player_id % 2)
             .map(([id, p]) => (
@@ -53,24 +53,23 @@ export const GameSeparatorMobile = ({
               />
             ))}
         </div>
-
         <CurrentGamePoints
           points={myScore}
           hasTakenDeadPile={myTeamHasTaken}
           showSkull={true}
           maxDeadPiles={game.rules.teamCanTakeBothDeadPiles ? 2 : 1}
-          className={isSmallMobile ? "min-w-[42px]" : "min-w-[45px]"}
+          horizontal={true}
+          className="py-0 h-5"
         />
       </div>
 
-                  {/* CENTER: DECK AND DISCARD */}
-
-                  <div className={`flex items-center justify-center shrink-0 ${isSmallMobile ? "gap-1.5" : "gap-4"}`}>
+      {/* CENTER: CARDS (LARGER) */}
+      <div className="flex items-center justify-center gap-4 shrink-0">
         <div className="relative h-full flex items-center shrink-0 no-drag">
           <PileCard
             onClick={onDeckClick}
             active={canDraw}
-            mini={true}
+            mini={false}
             quantity={game.deck_count}
             draw_phase={game.turn_phase === "DRAW"}
             dead_piles={game.dead_piles_count}
@@ -82,7 +81,7 @@ export const GameSeparatorMobile = ({
             card={game.discard_pile[0]}
             quantity={game.discard_pile.length}
             onClick={onDiscardClick}
-            mini={true}
+            mini={false}
             isActionable={canDraw || (canAction && selectedCards.length === 1)}
             highlight={isDiscardSelected || hoveredMeld !== null}
             subtleHighlight={canAction && selectedCards.length === 1}
@@ -91,24 +90,17 @@ export const GameSeparatorMobile = ({
         </div>
       </div>
 
-                  {/* TIME DELES (ELES) - RIGHT SIDE */}
-
-                  <div className={`flex items-center shrink-0 ${isSmallMobile ? "gap-1" : "gap-1.5"}`}>
-
-                    <CurrentGamePoints
-
-                      points={oppScore}
-
-                      hasTakenDeadPile={oppTeamHasTaken}
-
-                      showSkull={true}
-
-                      maxDeadPiles={game.rules.teamCanTakeBothDeadPiles ? 2 : 1}
-
-                      className={isSmallMobile ? "min-w-[42px]" : "min-w-[45px]"}
-
-                    />
-        <div className="flex flex-col gap-0.5">
+      {/* RIGHT: OPPONENT TEAM BLOCK */}
+      <div className="flex flex-col gap-1 items-end min-w-[80px]">
+        <CurrentGamePoints
+          points={oppScore}
+          hasTakenDeadPile={oppTeamHasTaken}
+          showSkull={true}
+          maxDeadPiles={game.rules.teamCanTakeBothDeadPiles ? 2 : 1}
+          horizontal={true}
+          className="py-0 h-5"
+        />
+        <div className="flex flex-col gap-0.5 items-end">
           {Object.entries(game.players_data)
             .filter(([id]) => Number(id) % 2 !== my_player_id % 2)
             .map(([id, p]) => (
@@ -132,6 +124,9 @@ export const GameSeparatorMobile = ({
               />
             ))}
         </div>
+        
+        {/* BOTTOM SPACER to push names up */}
+        <div className="h-5 invisible select-none pointer-events-none" aria-hidden="true" />
       </div>
     </div>
   );

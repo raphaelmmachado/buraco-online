@@ -1,4 +1,3 @@
-import { Skull } from "lucide-react";
 import { PileCard } from "../../game-ui/PileCard";
 import { DiscardCard } from "../../game-ui/DiscardCard";
 import { PlayerTimerBadge } from "../../game-ui/PlayerTimerBadge";
@@ -51,7 +50,7 @@ export const GameSeparatorMobile = ({
               />
             ))}
         </div>
-        
+
         <CurrentGamePoints
           points={myScore}
           hasTakenDeadPile={myTeamHasTaken}

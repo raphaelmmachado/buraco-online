@@ -353,9 +353,8 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           className="h-screen w-screen bg-[#0f2e1a] text-white overflow-hidden flex flex-col select-none relative font-sans"
         >
           {/* == PORTAL RENDERER FOR EVENTS == */}
-          {!isMobile && (
-            <Portal>
-              {/* Event Balloons (for info/success messages) */}
+          <Portal>
+            {/* Event Balloons (for info/success messages) */}
               {Object.entries(playerPositions).map(([id, pos]) => {
                 const playerEvent = [...(game.recentEvents || [])]
                   .reverse()
@@ -401,7 +400,6 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                 return null;
               })()}
             </Portal>
-          )}
           {/* Connection Overlay (Only for Online Game) */}
           {game.roomId !== "LOCAL_DEBUG" && <ConnectionOverlay />}
 

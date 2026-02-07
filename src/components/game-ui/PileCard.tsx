@@ -93,6 +93,20 @@ export const PileCard = ({
           <div className="absolute inset-0 border-4 border-yellow-400 rounded-md animate-pulse shadow-[0_0_15px_rgba(234,179,8,0.5)]"></div>
         )}
       </div>
+
+      {/* Dead Piles (Mortos) Indicator Pips - NEW VISUAL */}
+      <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 flex gap-1 z-20">
+        {[...Array(2)].map((_, i) => (
+          <div
+            key={i}
+            className={`w-3 md:w-4 h-1 rounded-full transition-colors duration-500 ${
+              i < dead_piles
+                ? "bg-red-600 opacity-100"
+                : "bg-white/10 opacity-30"
+            }`}
+          />
+        ))}
+      </div>
     </div>
   );
 };

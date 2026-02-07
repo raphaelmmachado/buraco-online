@@ -1,10 +1,7 @@
-import { useEffect, useState } from "react";
 import { Skull } from "lucide-react";
 import { PileCard } from "../../game-ui/PileCard";
 import { DiscardCard } from "../../game-ui/DiscardCard";
-import { EventBar } from "../../game-ui/EventBar";
 import { PlayerTimerBadge } from "../../game-ui/PlayerTimerBadge";
-import { useGameStore } from "../../../store/useGameStore";
 import { type GameLayoutProps } from "../types/GameLayoutProps";
 import { type Card } from "../../../../common/types/card";
 
@@ -13,7 +10,6 @@ export const GameSeparatorMobile = ({
   canDraw,
   canAction,
   selectedCards,
-  isMyTurn,
   isDiscardSelected,
   hoveredMeld,
   discardOriginDirection,
@@ -22,50 +18,10 @@ export const GameSeparatorMobile = ({
   my_player_id,
   playerRefs,
 }: GameLayoutProps & { my_player_id: number }) => {
-  const turn_start_time = useGameStore((s) => s.turn_start_time);
-  const status = useGameStore((s) => s.status);
-  const duration = game.turn_phase === "DRAW" ? 20 : 60;
-  const [timeLeft, setTimeLeft] = useState(duration);
-
-  useEffect(() => {
-    const update = () => {
-      if (!turn_start_time || status !== "PLAYING") {
-        setTimeLeft(duration);
-        return;
-      }
-      const now = Date.now();
-      const elapsed = (now - turn_start_time) / 1000;
-      setTimeLeft(Math.max(0, duration - elapsed));
-    };
-
-    const timeoutId = setTimeout(update, 0);
-    const intervalId = setInterval(update, 500);
-
-    return () => {
-      clearTimeout(timeoutId);
-      clearInterval(intervalId);
-    };
-  }, [turn_start_time, status, duration]);
-
   return (
-    <>
-      {/* MOBILE: DECK ON LEFT */}
-      <div className="relative h-full flex flex-col-reverse gap-y-0.5 items-center shrink-0 no-drag">
-        <PileCard
-          onClick={onDeckClick}
-          active={canDraw}
-          mini={true}
-          quantity={game.deck_count}
-          draw_phase={game.turn_phase === "DRAW"}
-          dead_piles={game.dead_piles_count}
-        />
-        <div className="bg-red-900 text-white text-[10px] font-black px-0.5 flex items-center justify-center rounded border border-white/20">
-          <Skull size={10} />:{game.dead_piles_count}
-        </div>
-      </div>
-
-      {/* MEU TIME (NÓS) */}
-      <div className="flex flex-col items-center leading-none px-0.5 gap-0">
+    <div className="flex w-full items-center justify-between px-1 h-full">
+      {/* MEU TIME (NÓS) - LEFT SIDE */}
+      <div className="flex flex-col items-center leading-none px-0.5 gap-0 shrink-0">
         <div className="flex flex-col gap-0.5">
           {Object.entries(game.players_data)
             .filter(([id]) => Number(id) % 2 === my_player_id % 2)
@@ -92,46 +48,35 @@ export const GameSeparatorMobile = ({
         </div>
       </div>
 
-      {/* CENTER: TURN INFO OR EVENT BAR */}
-      <div className="flex flex-col items-center px-1 py-0.5 mx-0.5 min-w-[60px] h-[30px] justify-center relative overflow-hidden">
-        {game.recentEvents && game.recentEvents.length > 0 ? (
-          <EventBar
-            message={game.recentEvents[game.recentEvents.length - 1].message}
-            type={game.recentEvents[game.recentEvents.length - 1].type}
+      {/* CENTER: DECK AND DISCARD */}
+      <div className="flex items-center justify-center gap-6 flex-1">
+        {/* MOBILE: DECK */}
+        <div className="relative h-full flex flex-col-reverse gap-y-0.5 items-center shrink-0 no-drag">
+                                  <PileCard
+                                    onClick={onDeckClick}
+                                    active={canDraw}
+                                    mini={true}
+                                    quantity={game.deck_count}
+                                    draw_phase={game.turn_phase === "DRAW"}
+                                    dead_piles={game.dead_piles_count}
+                                  />
+                                </div>        {/* MOBILE: DISCARD */}
+        <div className="relative h-full flex items-center shrink-0 no-drag">
+          <DiscardCard
+            card={game.discard_pile[0]}
+            quantity={game.discard_pile.length}
+            onClick={onDiscardClick}
+            mini={true}
+            isActionable={canDraw || (canAction && selectedCards.length === 1)}
+            highlight={isDiscardSelected || hoveredMeld !== null}
+            subtleHighlight={canAction && selectedCards.length === 1}
+            originDirection={discardOriginDirection}
           />
-        ) : (
-          <div className="flex flex-col items-center">
-            <div className="flex items-center gap-1">
-              <span
-                className={`text-[10px] font-black ${
-                  isMyTurn ? "text-yellow-400 animate-pulse" : "text-white/40"
-                } uppercase tracking-tighter`}
-              >
-                {isMyTurn ? "SUA VEZ" : "VEZ DELES"}
-              </span>
-            </div>
-
-            <span
-              className={`text-[9px] text-gray-400 font-bold tracking-tight mt-0`}
-            >
-              {status === "PLAYING" && (
-                <span
-                  className={`flex items-center gap-0.5 ${
-                    timeLeft < 15
-                      ? "text-red-500 animate-pulse"
-                      : "text-white/40"
-                  }`}
-                >
-                  {game.turn_phase === "DRAW" ? "COMPRAR" : "JOGAR"}
-                </span>
-              )}
-            </span>
-          </div>
-        )}
+        </div>
       </div>
 
-      {/* TIME DELES (ELES) */}
-      <div className="flex flex-col items-center leading-none px-0.5 gap-0">
+      {/* TIME DELES (ELES) - RIGHT SIDE */}
+      <div className="flex flex-col items-center leading-none px-0.5 gap-0 shrink-0">
         <div className="flex flex-col gap-0.5">
           {Object.entries(game.players_data)
             .filter(([id]) => Number(id) % 2 !== my_player_id % 2)
@@ -157,20 +102,6 @@ export const GameSeparatorMobile = ({
             ))}
         </div>
       </div>
-
-      {/* MOBILE: DISCARD ON RIGHT */}
-      <div className="relative h-full flex items-center shrink-0 no-drag">
-        <DiscardCard
-          card={game.discard_pile[0]}
-          quantity={game.discard_pile.length}
-          onClick={onDiscardClick}
-          mini={true}
-          isActionable={canDraw || (canAction && selectedCards.length === 1)}
-          highlight={isDiscardSelected || hoveredMeld !== null}
-          subtleHighlight={canAction && selectedCards.length === 1}
-          originDirection={discardOriginDirection}
-        />
-      </div>
-    </>
+    </div>
   );
 };

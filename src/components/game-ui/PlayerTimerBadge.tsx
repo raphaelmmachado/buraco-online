@@ -1,4 +1,5 @@
 import { Hand, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useGameStore } from "../../store/useGameStore";
 import { useMobileCheck } from "../../hooks/useMobileCheck";
@@ -15,6 +16,7 @@ interface PlayerTimerBadgeProps {
 }
 
 export const PlayerTimerBadge = ({
+  playerId,
   userName,
   handSize,
   isCurrentPlayer,
@@ -89,13 +91,30 @@ export const PlayerTimerBadge = ({
   const progress = Math.min(100, Math.max(0, (timeLeft / duration) * 100));
   const isCritical = timeLeft <= criticalThreshold;
 
+  const recentEvents = useGameStore((s) => s.recentEvents);
+  const [activeEvent, setActiveEvent] = useState<string | null>(null);
+  const lastProcessedEventId = useRef<string | null>(null);
+
+  // Effect to show events for this player for 2s
+  useEffect(() => {
+    const lastEvent = [...recentEvents].reverse().find((e) => e.playerId === playerId);
+    
+    if (lastEvent && lastEvent.id !== lastProcessedEventId.current) {
+      lastProcessedEventId.current = lastEvent.id;
+      // Use setTimeout to avoid synchronous setState inside effect error
+      setTimeout(() => setActiveEvent(lastEvent.message), 0);
+      const timer = setTimeout(() => setActiveEvent(null), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [recentEvents, playerId]);
+
   // --- MOBILE DESIGN ---
   if (isMobile) {
     return (
       <div ref={innerRef} className="relative mx-0.5">
         <div
           className={`
-          relative flex items-center gap-1.5 px-2 py-1 rounded-full border backdrop-blur-md transition-all duration-300
+          relative flex items-center gap-1.5 px-2 py-1 rounded-full border backdrop-blur-md transition-all duration-300 min-w-[80px]
           ${
             isCurrentPlayer
               ? isCritical
@@ -115,14 +134,20 @@ export const PlayerTimerBadge = ({
             />
           )}
 
-          {/* Initials or Short Name */}
-          <span
-            className={`text-xs font-black ${
-              isCurrentPlayer ? "text-white" : "opacity-70 text-white"
-            }`}
-          >
-            {userName.substring(0, 4).toUpperCase()}
-          </span>
+          {/* Initials or Event Message */}
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={activeEvent || userName}
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -5 }}
+              className={`text-[10px] font-black uppercase truncate max-w-[60px] ${
+                activeEvent ? "text-yellow-400" : (isCurrentPlayer ? "text-white" : "opacity-70 text-white")
+              }`}
+            >
+              {activeEvent ? activeEvent : userName.substring(0, 4)}
+            </motion.span>
+          </AnimatePresence>
 
           {/* Cards Count Badge */}
           <div className="flex items-center gap-0.5 bg-white/10 px-1 rounded-md">

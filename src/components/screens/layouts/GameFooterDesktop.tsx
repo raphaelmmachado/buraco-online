@@ -39,6 +39,7 @@ export const GameFooterDesktop = ({
         onCardClick={toggleSelect}
         onSortHand={game.sort_hand}
         isMobile={false}
+        showSortButton={game.showSortButton}
       />
 
       {/* RIGHT: DISCARD PILE */}

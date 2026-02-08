@@ -21,7 +21,6 @@ import { useWakeLock } from "../../hooks/useWakeLock";
 import { useScreenDrag } from "../../hooks/useScreenDrag";
 import { useGameAudio } from "../../hooks/useGameAudio";
 import { useMobileCheck } from "../../hooks/useMobileCheck";
-import CurrentGamePoints from "../game-ui/CurrentGamePoints";
 import { ConnectionOverlay } from "./ConnectionOverlay";
 import { EventBalloon } from "../game-ui/EventBalloon";
 import Portal from "../ui/Portal";
@@ -413,6 +412,8 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               onLeave={game.leaveGame}
               showAnimations={game.showAnimations}
               toggleAnimations={game.toggleAnimations}
+              showSortButton={game.showSortButton}
+              toggleSortButton={game.toggleSortButton}
               onOpenHowToPlay={() => setShowHowToPlay(true)}
               showOpponentHands={showOpponentHands}
               toggleOpponentHands={() =>
@@ -447,24 +448,13 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                 />
               ))}
               <div className="absolute text-center w-full h-full flex items-center justify-center pointer-events-none">
-                <span className="text-white/5 text-xl md:text-3xl font-black uppercase tracking-[0.5em]">
-                  ELES
-                </span>
-              </div>
-            </div>
-                        {/* PLACAR UNIFICADO (DESKTOP ONLY) */}
-                        {!isMobile && (
-                          <CurrentGamePoints 
-                            points={oppScore} 
-                            className="absolute right-2 bottom-1"
-                            hasTakenDeadPile={oppTeamHasTaken}
-                            showSkull={true}
-                            maxDeadPiles={game.rules.teamCanTakeBothDeadPiles ? 2 : 1}
-                            invert={true}
-                          />
-                        )}          </section>
-
-          {/* SEPARATOR / INFO BAR (Draggable) */}
+                                  <span className="text-white/5 text-xl md:text-3xl font-black uppercase tracking-[0.5em]">
+                                    ELES
+                                  </span>
+                                </div>
+                              </div>
+                            </section>
+                          {/* SEPARATOR / INFO BAR (Draggable) */}
           <motion.section
             transition={{ stiffness: 500 }}
             id="game-separator"
@@ -547,17 +537,6 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                 </div>
               )}{" "}
             </div>
-
-            {/* PLACAR UNIFICADO (DESKTOP ONLY) */}
-            {!isMobile && (
-              <CurrentGamePoints
-                points={myScore}
-                className="absolute right-2 top-1"
-                hasTakenDeadPile={myTeamHasTaken}
-                showSkull={true}
-                maxDeadPiles={game.rules.teamCanTakeBothDeadPiles ? 2 : 1}
-              />
-            )}
           </section>
 
           {/* FOOTER: [MONTE] [MÃO] [LIXO] */}

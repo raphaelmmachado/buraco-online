@@ -5,9 +5,9 @@ export default function CurrentGamePoints({
   hasTakenDeadPile = false,
   className = "",
   showSkull = false,
-  maxDeadPiles = 1,
   invert = false,
   horizontal = false,
+  label = "",
 }: {
   points: number;
   hasTakenDeadPile?: boolean | boolean[];
@@ -16,6 +16,7 @@ export default function CurrentGamePoints({
   maxDeadPiles?: number;
   invert?: boolean;
   horizontal?: boolean;
+  label?: string;
 }) {
   // Convert boolean or array to a count of taken dead piles
   const takenCount = Array.isArray(hasTakenDeadPile)
@@ -26,30 +27,34 @@ export default function CurrentGamePoints({
 
   if (horizontal) {
     return (
-      <div className={`flex items-center gap-3 px-3 py-1 ${className}`}>
+      <div
+        className={`flex ${invert ? "flex-row-reverse" : "flex-row"} items-center gap-2 px-3 py-1 ${className}`}
+      >
+        {label && (
+          <span
+            className={`text-[9px] font-black uppercase tracking-wider opacity-70 ${invert ? "ml-1" : "mr-1"}`}
+          >
+            {label}
+          </span>
+        )}
         <div className="flex items-center gap-1">
-          <span className="text-[12px] font-black font-mono text-white leading-none">
+          <span className="text-[14px] font-black font-mono text-white leading-none">
             {points}
-            <span className="text-[8px] text-white/40 uppercase ml-0.5 font-bold">
+            <span className="text-[9px] text-white/40 uppercase ml-0.5 font-bold">
               pts
             </span>
           </span>
         </div>
 
-        {showSkull && (
+        {showSkull && takenCount > 0 && (
           <div className="flex gap-1.5">
-            {[...Array(maxDeadPiles)].map((_, i) => {
-              const isTaken = i < takenCount;
+            {[...Array(takenCount)].map((_, i) => {
               return (
                 <div
                   key={i}
-                  className={`transition-all duration-500 ${
-                    isTaken
-                      ? "text-red-500 scale-105 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]"
-                      : "text-white/10"
-                  }`}
+                  className="transition-all duration-500 text-red-500 scale-105 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]"
                 >
-                  <Skull size={14} strokeWidth={isTaken ? 3 : 2} />
+                  <Skull size={16} strokeWidth={3} />
                 </div>
               );
             })}
@@ -73,20 +78,15 @@ export default function CurrentGamePoints({
         </span>
       </div>
 
-      {showSkull && (
+      {showSkull && takenCount > 0 && (
         <div className="flex gap-1">
-          {[...Array(maxDeadPiles)].map((_, i) => {
-            const isTaken = i < takenCount;
+          {[...Array(takenCount)].map((_, i) => {
             return (
               <div
                 key={i}
-                className={`transition-all duration-500 ${
-                  isTaken
-                    ? "text-red-500 scale-105 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]"
-                    : "text-white/10"
-                }`}
+                className="transition-all duration-500 text-red-500 scale-105 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]"
               >
-                <Skull size={12} strokeWidth={isTaken ? 3 : 2} />
+                <Skull size={12} strokeWidth={3} />
               </div>
             );
           })}

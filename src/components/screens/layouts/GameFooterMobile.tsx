@@ -15,6 +15,7 @@ export const GameFooterMobile = ({
       lastDrawnCardId={game.last_drawn_card_id}
       onCardClick={toggleSelect}
       onSortHand={game.sort_hand}
+      showSortButton={game.showSortButton}
     />
   );
 };

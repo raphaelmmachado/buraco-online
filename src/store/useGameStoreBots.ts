@@ -41,6 +41,7 @@ interface GameState {
   win_condition?: WinCondition;
   last_error: string | null;
   showAnimations: boolean;
+  showSortButton: boolean;
   recentEvents: {
     id: string;
     message: string;
@@ -65,6 +66,7 @@ interface GameActions {
   ) => void;
   clear_error: () => void;
   toggleAnimations: () => void;
+  toggleSortButton: () => void;
   addEvent: (
     message: string,
     type?: "info" | "success" | "warning" | "error",
@@ -99,6 +101,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
   round_count: 1,
   last_error: null,
   showAnimations: localStorage.getItem("baralho_show_animations") !== "false",
+  showSortButton: localStorage.getItem("baralho_show_sort") === "true",
   recentEvents: [],
   cardsPlayedThisTurn: 0,
 
@@ -146,6 +149,14 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       const newVal = !state.showAnimations;
       localStorage.setItem("baralho_show_animations", String(newVal));
       return { showAnimations: newVal };
+    });
+  },
+
+  toggleSortButton: () => {
+    set((state) => {
+      const newVal = !state.showSortButton;
+      localStorage.setItem("baralho_show_sort", String(newVal));
+      return { showSortButton: newVal };
     });
   },
 

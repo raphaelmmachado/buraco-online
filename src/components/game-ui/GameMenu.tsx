@@ -10,6 +10,7 @@ import {
   Eye,
   EyeOff,
   Type,
+  Wand2,
 } from "lucide-react";
 import { useGameStore } from "../../store/useGameStore";
 
@@ -21,6 +22,8 @@ interface GameMenuProps {
   toggleAnimations?: () => void;
   showOpponentHands?: boolean;
   toggleOpponentHands?: () => void;
+  showSortButton?: boolean;
+  toggleSortButton?: () => void;
 }
 
 export const GameMenu = ({
@@ -30,6 +33,8 @@ export const GameMenu = ({
   toggleAnimations,
   showOpponentHands,
   toggleOpponentHands,
+  showSortButton,
+  toggleSortButton,
 }: GameMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const toggleMute = useGameStore((state) => state.toggleMute);
@@ -106,6 +111,22 @@ export const GameMenu = ({
                 >
                   {showOpponentHands ? <Eye size={16} /> : <EyeOff size={16} />}
                   {showOpponentHands ? "Mãos: ON" : "Mãos: OFF"}
+                </button>
+              )}
+
+              {toggleSortButton && (
+                <button
+                  onClick={() => {
+                    toggleSortButton();
+                  }}
+                  className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                    showSortButton
+                      ? "text-yellow-400 bg-yellow-400/10"
+                      : "text-slate-300 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  <Wand2 size={16} />
+                  {showSortButton ? "B. Organizar: ON" : "B. Organizar: OFF"}
                 </button>
               )}
 

@@ -39,6 +39,7 @@ export interface GameAdapterInterface {
   rematch_votes?: Record<string, boolean>;
   last_error: string | null;
   showAnimations: boolean;
+  showSortButton: boolean;
   cardsPlayedThisTurn: number;
   recentEvents: {
     id: string;
@@ -61,6 +62,7 @@ export interface GameAdapterInterface {
   sort_hand: () => void;
   clear_error: () => void;
   toggleAnimations: () => void;
+  toggleSortButton: () => void;
 }
 
 export const useLocalGameAdapter = (): GameAdapterInterface => {
@@ -116,6 +118,7 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       rematch_votes: {},
       last_error: local.last_error,
       showAnimations: local.showAnimations,
+      showSortButton: local.showSortButton,
       cardsPlayedThisTurn: local.cardsPlayedThisTurn,
       recentEvents: local.recentEvents,
 
@@ -138,6 +141,7 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       sort_hand: local.sort_my_hand,
       clear_error: local.clear_error,
       toggleAnimations: local.toggleAnimations,
+      toggleSortButton: local.toggleSortButton,
     };
   }, [local, players_data]);
 

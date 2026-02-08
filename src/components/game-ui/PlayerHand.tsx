@@ -11,6 +11,7 @@ interface PlayerHandProps {
   onCardClick: (id: string) => void;
   onSortHand: () => void;
   isMobile: boolean;
+  showSortButton?: boolean;
 }
 
 // --- CONFIGURAÇÃO FÁCIL DE EDITAR ---
@@ -50,8 +51,8 @@ const HAND_CONFIG = {
 
   // Posicionamento
   position: {
-    bottomOffsetMobile: 10,
-    bottomOffsetDesktop: 15,
+    bottomOffsetMobile: -5, // Lowered from 10
+    bottomOffsetDesktop: -5, // Lowered from 15
   },
   hover_zIndex: false,
 };
@@ -63,6 +64,7 @@ export const PlayerHand = ({
   onCardClick,
   onSortHand,
   isMobile,
+  showSortButton = false,
 }: PlayerHandProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(1000);
@@ -415,18 +417,20 @@ export const PlayerHand = ({
       </div>
 
       {/* Botão de Organizar */}
-      <div
-        id="player-controls"
-        className="absolute bottom-1 z-100 pointer-events-auto"
-      >
-        <button
-          onClick={onSortHand}
-          className="bg-gray-800/80 hover:bg-gray-700 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full backdrop-blur-md border border-white/10 shadow-lg transition-all active:scale-95 flex items-center gap-1 hover:border-yellow-400/50"
-          title="Organizar Mão"
+      {showSortButton && (
+        <div
+          id="player-controls"
+          className="absolute bottom-1 z-100 pointer-events-auto"
         >
-          <span>🪄 Organizar</span>
-        </button>
-      </div>
+          <button
+            onClick={onSortHand}
+            className="bg-gray-800/80 hover:bg-gray-700 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full backdrop-blur-md border border-white/10 shadow-lg transition-all active:scale-95 flex items-center gap-1 hover:border-yellow-400/50"
+            title="Organizar Mão"
+          >
+            <span>🪄 Organizar</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

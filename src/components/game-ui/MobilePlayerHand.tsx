@@ -10,6 +10,7 @@ interface MobilePlayerHandProps {
   lastDrawnCardId?: string | null;
   onCardClick: (id: string) => void;
   onSortHand: () => void;
+  showSortButton?: boolean;
 }
 
 export const MobilePlayerHand = ({
@@ -18,10 +19,11 @@ export const MobilePlayerHand = ({
   lastDrawnCardId,
   onCardClick,
   onSortHand,
+  showSortButton = false,
 }: MobilePlayerHandProps) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const showAnimations = useGameStore((s) => s.showAnimations);
-  
+
   // Track dealing
   const [prevCount, setPrevCount] = useState(0);
   const [isDealing, setIsDealing] = useState(false);
@@ -36,7 +38,7 @@ export const MobilePlayerHand = ({
       {/* Scrollable Container */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 w-full overflow-x-auto flex items-end px-4 pb-2 gap-[-10px]
+        className="flex-1 w-full overflow-x-auto flex items-end p-2 gap-[-10px]
          snap-x snap-mandatory scrollbar-hide"
         style={{
           paddingRight: "50%", // Space for the last card to be centered or visible
@@ -50,14 +52,14 @@ export const MobilePlayerHand = ({
             {cards.map((card, i) => {
               const isSelected = selectedCardIds.includes(card.id);
               const isLastDrawn = card.id === lastDrawnCardId;
-              
-              // Se foi a última comprada, vem do Deck (Cima Esquerda aprox). 
+
+              // Se foi a última comprada, vem do Deck (Cima Esquerda aprox).
               // Se for deal inicial, vem da esquerda lateral.
-              const initialPos = !showAnimations 
-                ? false 
-                : (isLastDrawn 
-                    ? { opacity: 0, x: -100, y: -200, scale: 0.4, rotate: -45 }
-                    : { opacity: 0, x: -50, scale: 0.5 });
+              const initialPos = !showAnimations
+                ? false
+                : isLastDrawn
+                  ? { opacity: 0, x: -100, y: -200, scale: 0.4, rotate: -45 }
+                  : { opacity: 0, x: -50, scale: 0.5 };
 
               return (
                 <motion.div
@@ -70,12 +72,18 @@ export const MobilePlayerHand = ({
                     x: 0,
                     y: isSelected ? -8 : 0,
                     scale: 1,
-                    rotate: 0
+                    rotate: 0,
                   }}
-                  transition={showAnimations ? {
-                    type: "spring", stiffness: 400, damping: 25,
-                    delay: isDealing ? i * 0.04 : 0,
-                  } : { duration: 0 }}
+                  transition={
+                    showAnimations
+                      ? {
+                          type: "spring",
+                          stiffness: 400,
+                          damping: 25,
+                          delay: isDealing ? i * 0.04 : 0,
+                        }
+                      : { duration: 0 }
+                  }
                   exit={{ opacity: 0, scale: 0.5, y: -50 }} // Exit to discard usually
                   className={`relative shrink-0 snap-center pointer-events-auto`}
                 >
@@ -94,15 +102,17 @@ export const MobilePlayerHand = ({
       </div>
 
       {/* Floating Sort Button */}
-      <div className="absolute bottom-1 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
-        <button
-          onClick={onSortHand}
-          className="bg-gray-800/90 text-white text-[10px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full backdrop-blur-md border border-white/10 shadow-lg active:scale-95 transition-all flex items-center gap-1.5"
-        >
-          <span className="text-xs">🪄</span>
-          <span>Organizar</span>
-        </button>
-      </div>
+      {showSortButton && (
+        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
+          <button
+            onClick={onSortHand}
+            className="bg-gray-800/90 text-white text-[10px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full backdrop-blur-md border border-white/10 shadow-lg active:scale-95 transition-all flex items-center gap-1.5"
+          >
+            <span className="text-xs">🪄</span>
+            <span>Organizar</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

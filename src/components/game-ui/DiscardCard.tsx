@@ -84,11 +84,11 @@ export const DiscardCard = ({
 
   // Logic for layers
   const showLayer1 = quantity > 1;
-  const showLayer2 = quantity > 3;
-  const showLayer3 = quantity > 6;
-  const showLayer4 = quantity > 9;
-  const showLayer5 = quantity > 12;
-  const showLayer6 = quantity > 15;
+  const showLayer2 = quantity > 4;
+  const showLayer3 = quantity > 8;
+  const showLayer4 = quantity > 12;
+  const showLayer5 = quantity > 16;
+  const showLayer6 = quantity > 20;
 
   const baseLayerStyle = `absolute inset-0 bg-white rounded-md border border-slate-300 shadow-sm select-none`;
 
@@ -187,7 +187,7 @@ export const DiscardCard = ({
       `}
       >
         <div
-          className={`md:self-start flex flex-col ${isAccessibilityMode ? "gap-y-1 md:gap-y-2" : ""} items-center leading-none z-10`}
+          className={`self-start flex flex-col ${isAccessibilityMode ? "gap-y-1 md:gap-y-2" : ""} items-center leading-none z-10`}
         >
           <span className={valueClass(!!mini)}>{card.value}</span>
           <SuitIcon suit={card.suit.name} className={suitClass(!!mini)} />

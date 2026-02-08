@@ -13,7 +13,6 @@ interface DiscardCardProps {
   isActionable: boolean;
   highlight: boolean;
   subtleHighlight?: boolean;
-  mini?: boolean;
   originDirection?: ScreenDirection; // Nova prop para saber de onde vem a carta
   quantity?: number;
 }
@@ -35,7 +34,6 @@ export const DiscardCard = ({
   isActionable,
   highlight,
   subtleHighlight = false,
-  mini = false,
   originDirection = "bottom",
   quantity = 0,
 }: DiscardCardProps) => {
@@ -46,7 +44,7 @@ export const DiscardCard = ({
     return (
       <div
         onClick={onClick}
-        className={`${mini ? "w-10 h-14" : "w-14 h-20 md:w-20 md:h-32"}
+        className={`w-14 h-20 md:w-20 md:h-32
           text-xs tracking-wider md:text-base border-2 border-dashed border-white/10 rounded-md
           flex items-center justify-center font-black text-white/10
         ${isActionable ? "cursor-pointer hover:bg-white/5" : ""}
@@ -93,15 +91,13 @@ export const DiscardCard = ({
   const baseLayerStyle = `absolute inset-0 bg-white rounded-md border border-slate-300 shadow-sm select-none`;
 
   // Accessibility Styles
-  const valueClass = (isMini: boolean) =>
-    isAccessibilityMode
-      ? `${isMini ? "text-lg" : "md:text-4xl text-2xl"} font-bold scale-y-125 origin-top ${card?.value === "10" ? "tracking-tighter" : ""}`
-      : `${isMini ? "text-sm" : "text-lg md:text-2xl"} font-black`;
+  const valueClass = isAccessibilityMode
+    ? "md:text-4xl text-2xl font-bold scale-y-125 origin-top"
+    : "text-lg md:text-2xl font-black";
 
-  const suitClass = (isMini: boolean) =>
-    isAccessibilityMode
-      ? `${isMini ? "w-5 h-5" : "w-5 h-5 md:w-8 md:h-8"}`
-      : `${isMini ? "w-4 h-4" : "w-3 h-3 md:w-5 md:h-5"}`;
+  const suitClass = isAccessibilityMode
+    ? "w-5 h-5 md:w-8 md:h-8"
+    : "w-3 h-3 md:w-5 md:h-5";
 
   let textColorClass = isRed ? "text-red-600" : "text-slate-900";
   if (isAccessibilityMode) {
@@ -122,11 +118,7 @@ export const DiscardCard = ({
   }
 
   return (
-    <div
-      className={`relative ${
-        mini ? "w-10 h-14" : "w-14 h-20 md:w-20 md:h-32"
-      } flex flex-col items-center justify-center`}
-    >
+    <div className="relative w-14 h-20 md:w-20 md:h-32 flex flex-col items-center justify-center">
       {/* Background Layers for "Messy Pile" effect */}
       {showLayer6 && (
         <div
@@ -165,12 +157,7 @@ export const DiscardCard = ({
         onClick={onClick}
         className={`
         relative rounded-md shadow-lg border bg-white select-none
-         flex flex-col items-center p-1 z-10
-        ${
-          mini
-            ? "w-10 h-14 justify-center"
-            : "w-14 h-20 md:w-20 md:h-32 justify-between"
-        }
+         flex flex-col items-center p-0.5 md:p-1 z-10 w-14 h-20 md:w-20 md:h-32 justify-between
         ${
           isActionable
             ? "cursor-pointer hover:brightness-110"
@@ -187,27 +174,27 @@ export const DiscardCard = ({
       `}
       >
         <div
-          className={`self-start flex flex-col ${isAccessibilityMode ? "gap-y-1 md:gap-y-2" : ""} items-center leading-none z-10`}
+          className={`self-start flex flex-col ${isAccessibilityMode ? "gap-y-1 md:gap-y-2" : "gap-y-0"}
+           items-center leading-none z-10`}
         >
-          <span className={valueClass(!!mini)}>{card.value}</span>
-          <SuitIcon suit={card.suit.name} className={suitClass(!!mini)} />
+          <span className={valueClass}>{card.value}</span>
+          <SuitIcon suit={card.suit.name} className={suitClass} />
         </div>
-        {!mini && (
-          <div
-            className={`absolute top-1/2 left-1/2 -translate-x-1/2
-           -translate-y-1/2 pointer-events-none ${isAccessibilityMode ? "opacity-5" : "opacity-20"}`}
-          >
-            <SuitIcon
-              suit={card.suit.name}
-              className={mini ? "w-5 h-5" : "w-8 h-8 md:w-10 md:h-10"}
-            />
-          </div>
-        )}
 
-        {!mini && !isAccessibilityMode && (
-          <div className="self-end flex flex-col items-center leading-none rotate-180 z-10">
-            <span className={valueClass(!!mini)}>{card.value}</span>
-            <SuitIcon suit={card.suit.name} className={suitClass(!!mini)} />
+        {/* NAIPE CENTRAL CENTRALIZADO */}
+        <div
+          className={`absolute inset-0 flex items-center justify-center pointer-events-none ${isAccessibilityMode ? "opacity-5" : "opacity-20"}`}
+        >
+          <SuitIcon suit={card.suit.name} className="w-6 h-6 md:w-10 md:h-10" />
+        </div>
+
+        {!isAccessibilityMode && (
+          <div
+            className={`${isAccessibilityMode ? "gap-y-1 md:gap-y-2" : "gap-y-0"} 
+            self-end flex flex-col items-center leading-none rotate-180 z-10`}
+          >
+            <span className={valueClass}>{card.value}</span>
+            <SuitIcon suit={card.suit.name} className={suitClass} />
           </div>
         )}
       </motion.div>

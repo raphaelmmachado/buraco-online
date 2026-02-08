@@ -69,7 +69,6 @@ export const GameSeparatorMobile = ({
           <PileCard
             onClick={onDeckClick}
             active={canDraw}
-            mini={false}
             quantity={game.deck_count}
             draw_phase={game.turn_phase === "DRAW"}
             dead_piles={game.dead_piles_count}
@@ -81,7 +80,6 @@ export const GameSeparatorMobile = ({
             card={game.discard_pile[0]}
             quantity={game.discard_pile.length}
             onClick={onDiscardClick}
-            mini={false}
             isActionable={canDraw || (canAction && selectedCards.length === 1)}
             highlight={isDiscardSelected || hoveredMeld !== null}
             subtleHighlight={canAction && selectedCards.length === 1}

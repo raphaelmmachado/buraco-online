@@ -24,7 +24,6 @@ export const GameFooterDesktop = ({
         <PileCard
           onClick={onDeckClick}
           active={canDraw}
-          mini={false} // Force false
           quantity={game.deck_count}
           dead_piles={game.dead_piles_count}
           draw_phase={game.turn_phase === "DRAW"}
@@ -51,7 +50,6 @@ export const GameFooterDesktop = ({
           isActionable={canDraw || (canAction && selectedCards.length === 1)}
           highlight={isDiscardSelected || hoveredMeld !== null}
           subtleHighlight={canAction && selectedCards.length === 1}
-          mini={false} // Force false
           originDirection={discardOriginDirection}
         />
       </div>

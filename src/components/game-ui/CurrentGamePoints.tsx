@@ -26,9 +26,7 @@ export default function CurrentGamePoints({
 
   if (horizontal) {
     return (
-      <div
-        className={`flex items-center gap-3 px-1 py-1 ${className}`}
-      >
+      <div className={`flex items-center gap-3 px-3 py-1 ${className}`}>
         <div className="flex items-center gap-1">
           <span className="text-[12px] font-black font-mono text-white leading-none">
             {points}
@@ -66,16 +64,10 @@ export default function CurrentGamePoints({
       className={`flex ${invert ? "flex-col-reverse" : "flex-col"}
      items-center gap-1 ${className}`}
     >
-      <div
-        className="flex items-center rounded-full border border-white/10 bg-black/40 shadow-inner gap-1 px-2 py-0.5"
-      >
-        <span
-          className="text-[11px] font-black font-mono text-white leading-none"
-        >
+      <div className="flex items-center rounded-full border border-white/10 bg-black/40 shadow-inner gap-1 px-2 py-0.5">
+        <span className="text-[11px] font-black font-mono text-white leading-none">
           {points}
-          <span
-            className="text-[8px] text-white/40 uppercase ml-0.5 font-bold"
-          >
+          <span className="text-[8px] text-white/40 uppercase ml-0.5 font-bold">
             pts
           </span>
         </span>
@@ -94,12 +86,7 @@ export default function CurrentGamePoints({
                     : "text-white/10"
                 }`}
               >
-                <Skull
-                  size={12}
-                  strokeWidth={
-                    isTaken ? 3 : 2
-                  }
-                />
+                <Skull size={12} strokeWidth={isTaken ? 3 : 2} />
               </div>
             );
           })}

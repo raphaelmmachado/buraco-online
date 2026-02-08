@@ -522,10 +522,23 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const total_melded_t2 = (server_data.team_melds[2] || []).reduce((acc, m) => acc + m.length, 0);
     const total_cards_melded = total_melded_t1 + total_melded_t2;
 
+    const current_status = get().status;
+    const new_status = server_data.status;
+    
+    // Limpar marcadores ao iniciar nova partida/rodada ou ao finalizar rodada
+    let cardMarkers = get().cardMarkers;
+    if (
+      (current_status !== "PLAYING" && new_status === "PLAYING") ||
+      (new_status === "ROUND_OVER")
+    ) {
+      cardMarkers = {};
+    }
+
     set({
-      status: server_data.status,
+      status: new_status,
       mode: server_data.mode,
       cardsPlayedThisTurn: total_cards_melded,
+      cardMarkers,
       deck_count: server_data.deck_count,
       discard_pile: server_data.discard_pile,
       dead_piles_count: server_data.dead_piles_count,

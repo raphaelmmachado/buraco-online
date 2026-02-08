@@ -39,11 +39,13 @@ export const HandCard = ({
   onSetMarker,
 }: HandCardProps) => {
   const [showPicker, setShowPicker] = useState(false);
-  const [pickerDirection, setPickerDirection] = useState<"left" | "right">("left");
+  const [pickerDirection, setPickerDirection] = useState<"left" | "right">(
+    "left",
+  );
 
   const handlePaletteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     // Detectar se a carta está muito à esquerda da tela
     const rect = e.currentTarget.getBoundingClientRect();
     if (rect.left < 60) {
@@ -51,7 +53,7 @@ export const HandCard = ({
     } else {
       setPickerDirection("left");
     }
-    
+
     setShowPicker(!showPicker);
   };
   const isRed = card.color === "red";
@@ -112,13 +114,14 @@ export const HandCard = ({
     >
       {/* Marcador de Cor (Bookmark/Ribbon Style) */}
       {markerColor && (
-        <motion.div 
+        <motion.div
           initial={{ y: -10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           className="absolute -top-1 left-5 w-3 h-5 md:w-4 md:h-7 shadow-md z-30 rounded-b-sm border-x border-b border-black/10"
-          style={{ 
+          style={{
             backgroundColor: markerColor,
-            backgroundImage: "linear-gradient(to bottom, rgba(255,255,255,0.2), transparent)" 
+            backgroundImage:
+              "linear-gradient(to bottom, rgba(255,255,255,0.2), transparent)",
           }}
         >
           {/* Detalhe da dobra da fita no topo */}
@@ -177,7 +180,9 @@ export const HandCard = ({
                 initial={{ opacity: 0, y: 5, scale: 0.8 }}
                 animate={{ opacity: 1, y: -2, scale: 1 }}
                 exit={{ opacity: 0, y: 5, scale: 0.8 }}
-                className="absolute bottom-full left-0 mb-0.5 bg-white/95 backdrop-blur-sm rounded-full shadow-lg border border-slate-200 p-0.5 flex flex-col gap-1 z-50 items-center"
+                className={`absolute bottom-full ${
+                  pickerDirection === "right" ? "left-0" : "right-0"
+                } mb-0.5 bg-white/95 backdrop-blur-sm rounded-full shadow-lg border border-slate-200 p-0.5 flex flex-col gap-1 z-50 items-center`}
               >
                 {MARKER_COLORS.map((c) => (
                   <button

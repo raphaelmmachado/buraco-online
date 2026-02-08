@@ -130,6 +130,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       last_error: null,
       recentEvents: [],
       cardsPlayedThisTurn: 0,
+      cardMarkers: {},
     });
   },
 
@@ -211,6 +212,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       win_condition: winCondition,
       last_error: null,
       recentEvents: [],
+      cardMarkers: {},
     });
   },
 
@@ -239,6 +241,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       final_score: null,
       round_count: round_count + 1,
       last_error: null,
+      cardMarkers: {},
     });
   },
 
@@ -290,6 +293,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
           status: is_finished ? "FINISHED" : "ROUND_OVER",
           final_score: { team_1: t1_score, team_2: t2_score },
           cumulative_score: next_cumulative,
+          cardMarkers: {},
         });
         return;
       }
@@ -725,6 +729,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         status: is_finished ? "FINISHED" : "ROUND_OVER",
         final_score: { team_1: t1_score, team_2: t2_score },
         cumulative_score: next_cumulative,
+        cardMarkers: {},
       });
       return;
     }
@@ -781,6 +786,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         status: is_finished ? "FINISHED" : "ROUND_OVER",
         final_score: { team_1: t1_score, team_2: t2_score },
         cumulative_score: next_cumulative,
+        cardMarkers: {},
       });
     }
   },

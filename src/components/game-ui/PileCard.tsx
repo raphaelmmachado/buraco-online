@@ -96,15 +96,15 @@ export const PileCard = ({
         )}
       </div>
 
-      {/* Dead Piles (Mortos) Indicator Pips - NEW VISUAL */}
-      <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 flex gap-1 z-20">
+      {/* Dead Piles (Mortos) - Discreet Pipes on Top */}
+      <div className="absolute -top-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-30 pointer-events-none">
         {[...Array(2)].map((_, i) => (
           <div
             key={i}
-            className={`w-3 md:w-4 h-1 rounded-full transition-colors duration-500 ${
+            className={`w-4 h-1.5 rounded-full transition-all duration-500 ${
               i < dead_piles
-                ? "bg-red-600 opacity-100"
-                : "bg-white/10 opacity-30"
+                ? "bg-red-700/80 shadow-[0_0_4px_rgba(185,28,28,0.4)]"
+                : "bg-white/10"
             }`}
           />
         ))}

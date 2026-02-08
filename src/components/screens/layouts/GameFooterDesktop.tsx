@@ -1,4 +1,3 @@
-import { Skull } from "lucide-react";
 import { PlayerHand } from "../../game-ui/PlayerHand";
 import { PileCard } from "../../game-ui/PileCard";
 import { DiscardCard } from "../../game-ui/DiscardCard";
@@ -30,15 +29,6 @@ export const GameFooterDesktop = ({
           dead_piles={game.dead_piles_count}
           draw_phase={game.turn_phase === "DRAW"}
         />
-
-        {/* Contadores */}
-        <div
-          title="Quantidade de mortos"
-          className={`z-50 w-fit px-2 py-1 text-xs bg-red-600 text-white font-black 
-          flex items-center justify-center rounded-full shadow-lg border border-white/20`}
-        >
-          <Skull size={16} />: {game.dead_piles_count}{" "}
-        </div>
       </div>
 
       {/* CENTER: PLAYER HAND */}

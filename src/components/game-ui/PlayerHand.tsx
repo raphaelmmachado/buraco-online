@@ -71,6 +71,8 @@ export const PlayerHand = ({
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [hoveredSuit, setHoveredSuit] = useState<string | null>(null);
   const showAnimations = useGameStore((s) => s.showAnimations);
+  const cardMarkers = useGameStore((s) => s.cardMarkers);
+  const setCardMarker = useGameStore((s) => s.setCardMarker);
 
   const [prevCount, setPrevCount] = useState(0);
   const [isDealing, setIsDealing] = useState(false);
@@ -244,6 +246,8 @@ export const PlayerHand = ({
                   isSelected={isSelected}
                   isLastDrawn={card.id === lastDrawnCardId}
                   onClick={() => onCardClick(card.id)}
+                  markerColor={cardMarkers[card.id]}
+                  onSetMarker={(color) => setCardMarker(card.id, color)}
                 />
               </motion.div>
             );
@@ -386,6 +390,8 @@ export const PlayerHand = ({
                           isSelected={isSelected}
                           isLastDrawn={card.id === lastDrawnCardId}
                           onClick={() => onCardClick(card.id)}
+                          markerColor={cardMarkers[card.id]}
+                          onSetMarker={(color) => setCardMarker(card.id, color)}
                         />
                       </motion.div>
                     );

@@ -42,6 +42,7 @@ interface GameState {
   last_error: string | null;
   showAnimations: boolean;
   showSortButton: boolean;
+  cardMarkers: Record<string, string>;
   recentEvents: {
     id: string;
     message: string;
@@ -67,6 +68,7 @@ interface GameActions {
   clear_error: () => void;
   toggleAnimations: () => void;
   toggleSortButton: () => void;
+  setCardMarker: (cardId: string, color: string | null) => void;
   addEvent: (
     message: string,
     type?: "info" | "success" | "warning" | "error",
@@ -102,6 +104,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
   last_error: null,
   showAnimations: localStorage.getItem("baralho_show_animations") !== "false",
   showSortButton: localStorage.getItem("baralho_show_sort") === "true",
+  cardMarkers: {},
   recentEvents: [],
   cardsPlayedThisTurn: 0,
 
@@ -157,6 +160,15 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       const newVal = !state.showSortButton;
       localStorage.setItem("baralho_show_sort", String(newVal));
       return { showSortButton: newVal };
+    });
+  },
+
+  setCardMarker: (cardId, color) => {
+    set((state) => {
+      const newMarkers = { ...state.cardMarkers };
+      if (color) newMarkers[cardId] = color;
+      else delete newMarkers[cardId];
+      return { cardMarkers: newMarkers };
     });
   },
 

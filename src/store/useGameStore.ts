@@ -70,6 +70,7 @@ interface GameState {
   showAnimations: boolean;
   isAccessibilityMode: boolean;
   showSortButton: boolean;
+  cardMarkers: Record<string, string>; // cardId -> color hex/class
   recentEvents: {
     id: string;
     message: string;
@@ -131,6 +132,7 @@ interface GameActions {
   toggleAnimations: () => void;
   toggleAccessibilityMode: () => void;
   toggleSortButton: () => void;
+  setCardMarker: (cardId: string, color: string | null) => void;
   addEvent: (
     message: string,
     type?: "info" | "success" | "warning" | "error",
@@ -167,6 +169,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   showAnimations: localStorage.getItem("baralho_show_animations") !== "false",
   isAccessibilityMode: localStorage.getItem("baralho_accessibility_mode") === "true",
   showSortButton: localStorage.getItem("baralho_show_sort") === "true",
+  cardMarkers: {},
   players_data: {},
   mode: "1v1",
   recentEvents: [],
@@ -229,6 +232,14 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       const newVal = !state.showSortButton;
       localStorage.setItem("baralho_show_sort", String(newVal));
       return { showSortButton: newVal };
+    }),
+
+  setCardMarker: (cardId, color) =>
+    set((state) => {
+      const newMarkers = { ...state.cardMarkers };
+      if (color) newMarkers[cardId] = color;
+      else delete newMarkers[cardId];
+      return { cardMarkers: newMarkers };
     }),
 
   kickPlayer: (playerId: number) => {

@@ -18,6 +18,7 @@ import { calculate_score } from "../../common/utils/scoring";
 import { validate_sequence } from "../../common/utils/rules_logic";
 import { type PlayerID } from "../types";
 import type { Card } from "../../common/types/card";
+import { startTurnTimer } from "./timerService";
 
 /**
  * Envia as atualizações de estado do jogo para todos os jogadores conectados na sala.
@@ -286,6 +287,7 @@ const execute_bot_move = (io: Server, roomId: string) => {
       if (game.status !== "FINISHED") {
         game.turn_phase = "DRAW";
         game.current_player = get_next_player(game.current_player, game.mode);
+        startTurnTimer(io, roomId);
       }
 
       broadcast_game_update(io, roomId);

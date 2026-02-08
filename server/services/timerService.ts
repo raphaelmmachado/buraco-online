@@ -28,6 +28,10 @@ export const startTurnTimer = (io: Server, roomId: string) => {
   const game = games[roomId];
   if (!game || game.status !== "PLAYING") return;
 
+  // Bot check
+  const pData = game.players_data[game.current_player as PlayerID];
+  if (pData && pData.isBot) return;
+
   game.turn_start_time = Date.now();
 
   // 20s for DRAW phase, 60s for ACTION phase

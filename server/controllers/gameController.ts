@@ -9,6 +9,8 @@ import {
   get_team,
   get_player_id_by_socket,
   check_championship_status,
+  start_next_round,
+  start_new_match,
 } from "../services/gameService";
 import {
   broadcast_game_update,
@@ -356,6 +358,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         handle_empty_hand(game, player_id, "DIRECT");
       }
 
+      startTurnTimer(io, roomId);
       broadcast_game_update(io, roomId);
     },
   );
@@ -434,6 +437,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       const updated_hand = game.hands[player_id];
       if (updated_hand && updated_hand.length === 0) {
         handle_empty_hand(game, player_id, "DIRECT");
+        startTurnTimer(io, roomId);
       }
 
       broadcast_game_update(io, roomId);
@@ -530,6 +534,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       const updated_hand = game.hands[player_id];
       if (updated_hand && updated_hand.length === 0) {
         handle_empty_hand(game, player_id, "DIRECT");
+        startTurnTimer(io, roomId);
       }
       broadcast_game_update(io, roomId);
     },

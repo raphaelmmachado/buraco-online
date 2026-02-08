@@ -167,20 +167,22 @@ export const PlayerTimerBadge = ({
             </span>
           </div>
 
-          {/* Turn Icon */}
-          {isCurrentPlayer && (
-            <span
-              className={
-                isCritical ? "text-red-400 animate-pulse" : "text-yellow-400"
-              }
-            >
-              {turnPhase === "DRAW" ? (
-                <ArrowDownToLine size={12} />
-              ) : (
-                <ArrowUpFromLine size={12} />
-              )}
-            </span>
-          )}
+          {/* Turn Icon Slot (Reserved space to prevent layout jump) */}
+          <div className="w-3 flex items-center justify-center shrink-0">
+            {isCurrentPlayer && (
+              <span
+                className={
+                  isCritical ? "text-red-400 animate-pulse" : "text-yellow-400"
+                }
+              >
+                {turnPhase === "DRAW" ? (
+                  <ArrowDownToLine size={12} />
+                ) : (
+                  <ArrowUpFromLine size={12} />
+                )}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     );

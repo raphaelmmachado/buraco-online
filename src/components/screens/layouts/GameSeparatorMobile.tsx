@@ -25,7 +25,7 @@ export const GameSeparatorMobile = ({
   return (
     <div className="flex w-full h-full items-center justify-between px-1 gap-1">
       {/* LEFT: MY TEAM BLOCK */}
-      <div className="flex flex-col gap-1 items-start min-w-[80px]">
+      <div className="flex flex-col gap-1 items-start min-w-[90px]">
         {/* TOP SPACER to push names down */}
         <div className="h-5 invisible select-none pointer-events-none" aria-hidden="true" />
         
@@ -91,7 +91,7 @@ export const GameSeparatorMobile = ({
       </div>
 
       {/* RIGHT: OPPONENT TEAM BLOCK */}
-      <div className="flex flex-col gap-1 items-end min-w-[80px]">
+      <div className="flex flex-col gap-1 items-end min-w-[90px]">
         <CurrentGamePoints
           points={oppScore}
           hasTakenDeadPile={oppTeamHasTaken}

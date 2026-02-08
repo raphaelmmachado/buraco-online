@@ -162,6 +162,16 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     }
   }, [game.last_error, game]);
 
+  // Auto-clear info after 3 seconds
+  useEffect(() => {
+    if (game.last_info) {
+      const timer = setTimeout(() => {
+        game.clear_info?.();
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [game.last_info, game]);
+
   // GUARD: Wait for player identification to prevent "Ghost Mode"
   // Moved after hooks to strictly follow React Rules of Hooks
   if (game.my_player_number === null) {
@@ -448,13 +458,13 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                 />
               ))}
               <div className="absolute text-center w-full h-full flex items-center justify-center pointer-events-none">
-                                  <span className="text-white/5 text-xl md:text-3xl font-black uppercase tracking-[0.5em]">
-                                    ELES
-                                  </span>
-                                </div>
-                              </div>
-                            </section>
-                          {/* SEPARATOR / INFO BAR (Draggable) */}
+                <span className="text-white/5 text-xl md:text-3xl font-black uppercase tracking-[0.5em]">
+                  ELES
+                </span>
+              </div>
+            </div>
+          </section>
+          {/* SEPARATOR / INFO BAR (Draggable) */}
           <motion.section
             transition={{ stiffness: 500 }}
             id="game-separator"
@@ -557,12 +567,30 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                 id="error-toast"
                 className="absolute -top-16 left-1/2 -translate-x-1/2 bg-red-600/90 backdrop-blur
                text-white px-6 py-2 rounded-md text-sm font-black shadow-2xl
-                flex items-center gap-3 border border-white/20 z-100"
+                flex items-center gap-3 border border-white/20 z-100 pointer-events-auto"
               >
                 <span>⚠️ {game.last_error}</span>
                 <button
                   onClick={game.clear_error}
-                  className="bg-black/20 hover:bg-black/40 rounded-lg w-5 h-5 flex items-center justify-center"
+                  className="bg-black/20 hover:bg-black/40 rounded-lg w-5 h-5 flex items-center justify-center cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            {/* INFO TOAST (Gray) */}
+            {game.last_info && (
+              <div
+                id="info-toast"
+                className="absolute -top-16 left-1/2 -translate-x-1/2 bg-slate-700/90 backdrop-blur
+               text-white px-6 py-2 rounded-md text-sm font-black shadow-2xl
+                flex items-center gap-3 border border-white/10 z-100 pointer-events-auto"
+              >
+                <span>ℹ️ {game.last_info}</span>
+                <button
+                  onClick={game.clear_info}
+                  className="bg-white/10 hover:bg-white/20 rounded-lg w-5 h-5 flex items-center justify-center cursor-pointer"
                 >
                   ✕
                 </button>

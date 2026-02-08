@@ -34,7 +34,7 @@ export const create_deck = (): Card[] => {
     for (const suit of SUITS) {
       for (const value of VALUES) {
         const newCard: Card = {
-          id: `${value}_${suit.name}_${i}`,
+          id: `${value}_${suit.name}_${i}_${Math.random().toString(36).substring(2, 6)}`,
           color: ["copas", "ouro"].includes(suit.name) ? "red" : "black",
           suit: suit,
           value: value,

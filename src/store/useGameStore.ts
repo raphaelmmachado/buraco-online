@@ -60,6 +60,7 @@ interface GameState {
   totalOnline: number;
   onlineNames: string[];
   last_error: null | string;
+  last_info: null | string;
   connectionStatus: "CONNECTED" | "DISCONNECTED" | "CONNECTING" | "RECONNECTING";
   players_data: Record<
     number,
@@ -110,6 +111,7 @@ interface GameActions {
   rejoinGame: () => void;
   fetchRooms: () => void;
   clear_error: () => void;
+  clear_info: () => void;
 
   draw_card: () => void;
   discard_card: (card_id: string) => void;
@@ -164,6 +166,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   totalOnline: 0,
   onlineNames: [],
   last_error: null,
+  last_info: null,
   connectionStatus: "DISCONNECTED",
   isMuted: localStorage.getItem("baralho_muted") === "true",
   showAnimations: localStorage.getItem("baralho_show_animations") !== "false",
@@ -191,6 +194,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   rematch_votes: {},
 
   clear_error: () => set({ last_error: null }),
+  clear_info: () => set({ last_info: null }),
 
   addEvent: (message, type = "info", playerId) => {
     const id = Math.random().toString(36).substring(7);
@@ -523,15 +527,29 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const total_cards_melded = total_melded_t1 + total_melded_t2;
 
     const current_status = get().status;
+    const current_round = get().round_count;
+    const current_dead_piles = get().dead_piles_count;
     const new_status = server_data.status;
+    const new_round = server_data.round_count || 1;
+    const new_dead_piles = server_data.dead_piles_count;
     
-    // Limpar marcadores ao iniciar nova partida/rodada ou ao finalizar rodada
+    // Limpar marcadores ao iniciar nova partida/rodada, ao finalizar rodada ou se a rodada mudar
     let cardMarkers = get().cardMarkers;
+    let lastInfo = get().last_info;
+
     if (
       (current_status !== "PLAYING" && new_status === "PLAYING") ||
-      (new_status === "ROUND_OVER")
+      (new_status === "ROUND_OVER") ||
+      (current_round !== new_round)
     ) {
       cardMarkers = {};
+      lastInfo = null;
+    }
+
+    // Detectar uso do morto (quando o deck principal zera e um morto é usado)
+    // Mesma lógica do som de morto
+    if (new_status === "PLAYING" && new_dead_piles < current_dead_piles && current_dead_piles > 0) {
+        lastInfo = "Um monte do morto foi usado.";
     }
 
     set({
@@ -539,6 +557,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       mode: server_data.mode,
       cardsPlayedThisTurn: total_cards_melded,
       cardMarkers,
+      last_info: lastInfo,
       deck_count: server_data.deck_count,
       discard_pile: server_data.discard_pile,
       dead_piles_count: server_data.dead_piles_count,

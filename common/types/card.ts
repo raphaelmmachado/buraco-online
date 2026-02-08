@@ -108,6 +108,18 @@ export const CARD_POINTS: Record<CardValue, number> = CARD_DEFINITIONS.reduce(
   {} as Record<CardValue, number>,
 );
 
+/**
+ * Converte uma carta ou uma chave de carta (ex: 'K_copas') em uma string amigável (ex: 'K ♥').
+ */
+export const format_card_name = (cardOrKey: Card | string): string => {
+  if (typeof cardOrKey === "string") {
+    const [value, suitName] = cardOrKey.split("_");
+    const suit = SUITS.find((s) => s.name === suitName);
+    return `${value} ${suit?.emoji || suit?.icon || ""}`;
+  }
+  return `${cardOrKey.value} ${cardOrKey.suit.emoji || cardOrKey.suit.icon}`;
+};
+
 // -----------------------------------------------------------------------------
 // PONTOS DE BÔNUS E PENALIDADES
 // -----------------------------------------------------------------------------

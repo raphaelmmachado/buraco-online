@@ -30,7 +30,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
     "action_draw",
     (
       { roomId }: { roomId: string },
-      callback?: (res: ServerResponse) => void
+      callback?: (res: ServerResponse) => void,
     ) => {
       const game = games[roomId];
       if (!game) return;
@@ -70,17 +70,23 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
             [t1_hand_1, t1_hand_2],
             false,
             !t1_taken,
-            game.rules
+            game.rules,
           );
           const t2_score = calculate_score(
             t2_melds,
             [t2_hand_1, t2_hand_2],
             false,
             !t2_taken,
-            game.rules
+            game.rules,
           );
 
-          check_championship_status(game, t1_score.total_score, t2_score.total_score, t1_score, t2_score);
+          check_championship_status(
+            game,
+            t1_score.total_score,
+            t2_score.total_score,
+            t1_score,
+            t2_score,
+          );
           stopTurnTimer(roomId);
           broadcast_game_update(io, roomId);
           return;
@@ -100,14 +106,14 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         startTurnTimer(io, roomId);
         broadcast_game_update(io, roomId);
       }
-    }
+    },
   );
 
   socket.on(
     "action_pick_up_discard_new_meld",
     (
       { roomId, card_ids }: { roomId: string; card_ids: string[] },
-      callback?: (res: ServerResponse) => void
+      callback?: (res: ServerResponse) => void,
     ) => {
       const game = games[roomId];
       if (!game) return;
@@ -141,7 +147,11 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
 
       const combined = [...hand_cards, top_discard];
 
-      const is_valid_pickup = validate_discard_pickup(top_discard, hand_cards, game.rules);
+      const is_valid_pickup = validate_discard_pickup(
+        top_discard,
+        hand_cards,
+        game.rules,
+      );
       console.log(`[PICKUP RESULT] Valid: ${is_valid_pickup}`);
 
       const validation = validate_sequence(combined);
@@ -171,8 +181,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
           if (!already_has_clean && !this_is_clean_canasta) {
             if (callback)
               callback({
-                error:
-                  "Proibido bater sem canastra limpa (você ficaria apenas com uma carta na mão).",
+                error: "Proibido bater sem canastra limpa.",
               });
             return;
           }
@@ -184,12 +193,12 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
 
       // Remove from hand
       game.hands[player_id] = current_hand.filter(
-        (c) => !card_ids.includes(c.id)
+        (c) => !card_ids.includes(c.id),
       );
 
       // Add discard rest to hand
       const rest_of_discard = all_discard.filter(
-        (c) => c.id !== top_discard.id
+        (c) => c.id !== top_discard.id,
       );
       const player_hand = game.hands[player_id];
       if (player_hand) {
@@ -217,7 +226,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
 
       startTurnTimer(io, roomId);
       broadcast_game_update(io, roomId);
-    }
+    },
   );
 
   socket.on(
@@ -232,7 +241,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         meld_index: number;
         card_ids: string[];
       },
-      callback?: (res: ServerResponse) => void
+      callback?: (res: ServerResponse) => void,
     ) => {
       const game = games[roomId];
       if (!game) return;
@@ -273,7 +282,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         target_meld,
         hand_cards,
         top_discard,
-        game.rules
+        game.rules,
       );
 
       if (!validation.valid) {
@@ -319,11 +328,11 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       game.discard_pile = [];
 
       game.hands[player_id] = current_hand.filter(
-        (c) => !card_ids.includes(c.id)
+        (c) => !card_ids.includes(c.id),
       );
 
       const rest_of_discard = all_discard.filter(
-        (c) => c.id !== top_discard.id
+        (c) => c.id !== top_discard.id,
       );
       const player_hand = game.hands[player_id];
       if (player_hand) {
@@ -348,14 +357,14 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       }
 
       broadcast_game_update(io, roomId);
-    }
+    },
   );
 
   socket.on(
     "action_meld",
     (
       { roomId, card_ids }: { roomId: string; card_ids: string[] },
-      callback?: (res: ServerResponse) => void
+      callback?: (res: ServerResponse) => void,
     ) => {
       const game = games[roomId];
       if (!game) return;
@@ -402,8 +411,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
           if (!already_has_clean && !this_is_clean_canasta) {
             if (callback)
               callback({
-                error:
-                  "Proibido bater sem canastra limpa (você ficaria apenas com uma carta na mão).",
+                error: "Proibido bater sem canastra limpa.",
               });
             return;
           }
@@ -411,7 +419,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       }
 
       game.hands[player_id] = sort_cards(
-        current_hand.filter((c) => !card_ids.includes(c.id))
+        current_hand.filter((c) => !card_ids.includes(c.id)),
       );
       const team_melds = game.team_melds[team_id];
       if (team_melds) {
@@ -429,7 +437,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       }
 
       broadcast_game_update(io, roomId);
-    }
+    },
   );
 
   socket.on(
@@ -444,7 +452,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         card_ids: string[];
         meld_index: number;
       },
-      callback?: (res: ServerResponse) => void
+      callback?: (res: ServerResponse) => void,
     ) => {
       const game = games[roomId];
       if (!game) return;
@@ -498,8 +506,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
           if (!already_has_clean && !this_will_be_clean) {
             if (callback)
               callback({
-                error:
-                  "Proibido bater sem canastra limpa (você ficaria apenas com uma carta na mão).",
+                error: "Proibido bater sem canastra limpa.",
               });
             return;
           }
@@ -507,13 +514,13 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       }
 
       game.hands[player_id] = sort_cards(
-        current_hand.filter((c) => !card_ids.includes(c.id))
+        current_hand.filter((c) => !card_ids.includes(c.id)),
       );
 
       const organized = organize_meld(new_meld);
       if (organized.length !== new_meld.length) {
         console.error(
-          `[CRITICAL] organize_meld lost cards! In: ${new_meld.length}, Out: ${organized.length}`
+          `[CRITICAL] organize_meld lost cards! In: ${new_meld.length}, Out: ${organized.length}`,
         );
         team_melds[meld_index] = sort_cards(new_meld);
       } else {
@@ -525,14 +532,14 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         handle_empty_hand(game, player_id, "DIRECT");
       }
       broadcast_game_update(io, roomId);
-    }
+    },
   );
 
   socket.on(
     "action_discard",
     (
       { roomId, card_id }: { roomId: string; card_id: string },
-      callback?: (res: ServerResponse) => void
+      callback?: (res: ServerResponse) => void,
     ) => {
       const game = games[roomId];
       if (!game) return;
@@ -588,12 +595,12 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         // Check if next player is bot
         const nextPData = game.players_data[game.current_player as PlayerID];
         if (nextPData && nextPData.isBot) {
-            process_bot_turn(io, roomId);
+          process_bot_turn(io, roomId);
         }
       }
 
       broadcast_game_update(io, roomId);
-    }
+    },
   );
 
   socket.on("action_sort_hand", ({ roomId }: { roomId: string }) => {
@@ -615,7 +622,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
   socket.on("action_vote_next", ({ roomId }: { roomId: string }) => {
     const game = games[roomId];
     if (!game) return;
-    
+
     if (game.status !== "ROUND_OVER" && game.status !== "FINISHED") return;
 
     // Toggle vote or set to true? "Continue" usually implies True.
@@ -626,26 +633,28 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
     // Filter only HUMAN players who are currently connected
     // Bots are auto-ready (implicitly, we don't check them)
     // We check `players_connected` list.
-    
-    const allHumansReady = game.players_connected.every(socketId => {
-        // Is this socket associated with a player in the game?
-        const isPlayer = Object.values(game.players_data).some(p => p.socketId === socketId);
-        if (!isPlayer) return true; // Spectator? Ignore.
-        return game.rematch_votes![socketId];
+
+    const allHumansReady = game.players_connected.every((socketId) => {
+      // Is this socket associated with a player in the game?
+      const isPlayer = Object.values(game.players_data).some(
+        (p) => p.socketId === socketId,
+      );
+      if (!isPlayer) return true; // Spectator? Ignore.
+      return game.rematch_votes![socketId];
     });
 
     if (allHumansReady) {
-        if (game.status === "ROUND_OVER") {
-            start_next_round(game);
-        } else {
-            start_new_match(game);
-        }
-        startTurnTimer(io, roomId);
-        
-        // Start Bot if P1 is bot
-        process_bot_turn(io, roomId);
+      if (game.status === "ROUND_OVER") {
+        start_next_round(game);
+      } else {
+        start_new_match(game);
+      }
+      startTurnTimer(io, roomId);
+
+      // Start Bot if P1 is bot
+      process_bot_turn(io, roomId);
     }
-    
+
     broadcast_game_update(io, roomId);
     saveState();
   });

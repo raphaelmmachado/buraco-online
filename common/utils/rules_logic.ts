@@ -13,6 +13,7 @@ import {
   CARD_VALUE_WEIGHTS,
   GAME_RULES,
   MELD_POINTS,
+  format_card_name,
 } from "../types/card";
 import { type GameRules, DEFAULT_RULES } from "../types/rules";
 
@@ -84,11 +85,11 @@ export const get_sequence_details = (cards: Card[]): SequenceDetails => {
 
   // Valida regras de duplicatas (Buraco usa 2 baralhos, então pode haver dois 7 de ouros, mas não três)
   for (const [key, count] of cardCounts.entries()) {
-    if (count > 2) return { is_valid: false, error: `Máximo de 2 cartas iguais (${key}).` };
+    if (count > 2) return { is_valid: false, error: `Máximo de 2 cartas iguais (${format_card_name(key)}).` };
     
     // O '2' não pode ser duplicado no mesmo jogo se for usado como natural (regra específica de sequência)
     if (count === 2 && !key.startsWith("A_")) {
-      return { is_valid: false, error: `Cartas duplicadas inválidas no mesmo jogo.` };
+      return { is_valid: false, error: `Cartas duplicadas inválidas no mesmo jogo (${format_card_name(key)}).` };
     }
   }
 

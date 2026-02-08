@@ -38,6 +38,7 @@ export interface GameAdapterInterface {
   win_condition?: WinCondition;
   rematch_votes?: Record<string, boolean>;
   last_error: string | null;
+  last_info: string | null;
   showAnimations: boolean;
   showSortButton: boolean;
   cardMarkers: Record<string, string>;
@@ -62,6 +63,7 @@ export interface GameAdapterInterface {
   leaveGame: () => void;
   sort_hand: () => void;
   clear_error: () => void;
+  clear_info: () => void;
   toggleAnimations: () => void;
   toggleSortButton: () => void;
   setCardMarker: (cardId: string, color: string | null) => void;
@@ -119,6 +121,7 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       win_condition: local.win_condition,
       rematch_votes: {},
       last_error: local.last_error,
+      last_info: local.last_info,
       showAnimations: local.showAnimations,
       showSortButton: local.showSortButton,
       cardMarkers: local.cardMarkers,
@@ -143,6 +146,7 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       },
       sort_hand: local.sort_my_hand,
       clear_error: local.clear_error,
+      clear_info: local.clear_info,
       toggleAnimations: local.toggleAnimations,
       toggleSortButton: local.toggleSortButton,
       setCardMarker: local.setCardMarker,

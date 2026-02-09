@@ -6,7 +6,7 @@ import { registerRoomHandlers } from "./controllers/roomController";
 import { registerGameHandlers } from "./controllers/gameController";
 import { loadState } from "./state";
 
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3050;
 
 // Load persisted state immediately
 loadState();

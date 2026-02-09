@@ -153,10 +153,13 @@ type ServerResponse = { error?: string; success?: boolean };
 
 const socket: Socket = io(SERVER_ADDRESS, {
   autoConnect: false,
-  transports: ["websocket"], // Força WebSocket para evitar problemas de polling no Render
+  transports: ["polling", "websocket"],
   reconnection: true,
   reconnectionAttempts: Infinity,
-  reconnectionDelay: 1000,
+  reconnectionDelay: 500, // Tenta a cada meio segundo
+  reconnectionDelayMax: 2000,
+  randomizationFactor: 0,
+  timeout: 10000,
 });
 
 let listeners_setup = false;

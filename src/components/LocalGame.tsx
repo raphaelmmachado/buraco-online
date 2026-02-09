@@ -82,6 +82,10 @@ export const LocalGame = ({ onBack }: { onBack?: () => void }) => {
       store.reset_game();
       if (onBack) onBack();
     },
+    closeRoom: () => {
+      store.reset_game();
+      if (onBack) onBack();
+    },
   };
 
   return (

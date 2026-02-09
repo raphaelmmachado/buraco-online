@@ -683,11 +683,10 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
       const [pId, pData] = playerEntry;
       const pNum = Number(pId);
       
-      if (game.status === "PLAYING") {
-        console.log(`[LEAVE] Removendo rastros de ${pData.userName} da sala ${roomId}. Bot assumindo.`);
+      if (game.status !== "LOBBY") {
+        console.log(`[LEAVE] Jogador ${pData.userName} (${pNum}) saiu da sala ${roomId}. Bot assumindo, mas permitindo retorno.`);
         
-        // Instant dissociation: Remove the trace
-        pData.playerId = "DISCONNECTED"; 
+        // Marcamos como bot e limpamos socket, mas MANTEMOS o playerId para permitir rejoin
         pData.socketId = "BOT";
         pData.isBot = true;
 
@@ -701,7 +700,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
             userName: pData.userName 
         });
         
-        if (game.current_player === pNum) {
+        if (game.status === "PLAYING" && game.current_player === pNum) {
             process_bot_turn(io, roomId);
         }
       } else {

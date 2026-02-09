@@ -32,6 +32,7 @@ interface FinishScreenProps {
   totalHumanPlayers?: number;
   onPlayAgain: () => void;
   onLeave: () => void;
+  isLeader?: boolean;
 }
 
 export const FinishScreen = ({
@@ -46,6 +47,7 @@ export const FinishScreen = ({
   myPlayerId,
   rematchVotes = {},
   totalHumanPlayers = 0,
+  isLeader = false,
 }: FinishScreenProps) => {
   const effectiveScore = cumulativeScore || {
     team_1: finalScore.team_1,
@@ -254,7 +256,7 @@ export const FinishScreen = ({
           fullWidth
           icon={<LogOut size={20} />}
         >
-          Sair da Sala
+          {isLeader ? "Encerrar" : "Sair"}
         </StyledButton>
       </motion.div>
     </motion.div>

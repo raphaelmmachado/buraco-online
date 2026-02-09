@@ -106,25 +106,20 @@ export const HomeScreen = ({ onBack }: { onBack: () => void }) => {
     setTimeout(() => setIsRefreshing(false), 800);
   };
 
-  // Inicializa listeners apenas uma vez
-  useEffect(() => {
-    initializeSocket();
-  }, [initializeSocket]);
-
-  // Ao montar, conecta e inicia busca de salas
-  useEffect(() => {
-    connectSocket();
-
-    // Se já estiver conectado, busca as salas agora mesmo
-    if (connectionStatus === "CONNECTED") {
-      fetchRooms();
-    }
-
-    const interval = setInterval(fetchRooms, 5000);
-    return () => clearInterval(interval);
-  }, [connectSocket, fetchRooms, connectionStatus]);
-
-  // VALIDATE ACTIVE SESSION
+      // 1. Inicializa listeners e tenta conectar apenas UMA vez ao montar a tela
+      useEffect(() => {
+        initializeSocket();
+        connectSocket();
+      }, [initializeSocket, connectSocket]);
+    
+      // 2. Gerencia a busca de salas baseada no status da conexão
+      useEffect(() => {
+        if (connectionStatus === "CONNECTED") {
+            fetchRooms();
+            const interval = setInterval(fetchRooms, 5000);
+            return () => clearInterval(interval);
+        }
+      }, [connectionStatus, fetchRooms]);  // VALIDATE ACTIVE SESSION
   useEffect(() => {
     if (rooms.length > 0 && activeSession) {
       const roomExists = rooms.some((r) => r.roomId === activeSession);

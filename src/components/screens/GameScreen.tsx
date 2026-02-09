@@ -194,13 +194,15 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
       ? Object.values(game.players_data).filter((p) => !p.isBot).length
       : 0;
     const mySocketId = game.players_data?.[my_player_id]?.socketId;
+    const isLeader = my_player_id === 1;
 
     return (
       <FinishScreen
         finalScore={game.final_score}
         myTeam={my_team}
         onPlayAgain={() => game.voteNext()}
-        onLeave={game.leaveGame}
+        onLeave={isLeader ? game.closeRoom : game.leaveGame}
+        isLeader={isLeader}
         isRoundOver={isRoundOver}
         cumulativeScore={game.cumulative_score}
         roundCount={game.round_count}

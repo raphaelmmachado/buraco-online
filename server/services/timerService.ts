@@ -30,7 +30,10 @@ export const startTurnTimer = (io: Server, roomId: string) => {
 
   // Bot check
   const pData = game.players_data[game.current_player as PlayerID];
-  if (pData && pData.isBot) return;
+  if (pData && pData.isBot) {
+    game.turn_start_time = undefined;
+    return;
+  }
 
   game.turn_start_time = Date.now();
 

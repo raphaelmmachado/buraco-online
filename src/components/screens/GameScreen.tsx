@@ -418,12 +418,14 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           {/* Menu Dropdown */}
           <div className="absolute top-4 right-4 z-100">
             <GameMenu
-              onOpenRules={() => setShowHowToPlay(true)}
-              onLeave={game.leaveGame}
+              onLeave={my_player_id !== 1 ? game.leaveGame : undefined}
+              onCloseRoom={my_player_id === 1 ? game.closeRoom : undefined}
               showAnimations={game.showAnimations}
               toggleAnimations={game.toggleAnimations}
               showSortButton={game.showSortButton}
               toggleSortButton={game.toggleSortButton}
+              showCardMarkers={game.showCardMarkers}
+              toggleCardMarkers={game.toggleCardMarkers}
               onOpenHowToPlay={() => setShowHowToPlay(true)}
               showOpponentHands={showOpponentHands}
               toggleOpponentHands={() =>

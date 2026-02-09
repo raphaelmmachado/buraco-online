@@ -114,9 +114,15 @@ export const MeldCard = ({
       </div>
 
       <div
-        className={`${isAccessibilityMode ? "opacity-0" : "opacity-10"} absolute -bottom-4 -right-4 -translate-x-1/2 -translate-y-1/2 pointer-events-none `}
+        className={`${isAccessibilityMode ? "opacity-0" : "opacity-10"} absolute -bottom-3 left-1/2  md:-bottom-1 md:left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none `}
       >
-        <SuitIcon suit={card.suit.name} className="w-6 h-6 md:w-10 md:h-10" />
+        <SuitIcon suit={card.suit.name} className="w-5 h-5 md:w-7 md:h-7" />
+      </div>
+      <div
+        className={`self-end rotate-180 flex flex-col ${isAccessibilityMode ? "gap-y-0.5 md:gap-y-2" : ""} items-center leading-none z-10`}
+      >
+        <span className={valueClass}>{card.value}</span>
+        <SuitIcon suit={card.suit.name} className={suitClass} />
       </div>
     </motion.div>
   );

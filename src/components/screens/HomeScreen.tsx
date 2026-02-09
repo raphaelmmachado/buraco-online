@@ -63,8 +63,6 @@ export const HomeScreen = ({ onBack }: { onBack: () => void }) => {
   const rooms = useGameStore((state) => state.rooms);
   const fetchRooms = useGameStore((state) => state.fetchRooms);
   const rejoinGame = useGameStore((state) => state.rejoinGame);
-  const totalOnline = useGameStore((state) => state.totalOnline);
-  const onlineNames = useGameStore((state) => state.onlineNames);
   const connectionStatus = useGameStore((state) => state.connectionStatus);
   const recentEvents = useGameStore((state) => state.recentEvents);
   const addEvent = useGameStore((state) => state.addEvent);
@@ -75,9 +73,24 @@ export const HomeScreen = ({ onBack }: { onBack: () => void }) => {
     localStorage.getItem("baralho_active_room"),
   );
 
-  const [userName, setUserName] = useState(
-    () => localStorage.getItem("baralho_user_name") || "",
+  const [myPlayerId] = useState<string | null>(() =>
+    localStorage.getItem("baralho_player_id"),
   );
+
+  const [userName, setUserName] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const nick = params.get("nick")?.trim();
+    if (nick && nick.length > 0) return nick.toUpperCase();
+    return localStorage.getItem("baralho_user_name") || "";
+  });
+
+  const roomFromUrl = new URLSearchParams(window.location.search).get("room");
+
+  useEffect(() => {
+    if (roomFromUrl && !userName) {
+      addEvent("Digite seu nome para entrar na sala convidada!", "info");
+    }
+  }, [roomFromUrl, userName, addEvent]);
 
   const handleUserNameChange = (val: string) => {
     const cleaned = val.toUpperCase();
@@ -101,9 +114,15 @@ export const HomeScreen = ({ onBack }: { onBack: () => void }) => {
   // Ao montar, conecta e inicia busca de salas
   useEffect(() => {
     connectSocket();
+
+    // Se já estiver conectado, busca as salas agora mesmo
+    if (connectionStatus === "CONNECTED") {
+      fetchRooms();
+    }
+
     const interval = setInterval(fetchRooms, 5000);
     return () => clearInterval(interval);
-  }, [connectSocket, fetchRooms]);
+  }, [connectSocket, fetchRooms, connectionStatus]);
 
   // VALIDATE ACTIVE SESSION
   useEffect(() => {
@@ -155,7 +174,7 @@ export const HomeScreen = ({ onBack }: { onBack: () => void }) => {
       </div>
 
       <div className="fixed bottom-4 left-4 text-[10px] text-white/20 font-mono pointer-events-none z-50">
-        v{__APP_VERSION__} - Raphael Machado
+        v{__APP_VERSION__} - BETA
       </div>
 
       <ConnectionBadge />
@@ -276,19 +295,6 @@ export const HomeScreen = ({ onBack }: { onBack: () => void }) => {
                   <span className="text-lg">📡</span>
                   Salas Disponíveis
                 </h2>
-                {totalOnline > 0 && (
-                  <p className="text-[10px] text-slate-500 font-medium">
-                    <span className="text-yellow-500/80">
-                      {onlineNames.slice(0, 3).join(", ")}
-                    </span>
-                    {totalOnline > 3
-                      ? ` e mais ${totalOnline - 3}`
-                      : totalOnline === 1
-                        ? ""
-                        : ""}
-                    {totalOnline > 1 ? " estão " : " está "} online
-                  </p>
-                )}
               </div>
               <div className="flex items-center gap-2 bg-black/40 px-2 py-1 rounded border border-white/5">
                 <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_5px_rgba(34,197,94,0.8)]"></span>
@@ -328,88 +334,136 @@ export const HomeScreen = ({ onBack }: { onBack: () => void }) => {
                 rooms.map((room) => {
                   const isFull = room.playerCount >= room.maxPlayers;
                   const isPlaying = room.status !== "LOBBY";
+                  const isInvited = roomFromUrl === room.roomId;
+                  const isMe =
+                    myPlayerId && room.playerIds?.includes(myPlayerId);
                   const canJoin =
                     !isFull && !isPlaying && connectionStatus === "CONNECTED";
 
                   return (
                     <div
                       key={room.roomId}
-                      className={`group p-4 rounded-xl border transition-all flex justify-between items-center relative overflow-hidden ${
-                        !canJoin
-                          ? "bg-white/5 border-white/5 opacity-60"
-                          : "bg-white/5 border-white/10 hover:border-yellow-500/50 hover:bg-white/10 hover:shadow-[0_0_15px_rgba(234,179,8,0.1)]"
+                      className={`group p-4 rounded-xl border transition-all flex flex-col sm:flex-row gap-4 justify-between sm:items-center relative overflow-hidden ${
+                        isInvited
+                          ? "bg-yellow-500/10 border-yellow-500/50 shadow-[0_0_20px_rgba(234,179,8,0.15)] ring-1 ring-yellow-500/30"
+                          : !canJoin && !isMe
+                            ? "bg-white/5 border-white/5 opacity-60"
+                            : "bg-white/5 border-white/10 hover:border-yellow-500/50 hover:bg-white/10 hover:shadow-[0_0_15_rgba(234,179,8,0.1)]"
                       }`}
                     >
-                      <div className="relative z-10">
-                        <div className="flex items-center gap-3">
-                          <span
-                            className={`w-1 h-8 rounded-full ${
-                              isPlaying
-                                ? "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"
-                                : isFull
-                                  ? "bg-red-500/50"
-                                  : "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"
-                            }`}
-                          ></span>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-bold text-white text-sm tracking-wide uppercase">
-                                {room.roomId}
-                              </p>
-                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-black/40 text-slate-400 font-mono border border-white/5">
-                                {room.mode}
-                              </span>
-                              {isPlaying && (
-                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-900/50 text-blue-200 font-black border border-blue-500/30 uppercase tracking-wider animate-pulse">
-                                  EM JOGO
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1 mt-1.5">
-                              <div className="flex gap-1">
-                                {[...Array(room.maxPlayers)].map((_, i) => (
-                                  <div
-                                    key={i}
-                                    className={`w-1 h-3 rounded-sm ${
-                                      i < room.playerCount
-                                        ? isPlaying
-                                          ? "bg-blue-500"
-                                          : "bg-yellow-500 shadow-[0_0_5px_rgba(234,179,8,0.5)]"
-                                        : "bg-white/10"
-                                    }`}
-                                  />
-                                ))}
-                              </div>
-                              <p className="text-[9px] text-slate-500 ml-2 font-mono uppercase">
-                                {room.playerCount}/{room.maxPlayers}
-                              </p>
-                            </div>
+                      {isInvited && (
+                        <div className="absolute top-0 right-0">
+                          <div className="bg-yellow-500 text-[8px] font-black text-black px-2 py-0.5 rounded-bl-lg uppercase tracking-widest shadow-lg">
+                            Convidado
                           </div>
+                        </div>
+                      )}
+                      <div className="relative z-10 flex flex-1 min-w-0 gap-3">
+                        <span
+                          className={`w-1 h-8 rounded-full shrink-0 ${
+                            isPlaying
+                              ? "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"
+                              : isFull
+                                ? "bg-red-500/50"
+                                : "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"
+                          }`}
+                        ></span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <p className="font-bold text-white text-sm tracking-wide uppercase truncate">
+                              {room.roomId}
+                            </p>
+                            <span className="shrink-0 text-[9px] px-1.5 py-0.5 rounded bg-black/40 text-slate-400 font-mono border border-white/5">
+                              {room.mode}
+                            </span>
+                            {isPlaying && (
+                              <span className="shrink-0 text-[9px] px-1.5 py-0.5 rounded bg-blue-900/50 text-blue-200 font-black border border-blue-500/30 uppercase tracking-wider animate-pulse">
+                                em jogo
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            {room.playerNames
+                              ?.filter((name) => !name.startsWith("Bot "))
+                              .map((name, i, arr) => (
+                                <div
+                                  key={i}
+                                  className="flex items-center gap-2"
+                                >
+                                  <span className="text-[10px] font-medium text-yellow-500/80">
+                                    {name}
+                                  </span>
+
+                                  {i < arr.length - 1 && (
+                                    <span className="text-[10px] text-white/10">
+                                      •
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            {room.playerCount < room.maxPlayers && (
+                              <>
+                                {room.playerNames?.some(
+                                  (name) => !name.startsWith("Bot "),
+                                ) && (
+                                  <span className="text-[10px] text-white/10">
+                                    •
+                                  </span>
+                                )}
+
+                                <span className="text-[10px] text-slate-600 italic">
+                                  vaga livre
+                                </span>
+                              </>
+                            )}
+                          </div>
+
+                          <p className="text-[9px] text-slate-500 mt-1 font-mono uppercase">
+                            {room.playerCount}/{room.maxPlayers} JOGADORES
+                          </p>
                         </div>
                       </div>
 
-                      <div className="relative z-10">
-                        {activeSession === room.roomId ? (
+                      <div className="relative z-10 flex items-center justify-end gap-2 shrink-0">
+                        {isMe ? (
+                          <>
+                            <button
+                              onClick={() => {
+                                localStorage.removeItem("baralho_active_room");
+                                useGameStore.getState().leaveGame(room.roomId);
+                              }}
+                              title="Sair da Sala"
+                              className="bg-white/5 hover:bg-red-500/20 text-slate-500 hover:text-red-400 border border-white/10 px-3 py-2 rounded text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
+                            >
+                              Sair
+                            </button>
+                            <button
+                              onClick={() => {
+                                localStorage.setItem(
+                                  "baralho_active_room",
+                                  room.roomId,
+                                );
+                                rejoinGame();
+                              }}
+                              className="bg-green-500 hover:bg-green-400 text-black px-6 py-2 rounded text-[10px] font-black uppercase tracking-widest shadow-[0_0_20px_rgba(34,197,94,0.4)] active:scale-95 transition-all animate-pulse border border-green-400"
+                            >
+                              VOLTAR
+                            </button>
+                          </>
+                        ) : canJoin ? (
                           <button
-                            onClick={() => rejoinGame()}
-                            className="bg-green-500 hover:bg-green-400 text-black px-5 py-2 rounded text-[10px] font-black uppercase tracking-widest shadow-[0_0_15px_rgba(34,197,94,0.4)] active:scale-95 transition-all animate-pulse"
-                          >
-                            Voltar
-                          </button>
-                        ) : (
-                          <button
-                            disabled={!canJoin}
                             onClick={() =>
                               handleJoinExisting(room.roomId, room.mode)
                             }
-                            className={`px-5 py-2 rounded text-[10px] font-black uppercase tracking-widest transition-all border ${
-                              !canJoin
-                                ? "bg-transparent border-white/10 text-white/20 cursor-not-allowed"
-                                : "bg-yellow-500/10 border-yellow-500/50 text-yellow-400 hover:bg-yellow-500 hover:text-black shadow-[0_0_10px_rgba(234,179,8,0.2)] active:scale-95"
-                            }`}
+                            className="bg-yellow-500/10 border border-yellow-500/50 text-yellow-400 hover:bg-yellow-500 hover:text-black px-5 py-2 rounded text-[10px] font-black uppercase tracking-widest shadow-[0_0_10px_rgba(234,179,8,0.2)] active:scale-95 transition-all"
                           >
-                            {isPlaying ? "EM JOGO" : isFull ? "FULL" : "JOIN"}
+                            ENTRAR
                           </button>
+                        ) : (
+                          <div className="px-5 py-2 rounded text-[10px] font-black uppercase tracking-widest text-white/20 border border-white/5 bg-white/5 italic">
+                            {isPlaying ? "EM ANDAMENTO" : "SALA LOTADA"}
+                          </div>
                         )}
                       </div>
                     </div>

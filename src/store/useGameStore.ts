@@ -47,7 +47,9 @@ export interface RoomInfo {
   playerCount: number;
   maxPlayers: number;
   playerNames: string[];
+  playerIds: string[];
   status: "LOBBY" | "PLAYING" | "FINISHED";
+  hostPlayerId?: string;
 }
 
 // 2. O ESTADO DO FRONTEND
@@ -71,6 +73,7 @@ interface GameState {
   showAnimations: boolean;
   isAccessibilityMode: boolean;
   showSortButton: boolean;
+  showCardMarkers: boolean;
   cardMarkers: Record<string, string>; // cardId -> color hex/class
   recentEvents: {
     id: string;
@@ -121,9 +124,10 @@ interface GameActions {
   pick_up_discard_add_to_meld: (meld_index: number, card_ids: string[]) => void;
   kickPlayer: (playerId: number) => void;
   startGame: (winCondition?: WinCondition) => void;
+  updateWinCondition: (winCondition?: WinCondition) => void;
   nextRound: () => void;
   setRules: (rules: GameRules) => void;
-  leaveGame: () => void;
+  leaveGame: (roomId?: string) => void;
   closeRoom: () => void;
   switchTeam: () => void;
   addBot: () => void;
@@ -134,6 +138,7 @@ interface GameActions {
   toggleAnimations: () => void;
   toggleAccessibilityMode: () => void;
   toggleSortButton: () => void;
+  toggleCardMarkers: () => void;
   setCardMarker: (cardId: string, color: string | null) => void;
   addEvent: (
     message: string,
@@ -172,6 +177,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   showAnimations: localStorage.getItem("baralho_show_animations") !== "false",
   isAccessibilityMode: localStorage.getItem("baralho_accessibility_mode") === "true",
   showSortButton: localStorage.getItem("baralho_show_sort") === "true",
+  showCardMarkers: localStorage.getItem("baralho_show_card_markers") === "true",
   cardMarkers: {},
   players_data: {},
   mode: "1v1",
@@ -238,6 +244,13 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       return { showSortButton: newVal };
     }),
 
+  toggleCardMarkers: () =>
+    set((state) => {
+      const newVal = !state.showCardMarkers;
+      localStorage.setItem("baralho_show_card_markers", String(newVal));
+      return { showCardMarkers: newVal };
+    }),
+
   setCardMarker: (cardId, color) =>
     set((state) => {
       const newMarkers = { ...state.cardMarkers };
@@ -273,20 +286,27 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
   sort_hand: () => {
     const { roomId } = get();
-    socket.emit("action_sort_hand", { roomId });
+    const playerId = localStorage.getItem("baralho_player_id");
+    socket.emit("action_sort_hand", { roomId, playerId });
   },
 
   closeRoom: () => {
     const { roomId } = get();
-    socket.emit("action_close_room", { roomId });
+    const playerId = localStorage.getItem("baralho_player_id");
+    socket.emit("action_close_room", { roomId, playerId });
     // Chama leaveGame para garantir limpeza local e redirecionamento imediato
     get().leaveGame();
   },
 
-  leaveGame: () => {
-    const { roomId } = get();
+  leaveGame: (specificRoomId?: string) => {
+    const { roomId: storeRoomId } = get();
+    const roomId = specificRoomId || storeRoomId;
+    const playerId = localStorage.getItem("baralho_player_id");
+
     if (roomId) {
-        socket.emit("leave_game", { roomId });
+        socket.emit("leave_game", { roomId, playerId });
+        // Pequeno delay para o server processar e retornar a lista limpa
+        setTimeout(() => get().fetchRooms(), 100);
     }
     
     // Limpa estado local IMEDIATAMENTE
@@ -367,7 +387,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       });
 
       socket.on("kicked", () => {
-        get().addEvent("Você foi expulso da sala pelo anfitrião.", "error");
+        get().addEvent("Você foi expulso da sala pelo líder.", "error");
         localStorage.removeItem("baralho_active_room");
         set({
           status: "IDLE",
@@ -402,18 +422,11 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       socket.on("error_msg", (msg: string) => {
         set({ last_error: msg });
         get().addEvent(msg, "error");
-        // Se o erro for crítico de sessão, limpa tudo e volta pro inicio
-        if (msg.includes("não encontrada") || msg.includes("não encontrado")) {
-          // Alert removed, notification via addEvent above is enough, layout will handle it
-          localStorage.removeItem("baralho_active_room");
-          localStorage.removeItem("baralho_player_id");
-          set({
-            status: "IDLE",
-            roomId: "",
-            my_player_number: null,
-            my_player_name: null,
-          });
-        }
+        // ...
+      });
+
+      socket.on("info_msg", (msg: string) => {
+        get().addEvent(msg, "info");
       });
 
       socket.on("connect_error", (err) => {
@@ -427,6 +440,9 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       socket.on("connect", () => {
         console.log("Socket conectado!", socket.id);
         set({ last_error: null, connectionStatus: "CONNECTED" });
+
+        // Busca salas IMEDIATAMENTE após conectar
+        get().fetchRooms();
 
         // Se conectou e NÃO foi via botão 'Entrar' (ou seja, foi reconexão automática ou refresh), tenta voltar pro jogo
         if (!is_manual_join) {
@@ -475,6 +491,9 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const savedPlayerId = localStorage.getItem("baralho_player_id");
 
     if (!savedRoom || !savedPlayerId) return;
+
+    // Set roomId locally so actions work immediately
+    set({ roomId: savedRoom });
 
     const emitRejoin = () => {
         console.log("Emitindo rejoin para:", savedRoom);
@@ -571,7 +590,12 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       },
       hands: server_data.hands,
       players_data: server_data.players_data,
-      rules: server_data.rules || DEFAULT_RULES,
+      rules: (() => {
+        if (server_data.rules) {
+            console.log("[STORE] Recebendo novas regras do servidor:", server_data.rules);
+        }
+        return server_data.rules || DEFAULT_RULES;
+      })(),
       last_drawn_card_id: server_data.last_drawn_card_id,
       final_score: server_data.final_score,
       cumulative_score: server_data.cumulative_score || { team_1: 0, team_2: 0 },
@@ -584,7 +608,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
   draw_card: () => {
     const { roomId } = get();
-    socket.emit("action_draw", { roomId }, (response: ServerResponse) => {
+    const playerId = localStorage.getItem("baralho_player_id");
+    socket.emit("action_draw", { roomId, playerId }, (response: ServerResponse) => {
       if (response && response.error) {
         set({ last_error: response.error });
       }
@@ -593,7 +618,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
   discard_card: (card_id: string) => {
     const { roomId } = get();
-    socket.emit("action_discard", { roomId, card_id }, (response: ServerResponse) => {
+    const playerId = localStorage.getItem("baralho_player_id");
+    socket.emit("action_discard", { roomId, card_id, playerId }, (response: ServerResponse) => {
       if (response && response.error) {
         set({ last_error: response.error });
       }
@@ -602,7 +628,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
   meld_cards: (card_ids: string[]) => {
     const { roomId } = get();
-    socket.emit("action_meld", { roomId, card_ids }, (response: ServerResponse) => {
+    const playerId = localStorage.getItem("baralho_player_id");
+    socket.emit("action_meld", { roomId, card_ids, playerId }, (response: ServerResponse) => {
       if (response && response.error) {
         set({ last_error: response.error });
       }
@@ -611,9 +638,10 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
   add_to_meld: (card_ids: string[], meld_index: number) => {
     const { roomId } = get();
+    const playerId = localStorage.getItem("baralho_player_id");
     socket.emit(
       "action_add_to_meld",
-      { roomId, card_ids, meld_index },
+      { roomId, card_ids, meld_index, playerId },
       (response: ServerResponse) => {
         if (response && response.error) {
           set({ last_error: response.error });
@@ -624,9 +652,10 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
   pick_up_discard_new_meld: (card_ids: string[]) => {
     const { roomId } = get();
+    const playerId = localStorage.getItem("baralho_player_id");
     socket.emit(
       "action_pick_up_discard_new_meld",
-      { roomId, card_ids },
+      { roomId, card_ids, playerId },
       (response: ServerResponse) => {
         if (response && response.error) {
           set({ last_error: response.error });
@@ -637,12 +666,14 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
   pick_up_discard_add_to_meld: (meld_index, card_ids) => {
     const { roomId } = get();
+    const playerId = localStorage.getItem("baralho_player_id");
     socket.emit(
       "action_pick_up_discard_add_to_meld",
       {
         roomId,
         meld_index,
         card_ids,
+        playerId,
       },
       (response: ServerResponse) => {
         if (response && response.error) {
@@ -654,16 +685,31 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
   startGame: (winCondition) => {
     const { roomId } = get();
-    socket.emit("action_start_game", { roomId, winCondition });
+    const playerId = localStorage.getItem("baralho_player_id");
+    socket.emit("action_start_game", { roomId, winCondition, playerId });
+  },
+
+  updateWinCondition: (winCondition) => {
+    const { roomId } = get();
+    // Atualização otimista local
+    set({ win_condition: winCondition });
+    socket.emit("action_update_config", { roomId, winCondition });
   },
 
   setRules: (rules) => {
     const { roomId } = get();
-    socket.emit("action_update_rules", { roomId, rules });
+    const playerId = localStorage.getItem("baralho_player_id");
+    
+    // Atualização otimista local
+    set({ rules });
+    
+    console.log(`[RULES] Emitindo atualização de regras para sala ${roomId}:`, rules);
+    socket.emit("action_update_rules", { roomId, rules, playerId });
   },
 
   nextRound: () => {
     const { roomId } = get();
-    socket.emit("action_next_round", { roomId });
+    const playerId = localStorage.getItem("baralho_player_id");
+    socket.emit("action_next_round", { roomId, playerId });
   },
 }));

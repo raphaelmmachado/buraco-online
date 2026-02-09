@@ -126,18 +126,16 @@ export const start_next_round = (game: ServerGameState) => {
     game.current_player = 1; // Or rotate starter? For now, Player 1 starts always.
     game.last_drawn_card_id = null;
     game.final_score = null;
-    game.turn_start_time = Date.now();
+    
+    const firstPlayer = game.players_data[1];
+    game.turn_start_time = (firstPlayer && firstPlayer.isBot) ? undefined : Date.now();
+    
     game.rematch_votes = {};
 };
 
 export const start_new_match = (game: ServerGameState) => {
     // Reset scores
     game.cumulative_score = { team_1: 0, team_2: 0 };
-    game.round_count = 0; // Will be incremented to 1 by start_next_round logic effectively (or set to 1 here)
-    
-    // We can just reuse start_next_round logic if we manually set round_count to 0 first?
-    // Let's copy logic to be safe and explicit.
-    
     game.round_count = 1;
     game.status = "PLAYING";
     
@@ -159,7 +157,10 @@ export const start_new_match = (game: ServerGameState) => {
     game.current_player = 1;
     game.last_drawn_card_id = null;
     game.final_score = null;
-    game.turn_start_time = Date.now();
+
+    const firstPlayer = game.players_data[1];
+    game.turn_start_time = (firstPlayer && firstPlayer.isBot) ? undefined : Date.now();
+
     game.rematch_votes = {};
 };
 
@@ -257,12 +258,14 @@ export const get_player_id_by_socket = (
   for (const [id, data] of Object.entries(game.players_data)) {
     if (data.socketId === socketId) return Number(id) as PlayerID;
   }
+  console.log(`[DEBUG] get_player_id_by_socket: Socket ${socketId} não encontrado nos players_data da sala.`, Object.values(game.players_data).map(p => p.socketId));
   return null;
 };
 
 export const validateTurn = (
   game: ServerGameState,
-  socketId: string
+  socketId: string,
+  playerId?: string
 ): { player_id: PlayerID } | null => {
   // Se o socketId for "BOT", validamos apenas se o current player é um bot
   if (socketId === "BOT") {
@@ -273,7 +276,21 @@ export const validateTurn = (
     return null;
   }
 
-  const player_id = get_player_id_by_socket(game, socketId);
+  let player_id = get_player_id_by_socket(game, socketId);
+  
+  // Se não achou pelo socket, tenta pelo playerId persistente
+  if (!player_id && playerId) {
+      const entry = Object.entries(game.players_data).find(([, p]) => p.playerId === playerId);
+      if (entry) {
+          player_id = Number(entry[0]) as PlayerID;
+          // Aproveita para atualizar o socketId se for diferente (convergência rápida)
+          if (entry[1].socketId !== socketId) {
+              console.log(`[AUTH] Atualizando socketId de ${entry[1].userName} via playerId durante ação.`);
+              entry[1].socketId = socketId;
+          }
+      }
+  }
+
   if (!player_id || game.current_player !== player_id) {
     return null;
   }
@@ -320,5 +337,6 @@ export const sanitize_state = (
     round_count: game.round_count,
     win_condition: game.win_condition,
     rematch_votes: game.rematch_votes || {},
+    rules: game.rules,
   };
 };

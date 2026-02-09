@@ -31,7 +31,7 @@ describe("validate_discard_add_to_meld", () => {
     const result = validate_discard_add_to_meld(target_meld, bridge_cards, discard_card);
     
     expect(result.valid).toBe(false);
-    expect(result.error).toBe("Proibido pegar lixo com coringa.");
+    expect(result.error).toBe("Proibido usar curinga da mão para realizar a pegada do lixo.");
   });
 
   test("LEGAL: Adding to an already dirty meld", () => {
@@ -108,7 +108,7 @@ describe("validate_discard_add_to_meld", () => {
     const result = validate_discard_add_to_meld(target_meld, bridge_cards, discard_card);
     
     expect(result.valid).toBe(false);
-    expect(result.error).toBe("Proibido pegar lixo com coringa.");
+    expect(result.error).toBe("Proibido usar curinga da mão para realizar a pegada do lixo.");
   });
 });
 
@@ -237,5 +237,28 @@ describe("General Game Rules", () => {
     expect(result.is_valid).toBe(true);
     expect((result as SuccessMeld).is_clean).toBe(false);
     expect((result as SuccessMeld).canastra_type).toBe("DIRTY");
+  });
+
+  test("VALID: Canastra de 500 (13 cards, no joker)", () => {
+    const cards: Card[] = [];
+    const values: CardValue[] = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+    values.forEach((v, i) => cards.push(createCard(v, hearts, `h_${i}`)));
+    
+    const result = validate_sequence(cards);
+    expect(result.is_valid).toBe(true);
+    expect((result as SuccessMeld).is_clean).toBe(true);
+    expect((result as SuccessMeld).canastra_type).toBe("KING");
+  });
+
+  test("VALID: Canastra Real (14 cards, no joker)", () => {
+    const cards: Card[] = [];
+    // A, 2, 3, 4, 5, 6, 7, 8, 9, 10, J, Q, K, A
+    const values: CardValue[] = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
+    values.forEach((v, i) => cards.push(createCard(v, hearts, `h_${i}`)));
+    
+    const result = validate_sequence(cards);
+    expect(result.is_valid).toBe(true);
+    expect((result as SuccessMeld).is_clean).toBe(true);
+    expect((result as SuccessMeld).canastra_type).toBe("ACE");
   });
 });

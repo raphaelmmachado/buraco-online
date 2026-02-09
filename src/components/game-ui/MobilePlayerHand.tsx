@@ -11,6 +11,9 @@ interface MobilePlayerHandProps {
   onCardClick: (id: string) => void;
   onSortHand: () => void;
   showSortButton?: boolean;
+  showCardMarkers?: boolean;
+  cardMarkers: Record<string, string>;
+  setCardMarker: (cardId: string, color: string | null) => void;
 }
 
 export const MobilePlayerHand = ({
@@ -20,11 +23,12 @@ export const MobilePlayerHand = ({
   onCardClick,
   onSortHand,
   showSortButton = false,
+  showCardMarkers = false,
+  cardMarkers,
+  setCardMarker,
 }: MobilePlayerHandProps) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const showAnimations = useGameStore((s) => s.showAnimations);
-  const cardMarkers = useGameStore((s) => s.cardMarkers);
-  const setCardMarker = useGameStore((s) => s.setCardMarker);
 
   // Track dealing
   const [prevCount, setPrevCount] = useState(0);
@@ -95,8 +99,12 @@ export const MobilePlayerHand = ({
                     isLastDrawn={isLastDrawn}
                     onClick={() => onCardClick(card.id)}
                     className="w-16 h-24 shadow-md p-1"
-                    markerColor={cardMarkers[card.id]}
-                    onSetMarker={(color) => setCardMarker(card.id, color)}
+                    markerColor={showCardMarkers ? cardMarkers[card.id] : null}
+                    onSetMarker={
+                      showCardMarkers
+                        ? (color) => setCardMarker(card.id, color)
+                        : undefined
+                    }
                   />
                 </motion.div>
               );

@@ -41,6 +41,7 @@ export interface GameAdapterInterface {
   last_info: string | null;
   showAnimations: boolean;
   showSortButton: boolean;
+  showCardMarkers: boolean;
   cardMarkers: Record<string, string>;
   cardsPlayedThisTurn: number;
   recentEvents: {
@@ -61,11 +62,13 @@ export interface GameAdapterInterface {
   nextRound: () => void;
   voteNext: () => void;
   leaveGame: () => void;
+  closeRoom: () => void;
   sort_hand: () => void;
   clear_error: () => void;
   clear_info: () => void;
   toggleAnimations: () => void;
   toggleSortButton: () => void;
+  toggleCardMarkers: () => void;
   setCardMarker: (cardId: string, color: string | null) => void;
 }
 
@@ -124,6 +127,7 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       last_info: local.last_info,
       showAnimations: local.showAnimations,
       showSortButton: local.showSortButton,
+      showCardMarkers: local.showCardMarkers,
       cardMarkers: local.cardMarkers,
       cardsPlayedThisTurn: local.cardsPlayedThisTurn,
       recentEvents: local.recentEvents,
@@ -144,11 +148,15 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       leaveGame: () => {
         window.location.reload();
       },
+      closeRoom: () => {
+        window.location.reload();
+      },
       sort_hand: local.sort_my_hand,
       clear_error: local.clear_error,
       clear_info: local.clear_info,
       toggleAnimations: local.toggleAnimations,
       toggleSortButton: local.toggleSortButton,
+      toggleCardMarkers: local.toggleCardMarkers,
       setCardMarker: local.setCardMarker,
     };
   }, [local, players_data]);

@@ -54,7 +54,7 @@ export default function CurrentGamePoints({
                   key={i}
                   className="transition-all duration-500 text-red-500 scale-105 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]"
                 >
-                  <Skull size={16} strokeWidth={3} />
+                  <Skull size={16} strokeWidth={1.5} />
                 </div>
               );
             })}
@@ -86,7 +86,7 @@ export default function CurrentGamePoints({
                 key={i}
                 className="transition-all duration-500 text-red-500 scale-105 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]"
               >
-                <Skull size={12} strokeWidth={3} />
+                <Skull size={12} strokeWidth={1.5} />
               </div>
             );
           })}

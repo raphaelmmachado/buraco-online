@@ -11,30 +11,36 @@ import {
   EyeOff,
   Type,
   Wand2,
+  Bookmark,
 } from "lucide-react";
 import { useGameStore } from "../../store/useGameStore";
 
 interface GameMenuProps {
-  onOpenRules: () => void;
   onOpenHowToPlay?: () => void;
   onLeave?: () => void;
+  onCloseRoom?: () => void;
   showAnimations?: boolean;
   toggleAnimations?: () => void;
   showOpponentHands?: boolean;
   toggleOpponentHands?: () => void;
   showSortButton?: boolean;
   toggleSortButton?: () => void;
+  showCardMarkers?: boolean;
+  toggleCardMarkers?: () => void;
 }
 
 export const GameMenu = ({
   onOpenHowToPlay,
   onLeave,
+  onCloseRoom,
   showAnimations,
   toggleAnimations,
   showOpponentHands,
   toggleOpponentHands,
   showSortButton,
   toggleSortButton,
+  showCardMarkers,
+  toggleCardMarkers,
 }: GameMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const toggleMute = useGameStore((state) => state.toggleMute);
@@ -126,7 +132,23 @@ export const GameMenu = ({
                   }`}
                 >
                   <Wand2 size={16} />
-                  {showSortButton ? "B. Organizar: ON" : "B. Organizar: OFF"}
+                  {showSortButton ? "Organizar: ON" : "B. Organizar: OFF"}
+                </button>
+              )}
+
+              {toggleCardMarkers && (
+                <button
+                  onClick={() => {
+                    toggleCardMarkers();
+                  }}
+                  className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                    showCardMarkers
+                      ? "text-yellow-400 bg-yellow-400/10"
+                      : "text-slate-300 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  <Bookmark size={16} />
+                  {showCardMarkers ? "Marcadores: ON" : "Marcadores: OFF"}
                 </button>
               )}
 
@@ -143,7 +165,7 @@ export const GameMenu = ({
                 </button>
               )}
 
-              {onLeave && (
+              {(onLeave || onCloseRoom) && (
                 <>
                   <div className="h-[1px] bg-white/10 my-1"></div>
                   <button
@@ -151,7 +173,7 @@ export const GameMenu = ({
                     className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-bold text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all"
                   >
                     <LogOut size={16} />
-                    Sair da Sala
+                    {onCloseRoom ? "Encerrar Sala" : "Sair da Sala"}
                   </button>
                 </>
               )}
@@ -159,16 +181,17 @@ export const GameMenu = ({
           ) : (
             <div className="flex flex-col gap-2 p-1 animate-fade-in">
               <p className="text-xs text-center text-slate-300 font-bold uppercase tracking-wide mb-1">
-                Tem certeza?
+                {onCloseRoom ? "Encerrar para todos?" : "Sair da partida?"}
               </p>
               <button
                 onClick={() => {
-                  if (onLeave) onLeave();
+                  if (onCloseRoom) onCloseRoom();
+                  else if (onLeave) onLeave();
                   handleClose();
                 }}
                 className="w-full px-3 py-2 rounded-lg text-sm font-bold bg-red-500 hover:bg-red-600 text-white transition-all"
               >
-                Sim, Sair
+                {onCloseRoom ? "Sim, Encerrar" : "Sim, Sair"}
               </button>
               <button
                 onClick={() => setShowConfirmLeave(false)}

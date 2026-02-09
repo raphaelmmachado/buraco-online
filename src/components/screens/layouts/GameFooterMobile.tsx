@@ -16,6 +16,9 @@ export const GameFooterMobile = ({
       onCardClick={toggleSelect}
       onSortHand={game.sort_hand}
       showSortButton={game.showSortButton}
+      showCardMarkers={game.showCardMarkers}
+      cardMarkers={game.cardMarkers}
+      setCardMarker={game.setCardMarker}
     />
   );
 };

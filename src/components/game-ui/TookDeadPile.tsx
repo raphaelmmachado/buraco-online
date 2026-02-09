@@ -19,7 +19,7 @@ export default function TookDeadPile({
       >
         Pegou
       </span>
-      <Skull size={14} className="text-white" />
+      <Skull size={14} strokeWidth={1.5} className="text-white" />
     </div>
   );
 }

@@ -7,7 +7,6 @@ import {
   requires_clean_to_empty_hand,
   has_clean_canastra,
   get_team,
-  get_player_id_by_socket,
   check_championship_status,
   start_next_round,
   start_new_match,
@@ -31,13 +30,13 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
   socket.on(
     "action_draw",
     (
-      { roomId }: { roomId: string },
+      { roomId, playerId }: { roomId: string; playerId?: string },
       callback?: (res: ServerResponse) => void,
     ) => {
       const game = games[roomId];
       if (!game) return;
 
-      const ctx = validateTurn(game, socket.id);
+      const ctx = validateTurn(game, socket.id, playerId);
       if (!ctx) {
         if (callback) callback({ error: "Não é a sua vez." });
         return;
@@ -114,13 +113,13 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
   socket.on(
     "action_pick_up_discard_new_meld",
     (
-      { roomId, card_ids }: { roomId: string; card_ids: string[] },
+      { roomId, card_ids, playerId }: { roomId: string; card_ids: string[]; playerId?: string },
       callback?: (res: ServerResponse) => void,
     ) => {
       const game = games[roomId];
       if (!game) return;
 
-      const ctx = validateTurn(game, socket.id);
+      const ctx = validateTurn(game, socket.id, playerId);
       if (!ctx) {
         if (callback) callback({ error: "Não é a sua vez." });
         return;
@@ -238,17 +237,19 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         roomId,
         meld_index,
         card_ids,
+        playerId,
       }: {
         roomId: string;
         meld_index: number;
         card_ids: string[];
+        playerId?: string;
       },
       callback?: (res: ServerResponse) => void,
     ) => {
       const game = games[roomId];
       if (!game) return;
 
-      const ctx = validateTurn(game, socket.id);
+      const ctx = validateTurn(game, socket.id, playerId);
       if (!ctx) {
         if (callback) callback({ error: "Não é a sua vez." });
         return;
@@ -366,13 +367,13 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
   socket.on(
     "action_meld",
     (
-      { roomId, card_ids }: { roomId: string; card_ids: string[] },
+      { roomId, card_ids, playerId }: { roomId: string; card_ids: string[]; playerId?: string },
       callback?: (res: ServerResponse) => void,
     ) => {
       const game = games[roomId];
       if (!game) return;
 
-      const ctx = validateTurn(game, socket.id);
+      const ctx = validateTurn(game, socket.id, playerId);
       if (!ctx) {
         if (callback) callback({ error: "Não é a sua vez." });
         return;
@@ -451,17 +452,19 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         roomId,
         card_ids,
         meld_index,
+        playerId,
       }: {
         roomId: string;
         card_ids: string[];
         meld_index: number;
+        playerId?: string;
       },
       callback?: (res: ServerResponse) => void,
     ) => {
       const game = games[roomId];
       if (!game) return;
 
-      const ctx = validateTurn(game, socket.id);
+      const ctx = validateTurn(game, socket.id, playerId);
       if (!ctx) {
         if (callback) callback({ error: "Não é a sua vez." });
         return;
@@ -543,13 +546,13 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
   socket.on(
     "action_discard",
     (
-      { roomId, card_id }: { roomId: string; card_id: string },
+      { roomId, card_id, playerId }: { roomId: string; card_id: string; playerId?: string },
       callback?: (res: ServerResponse) => void,
     ) => {
       const game = games[roomId];
       if (!game) return;
 
-      const ctx = validateTurn(game, socket.id);
+      const ctx = validateTurn(game, socket.id, playerId);
       if (!ctx) {
         if (callback) callback({ error: "Não é a sua vez." });
         return;
@@ -608,12 +611,13 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
     },
   );
 
-  socket.on("action_sort_hand", ({ roomId }: { roomId: string }) => {
+  socket.on("action_sort_hand", ({ roomId, playerId }: { roomId: string, playerId?: string }) => {
     const game = games[roomId];
     if (!game) return;
 
-    const player_id = get_player_id_by_socket(game, socket.id);
-    if (!player_id) return;
+    const ctx = validateTurn(game, socket.id, playerId);
+    if (!ctx) return;
+    const player_id = ctx.player_id;
 
     const current_hand = game.hands[player_id];
 

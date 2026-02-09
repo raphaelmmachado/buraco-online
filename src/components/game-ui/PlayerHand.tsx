@@ -12,6 +12,9 @@ interface PlayerHandProps {
   onSortHand: () => void;
   isMobile: boolean;
   showSortButton?: boolean;
+  showCardMarkers?: boolean;
+  cardMarkers: Record<string, string>;
+  setCardMarker: (cardId: string, color: string | null) => void;
 }
 
 // --- CONFIGURAÇÃO FÁCIL DE EDITAR ---
@@ -65,14 +68,15 @@ export const PlayerHand = ({
   onSortHand,
   isMobile,
   showSortButton = false,
+  showCardMarkers = false,
+  cardMarkers,
+  setCardMarker,
 }: PlayerHandProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(1000);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [hoveredSuit, setHoveredSuit] = useState<string | null>(null);
   const showAnimations = useGameStore((s) => s.showAnimations);
-  const cardMarkers = useGameStore((s) => s.cardMarkers);
-  const setCardMarker = useGameStore((s) => s.setCardMarker);
 
   const [prevCount, setPrevCount] = useState(0);
   const [isDealing, setIsDealing] = useState(false);
@@ -246,8 +250,12 @@ export const PlayerHand = ({
                   isSelected={isSelected}
                   isLastDrawn={card.id === lastDrawnCardId}
                   onClick={() => onCardClick(card.id)}
-                  markerColor={cardMarkers[card.id]}
-                  onSetMarker={(color) => setCardMarker(card.id, color)}
+                  markerColor={showCardMarkers ? cardMarkers[card.id] : null}
+                  onSetMarker={
+                    showCardMarkers
+                      ? (color) => setCardMarker(card.id, color)
+                      : undefined
+                  }
                 />
               </motion.div>
             );
@@ -390,8 +398,14 @@ export const PlayerHand = ({
                           isSelected={isSelected}
                           isLastDrawn={card.id === lastDrawnCardId}
                           onClick={() => onCardClick(card.id)}
-                          markerColor={cardMarkers[card.id]}
-                          onSetMarker={(color) => setCardMarker(card.id, color)}
+                          markerColor={
+                            showCardMarkers ? cardMarkers[card.id] : null
+                          }
+                          onSetMarker={
+                            showCardMarkers
+                              ? (color) => setCardMarker(card.id, color)
+                              : undefined
+                          }
                         />
                       </motion.div>
                     );

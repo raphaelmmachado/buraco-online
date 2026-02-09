@@ -2,7 +2,7 @@ import { Server, Socket } from "socket.io";
 import { games, saveState } from "../state";
 import { create_deck, distribute_cards } from "../../common/utils/game_logic";
 import { sort_cards } from "../../common/utils/sort_cards";
-import { get_player_id_by_socket, start_next_round, start_new_match } from "../services/gameService";
+import { get_player_id_by_socket, start_next_round, start_new_match, validateTurn } from "../services/gameService";
 import { broadcast_game_update, process_bot_turn } from "../services/botService";
 import { type PlayerID, type GameMode, type WinCondition } from "../types";
 import { startTurnTimer } from "../services/timerService";
@@ -21,12 +21,18 @@ const broadcast_rooms_list = (io: Server) => {
 
     const room_list = Object.entries(games).map(([roomId, game]) => {
       const filledSlots = Object.keys(game.players_data).length;
+      const playerNames = Object.values(game.players_data).map(p => p.userName);
+      const playerIds = Object.values(game.players_data).map(p => p.playerId);
+      const hostPlayerId = game.players_data[1]?.playerId;
       return {
         roomId,
         mode: game.mode,
         playerCount: filledSlots,
         maxPlayers: game.mode === "1v1" ? 2 : 4,
         status: game.status,
+        playerNames,
+        playerIds,
+        hostPlayerId,
       };
     });
 
@@ -191,15 +197,50 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
     }
   });
 
-  socket.on("action_update_rules", ({ roomId, rules }: { roomId: string, rules: GameRules }) => {
-    const game = games[roomId];
-    if (!game || game.status !== "LOBBY") return;
+  socket.on("action_update_rules", ({ roomId, rules, playerId }: { roomId: string, rules: GameRules, playerId?: string }) => {
+    const actualRoomId = Object.keys(games).find(id => id.toLowerCase() === roomId.toLowerCase()) || roomId;
+    const game = games[actualRoomId];
+    
+    if (!game) return;
+    
+    const hostData = game.players_data[1];
+    const isActuallyHost = hostData && (
+        hostData.socketId === socket.id || 
+        (playerId && hostData.playerId === playerId)
+    );
+    
+    if (!isActuallyHost) {
+        console.log(`[RULES] Bloqueado: Tentativa de alteração por não-líder na sala ${actualRoomId}.`);
+        return; 
+    }
 
-    const player_id = get_player_id_by_socket(game, socket.id);
-    if (player_id !== 1) return; // Only host
+    // Gravação direta no estado global para evitar perda de referência
+    games[actualRoomId].rules = { ...rules };
+    console.log(`[RULES] OK: Regras atualizadas e gravadas no servidor para a sala ${actualRoomId}.`);
+    
+    // Notifica os outros jogadores que as regras mudaram
+    io.to(actualRoomId).emit("info_msg", "O líder da sala atualizou as regras do jogo.");
 
-    game.rules = rules;
-    broadcast_game_update(io, roomId);
+    // Força o broadcast usando o objeto global atualizado
+    broadcast_game_update(io, actualRoomId);
+    saveState();
+  });
+
+  socket.on("action_update_config", ({ roomId, winCondition }: { roomId: string, winCondition?: WinCondition }) => {
+    const actualRoomId = Object.keys(games).find(id => id.toLowerCase() === roomId.toLowerCase()) || roomId;
+    const game = games[actualRoomId];
+    
+    if (!game) return;
+    
+    const hostData = game.players_data[1];
+    if (!hostData || hostData.socketId !== socket.id) return;
+
+    game.win_condition = winCondition;
+    console.log(`[CONFIG] Win condition updated for room ${actualRoomId}:`, winCondition);
+    
+    io.to(actualRoomId).emit("info_msg", "O líder atualizou a meta da partida.");
+
+    broadcast_game_update(io, actualRoomId);
     saveState();
   });
 
@@ -313,31 +354,19 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
       // IMPEDIR QUE O MESMO JOGADOR CRIE MAIS DE UMA SALA COMO HOST (Player 1)
       if (!games[roomId]) {
         // Verifica se o jogador já é host de alguma outra sala
-        const existingRoomEntry = Object.entries(games).find(([, g]) => {
-            const host = g.players_data[1];
-            return host && host.playerId === playerId;
-        });
-
-        if (existingRoomEntry) {
-            const [oldRoomId, oldGame] = existingRoomEntry;
-            
-            // Verifica se a sala antiga tem alguém conectado
-            // Usamos players_connected que rastreia sockets ativos
-            const isSomeoneConnected = oldGame.players_connected.length > 0;
-
-            if (!isSomeoneConnected) {
-                // SALA ABANDONADA (Zombie): O host está tentando criar nova, então matamos a velha
-                console.log(`[AUTO-CLEANUP] Host ${userName} criando nova sala. Deletando sala zombie ${oldRoomId}.`);
+        Object.entries(games).forEach(([oldRoomId, oldGame]) => {
+            const host = oldGame.players_data[1];
+            if (host && host.playerId === playerId) {
+                console.log(`[AUTO-CLEANUP] Host ${userName} criando nova sala. Fechando sala anterior ${oldRoomId}.`);
+                
+                // Notifica jogadores na sala antiga
+                io.to(oldRoomId).emit("game_closed", "O líder criou uma nova sala.");
+                
                 if (oldGame.disconnectTimeout) clearTimeout(oldGame.disconnectTimeout);
                 delete games[oldRoomId];
-                saveState();
-                // Prossegue para criar a nova sala...
-            } else {
-                // SALA ATIVA: Não permitimos criar outra
-                socket.emit("error_msg", "Você já possui uma sala ativa com jogadores. Volte para ela.");
-                return;
+                broadcast_rooms_list(io);
             }
-        }
+        });
 
         console.log(`Criando sala ${roomId} [${mode}]`);
         const deck = create_deck();
@@ -517,18 +546,20 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
       }
 
       socket.join(roomId);
+      console.log(`[REJOIN SUCCESS] Player ${pData.userName} assigned number ${pNum} with socket ${socket.id}`);
       socket.emit("player_assignment", Number(pNum), pData.userName);
       io.to(roomId).emit("player_reconnected", { userName: pData.userName });
       broadcast_game_update(io, roomId);
     }
   );
 
-  socket.on("action_start_game", ({ roomId, winCondition }: { roomId: string, winCondition?: WinCondition }) => {
+  socket.on("action_start_game", ({ roomId, winCondition, playerId }: { roomId: string, winCondition?: WinCondition, playerId?: string }) => {
     const game = games[roomId];
     if (!game) return;
 
-    const player_id = get_player_id_by_socket(game, socket.id);
-    if (!player_id) return;
+    const ctx = validateTurn(game, socket.id, playerId);
+    if (!ctx) return;
+    const player_id = ctx.player_id;
 
     if (player_id !== 1) {
       socket.emit("error_msg", "Apenas o dono da sala pode iniciar o jogo.");
@@ -574,11 +605,14 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
     saveState();
   });
 
-  socket.on("action_next_round", ({ roomId }: { roomId: string }) => {
+  socket.on("action_next_round", ({ roomId, playerId }: { roomId: string, playerId?: string }) => {
     const game = games[roomId];
     if (!game) return;
 
-    const player_id = get_player_id_by_socket(game, socket.id);
+    const ctx = validateTurn(game, socket.id, playerId);
+    if (!ctx) return;
+    const player_id = ctx.player_id;
+
     if (player_id !== 1) {
         socket.emit("error_msg", "Apenas o dono da sala pode iniciar a próxima rodada.");
         return;
@@ -599,11 +633,17 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
     saveState();
   });
 
-  socket.on("action_close_room", ({ roomId }: { roomId: string }) => {
+  socket.on("action_close_room", ({ roomId, playerId }: { roomId: string, playerId?: string }) => {
     const game = games[roomId];
     if (!game) return;
 
-    const player_id = get_player_id_by_socket(game, socket.id);
+    // Use validateTurn loosely (ignore if it's their turn)
+    let player_id = get_player_id_by_socket(game, socket.id);
+    if (!player_id && playerId) {
+        const entry = Object.entries(game.players_data).find(([, p]) => p.playerId === playerId);
+        if (entry) player_id = Number(entry[0]) as PlayerID;
+    }
+    
     if (!player_id) return;
 
     if (player_id !== 1) {
@@ -611,8 +651,8 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
       return;
     }
 
-    console.log(`Sala ${roomId} encerrada pelo anfitrião.`);
-    io.to(roomId).emit("game_closed", "O anfitrião encerrou a sala.");
+    console.log(`Sala ${roomId} encerrada pelo líder.`);
+    io.to(roomId).emit("game_closed", "O líder encerrou a sala.");
 
     // Close all sockets in the room? Or let client handle it.
     // Ideally, let client handle the redirect.
@@ -621,11 +661,11 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
     broadcast_rooms_list(io);
   });
 
-  socket.on("leave_game", ({ roomId }: { roomId: string }) => {
+  socket.on("leave_game", ({ roomId, playerId }: { roomId: string, playerId?: string }) => {
     const game = games[roomId];
     if (!game) return;
 
-    console.log(`Player ${socket.id} leaving room ${roomId}`);
+    console.log(`Player ${socket.id} (pid: ${playerId}) leaving room ${roomId}`);
 
     // Remove from connected list
     const playerIdx = game.players_connected.indexOf(socket.id);
@@ -636,7 +676,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
     // Find and remove from players_data to free up the slot
     // This allows the user to rejoin as a fresh player or someone else to take the spot
     const playerEntry = Object.entries(game.players_data).find(
-      ([, p]) => p.socketId === socket.id
+      ([, p]) => p.socketId === socket.id || (playerId && p.playerId === playerId)
     );
 
     if (playerEntry) {
@@ -644,39 +684,29 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
       const pNum = Number(pId);
       
       if (game.status === "PLAYING") {
-        console.log(`Jogador ${pData.userName} (${pNum}) saiu da partida. Iniciando timer de 10s para Bot.`);
+        console.log(`[LEAVE] Removendo rastros de ${pData.userName} da sala ${roomId}. Bot assumindo.`);
         
-        // Notify others
+        // Instant dissociation: Remove the trace
+        pData.playerId = "DISCONNECTED"; 
+        pData.socketId = "BOT";
+        pData.isBot = true;
+
         io.to(roomId).emit("player_disconnected", { 
             playerNumber: pNum, 
             userName: pData.userName 
         });
-
-        // Clear any existing timeout just in case
-        if (pData.botTakeoverTimeout) clearTimeout(pData.botTakeoverTimeout);
-
-        pData.botTakeoverTimeout = setTimeout(() => {
-            console.log(`Tempo esgotado para ${pData.userName}. Substituindo por BOT (leave).`);
-            pData.isBot = true;
-            pData.socketId = "BOT";
-            pData.botTakeoverTimeout = null; // Clear ref
-
-            io.to(roomId).emit("bot_takeover", { 
-                playerNumber: pNum, 
-                userName: pData.userName 
-            });
-            broadcast_game_update(io, roomId);
-            saveState();
-            
-            // Trigger bot action immediately if it was their turn
-            if (game.current_player === pNum) {
-                process_bot_turn(io, roomId);
-            }
-        }, 10000); // 10 seconds
-
+        
+        io.to(roomId).emit("bot_takeover", { 
+            playerNumber: pNum, 
+            userName: pData.userName 
+        });
+        
+        if (game.current_player === pNum) {
+            process_bot_turn(io, roomId);
+        }
       } else {
-        // No Lobby ou fim de jogo, removemos para liberar a vaga
-        delete game.players_data[Number(pId) as PlayerID];
+        // No Lobby, deletamos o slot completamente para liberar a vaga
+        delete game.players_data[pNum as PlayerID];
       }
     }
 

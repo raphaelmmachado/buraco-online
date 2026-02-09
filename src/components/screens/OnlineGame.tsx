@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect, useRef } from "react";
 import { useGameStore } from "../../store/useGameStore";
 import { HomeScreen } from "./HomeScreen";
 import { LobbyScreen } from "./LobbyScreen";
@@ -16,6 +16,36 @@ const GameScreen = lazy(() =>
 export const OnlineGame = ({ onBack }: { onBack: () => void }) => {
   const store = useGameStore();
   const status = store.status;
+  const hasAttemptedAutoJoin = useRef(false);
+
+  // Auto-join from URL
+  useEffect(() => {
+    if (hasAttemptedAutoJoin.current) return;
+    
+    const params = new URLSearchParams(window.location.search);
+    const roomId = params.get("room");
+    const nickFromUrl = params.get("nick")?.trim();
+    
+    // Prioritize nick from URL if it's a valid string, otherwise use saved name
+    const savedName = localStorage.getItem("baralho_user_name");
+    const userName = (nickFromUrl && nickFromUrl.length > 0) ? nickFromUrl : savedName;
+
+    if (roomId && status === "IDLE" && userName && userName.length > 0) {
+        console.log(`[AUTO-JOIN] Entrando na sala ${roomId} como ${userName}...`);
+        
+        // Persist the nick if it came from the URL and is valid
+        if (nickFromUrl && nickFromUrl.length > 0) {
+            localStorage.setItem("baralho_user_name", nickFromUrl.toUpperCase());
+        }
+
+        store.connect(roomId, "2v2", userName.toUpperCase());
+        hasAttemptedAutoJoin.current = true;
+        
+        // Clean URL
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+    }
+  }, [status, store]);
 
   // The 'FINISHED' status can be handled here later, maybe showing a summary screen.
   if (status === "PLAYING" || status === "FINISHED" || status === "ROUND_OVER") {

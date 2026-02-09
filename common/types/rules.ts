@@ -7,8 +7,8 @@ export interface GameRules {
   pointsForEnding: number;           // Pontos por batida (Default 100)
   pointsCleanCanastra: number;       // Pontos canastra limpa (Default 200)
   pointsDirtyCanastra: number;       // Pontos canastra suja (Default 100)
-  pointsKingCanastra: number;        // Pontos canastra Real - 500 (3 a K)
-  pointsAceCanastra: number;         // Pontos canastra de Ás a Ás - 1000
+  pointsKingCanastra: number;        // Pontos canastra de 500 (13 cartas limpa) - Default 500
+  pointsAceCanastra: number;         // Pontos canastra Real (14 cartas limpa) - Default 1000
   penaltyDeadPileNotTaken: number;   // Penalidade morto não pego (Default 100)
 }
 

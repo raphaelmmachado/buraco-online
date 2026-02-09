@@ -93,7 +93,7 @@ export const DiscardCard = ({
   // Accessibility Styles
   const valueClass = isAccessibilityMode
     ? "md:text-4xl text-2xl font-bold scale-y-125 origin-top"
-    : "text-lg md:text-2xl font-black";
+    : "md:text-2xl font-black";
 
   const suitClass = isAccessibilityMode
     ? "w-5 h-5 md:w-8 md:h-8"
@@ -157,7 +157,7 @@ export const DiscardCard = ({
         onClick={onClick}
         className={`
         relative rounded-md shadow-lg border bg-white select-none
-         flex flex-col items-center p-0.5 md:p-1 z-10 w-14 h-20 md:w-20 md:h-32 justify-between
+         flex flex-col items-center p-1 z-10 w-14 h-20 md:w-20 md:h-32 justify-between
         ${
           isActionable
             ? "cursor-pointer hover:brightness-110"
@@ -185,7 +185,7 @@ export const DiscardCard = ({
         <div
           className={`absolute inset-0 flex items-center justify-center pointer-events-none ${isAccessibilityMode ? "opacity-5" : "opacity-20"}`}
         >
-          <SuitIcon suit={card.suit.name} className="w-6 h-6 md:w-10 md:h-10" />
+          <SuitIcon suit={card.suit.name} className="w-6 h-6 md:w-8 md:h-8" />
         </div>
 
         {!isAccessibilityMode && (

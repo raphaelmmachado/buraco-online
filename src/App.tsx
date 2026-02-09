@@ -8,7 +8,11 @@ import { useState } from "react";
 type VIEW_MODE = "HOME" | "ONLINE" | "LOCAL";
 
 function App() {
-  const [view, setView] = useState<VIEW_MODE>("HOME");
+  const [view, setView] = useState<VIEW_MODE>(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("room")) return "ONLINE";
+    return "HOME";
+  });
 
   return (
     <main className="">

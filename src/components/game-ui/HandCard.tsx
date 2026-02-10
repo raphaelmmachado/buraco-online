@@ -131,7 +131,7 @@ export const HandCard = ({
 
       {/* Símbolo Topo-Esquerda */}
       <div
-        className={`self-start flex flex-col items-center leading-none z-10 gap-y-1`}
+        className={`self-start flex flex-col items-center leading-none z-10 gap-y-1  ${isAccessibilityMode ? "gap-y-4 md:gap-y-5" : ""}`}
       >
         <span className={valueClass}>{card.value}</span>
         <SuitIcon suit={card.suit.name} className={suitClass} />
@@ -194,7 +194,9 @@ export const HandCard = ({
                     }}
                     className={`w-5 h-5 md:w-6 md:h-6 rounded-full border border-slate-200 transition-transform hover:scale-125 flex items-center justify-center ${c.class}`}
                   >
-                    {!c.color && <X className="w-2.5 h-2.5 md:w-3 md:h-3 text-slate-400" />}
+                    {!c.color && (
+                      <X className="w-2.5 h-2.5 md:w-3 md:h-3 text-slate-400" />
+                    )}
                   </button>
                 ))}
               </motion.div>

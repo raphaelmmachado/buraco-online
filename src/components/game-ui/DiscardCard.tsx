@@ -174,7 +174,7 @@ export const DiscardCard = ({
       `}
       >
         <div
-          className={`self-start flex flex-col ${isAccessibilityMode ? "gap-y-1 md:gap-y-2" : "gap-y-0"}
+          className={`self-start flex flex-col ${isAccessibilityMode ? "gap-y-4 md:gap-y-5" : "gap-y-1"}
            items-center leading-none z-10`}
         >
           <span className={valueClass}>{card.value}</span>

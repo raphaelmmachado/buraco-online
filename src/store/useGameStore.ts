@@ -6,7 +6,7 @@ import { SERVER_ADDRESS } from "../../common/const/server-address";
 import { type ScoreResult } from "../../common/utils/scoring";
 import { type GameRules, DEFAULT_RULES } from "../../common/types/rules";
 
-export type WinCondition = 
+export type WinCondition =
   | { type: "POINTS"; value: number }
   | { type: "ROUNDS"; value: number };
 
@@ -23,7 +23,13 @@ interface IncomingServerState {
   current_player: number;
   players_data: Record<
     number,
-    { socketId: string; userName: string; isBot?: boolean; playerId: string; isReady?: boolean }
+    {
+      socketId: string;
+      userName: string;
+      isBot?: boolean;
+      playerId: string;
+      isReady?: boolean;
+    }
   >;
   rules: GameRules;
   turn_start_time?: number;
@@ -63,10 +69,20 @@ interface GameState {
   onlineNames: string[];
   last_error: null | string;
   last_info: null | string;
-  connectionStatus: "CONNECTED" | "DISCONNECTED" | "CONNECTING" | "RECONNECTING";
+  connectionStatus:
+    | "CONNECTED"
+    | "DISCONNECTED"
+    | "CONNECTING"
+    | "RECONNECTING";
   players_data: Record<
     number,
-    { socketId: string; userName: string; isBot?: boolean; playerId: string; isReady?: boolean }
+    {
+      socketId: string;
+      userName: string;
+      isBot?: boolean;
+      playerId: string;
+      isReady?: boolean;
+    }
   >;
   mode: "1v1" | "2v2";
   isMuted: boolean;
@@ -143,7 +159,7 @@ interface GameActions {
   addEvent: (
     message: string,
     type?: "info" | "success" | "warning" | "error",
-    playerId?: number
+    playerId?: number,
   ) => void;
 
   set_server_state: (server_data: IncomingServerState) => void;
@@ -178,7 +194,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   connectionStatus: "DISCONNECTED",
   isMuted: localStorage.getItem("baralho_muted") === "true",
   showAnimations: localStorage.getItem("baralho_show_animations") !== "false",
-  isAccessibilityMode: localStorage.getItem("baralho_accessibility_mode") === "true",
+  isAccessibilityMode:
+    localStorage.getItem("baralho_accessibility_mode") === "true",
   showSortButton: localStorage.getItem("baralho_show_sort") === "true",
   showCardMarkers: localStorage.getItem("baralho_show_card_markers") === "true",
   cardMarkers: {},
@@ -307,14 +324,14 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const playerId = localStorage.getItem("baralho_player_id");
 
     if (roomId) {
-        socket.emit("leave_game", { roomId, playerId });
-        // Pequeno delay para o server processar e retornar a lista limpa
-        setTimeout(() => get().fetchRooms(), 100);
+      socket.emit("leave_game", { roomId, playerId });
+      // Pequeno delay para o server processar e retornar a lista limpa
+      setTimeout(() => get().fetchRooms(), 100);
     }
-    
+
     // Limpa estado local IMEDIATAMENTE
     localStorage.removeItem("baralho_active_room");
-    
+
     set({
       status: "IDLE",
       roomId: "",
@@ -358,18 +375,22 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
       socket.on(
         "rooms_list",
-        (data: { rooms: RoomInfo[]; totalOnline: number; onlineNames: string[] }) => {
+        (data: {
+          rooms: RoomInfo[];
+          totalOnline: number;
+          onlineNames: string[];
+        }) => {
           set({
             rooms: data.rooms,
             totalOnline: data.totalOnline,
             onlineNames: data.onlineNames,
           });
-        }
+        },
       );
 
       socket.on("game_closed", (reason: string) => {
         get().addEvent(reason, "error"); // Use addEvent instead of alert
-        
+
         // Limpa estado local e redireciona
         localStorage.removeItem("baralho_active_room");
         set({
@@ -434,9 +455,9 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
       socket.on("connect_error", (err) => {
         console.error("Socket connection error:", err);
-        set({ 
-            last_error: `Erro de conexão: ${err.message}`,
-            connectionStatus: "DISCONNECTED" // ou RECONNECTING se quisermos ser mais específicos, mas connect_error é falha
+        set({
+          last_error: `Erro de conexão: ${err.message}`,
+          connectionStatus: "DISCONNECTED", // ou RECONNECTING se quisermos ser mais específicos, mas connect_error é falha
         });
       });
 
@@ -450,19 +471,19 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         // Se conectou e NÃO foi via botão 'Entrar' (ou seja, foi reconexão automática ou refresh), tenta voltar pro jogo
         if (!is_manual_join) {
           console.log(
-            "Conexão automática detectada. Tentando voltar para a sala..."
+            "Conexão automática detectada. Tentando voltar para a sala...",
           );
           get().rejoinGame();
         }
       });
-      
+
       socket.on("disconnect", (reason) => {
         console.warn("Socket disconnected:", reason);
         set({ connectionStatus: "DISCONNECTED" });
       });
-      
+
       socket.io.on("reconnect_attempt", () => {
-         set({ connectionStatus: "RECONNECTING" });
+        set({ connectionStatus: "RECONNECTING" });
       });
 
       socket.on("player_disconnected", ({ userName }: { userName: string }) => {
@@ -479,7 +500,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
       listeners_setup = true;
     }
-    
+
     // REMOVED AUTO CONNECT
     // Always fetch rooms when initializing
     // get().fetchRooms(); // Don't fetch rooms if not connected
@@ -499,16 +520,19 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     set({ roomId: savedRoom });
 
     const emitRejoin = () => {
-        console.log("Emitindo rejoin para:", savedRoom);
-        socket.emit("rejoin_game", { roomId: savedRoom, playerId: savedPlayerId });
+      console.log("Emitindo rejoin para:", savedRoom);
+      socket.emit("rejoin_game", {
+        roomId: savedRoom,
+        playerId: savedPlayerId,
+      });
     };
 
     if (socket.connected) {
-        emitRejoin();
+      emitRejoin();
     } else {
-        console.log("Socket desconectado. Conectando antes de rejoin...");
-        socket.connect();
-        socket.once("connect", emitRejoin);
+      console.log("Socket desconectado. Conectando antes de rejoin...");
+      socket.connect();
+      socket.once("connect", emitRejoin);
     }
   },
 
@@ -544,8 +568,14 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
   set_server_state: (server_data: IncomingServerState) => {
     // Calculate total cards on table to trigger audio
-    const total_melded_t1 = (server_data.team_melds[1] || []).reduce((acc, m) => acc + m.length, 0);
-    const total_melded_t2 = (server_data.team_melds[2] || []).reduce((acc, m) => acc + m.length, 0);
+    const total_melded_t1 = (server_data.team_melds[1] || []).reduce(
+      (acc, m) => acc + m.length,
+      0,
+    );
+    const total_melded_t2 = (server_data.team_melds[2] || []).reduce(
+      (acc, m) => acc + m.length,
+      0,
+    );
     const total_cards_melded = total_melded_t1 + total_melded_t2;
 
     const current_status = get().status;
@@ -554,15 +584,15 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const new_status = server_data.status;
     const new_round = server_data.round_count || 1;
     const new_dead_piles = server_data.dead_piles_count;
-    
+
     // Limpar marcadores ao iniciar nova partida/rodada, ao finalizar rodada ou se a rodada mudar
     let cardMarkers = get().cardMarkers;
     let lastInfo = get().last_info;
 
     if (
       (current_status !== "PLAYING" && new_status === "PLAYING") ||
-      (new_status === "ROUND_OVER") ||
-      (current_round !== new_round)
+      new_status === "ROUND_OVER" ||
+      current_round !== new_round
     ) {
       cardMarkers = {};
       lastInfo = null;
@@ -570,8 +600,12 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
     // Detectar uso do morto (quando o deck principal zera e um morto é usado)
     // Mesma lógica do som de morto
-    if (new_status === "PLAYING" && new_dead_piles < current_dead_piles && current_dead_piles > 0) {
-        lastInfo = "Um monte do morto foi usado.";
+    if (
+      new_status === "PLAYING" &&
+      new_dead_piles < current_dead_piles &&
+      current_dead_piles > 0
+    ) {
+      lastInfo = "Morto está sendo usado ou algum jogador pegou.";
     }
 
     set({
@@ -595,13 +629,19 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       players_data: server_data.players_data,
       rules: (() => {
         if (server_data.rules) {
-            console.log("[STORE] Recebendo novas regras do servidor:", server_data.rules);
+          console.log(
+            "[STORE] Recebendo novas regras do servidor:",
+            server_data.rules,
+          );
         }
         return server_data.rules || DEFAULT_RULES;
       })(),
       last_drawn_card_id: server_data.last_drawn_card_id,
       final_score: server_data.final_score,
-      cumulative_score: server_data.cumulative_score || { team_1: 0, team_2: 0 },
+      cumulative_score: server_data.cumulative_score || {
+        team_1: 0,
+        team_2: 0,
+      },
       round_count: server_data.round_count || 1,
       win_condition: server_data.win_condition,
       rematch_votes: server_data.rematch_votes || {},
@@ -612,31 +652,43 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   draw_card: () => {
     const { roomId } = get();
     const playerId = localStorage.getItem("baralho_player_id");
-    socket.emit("action_draw", { roomId, playerId }, (response: ServerResponse) => {
-      if (response && response.error) {
-        set({ last_error: response.error });
-      }
-    });
+    socket.emit(
+      "action_draw",
+      { roomId, playerId },
+      (response: ServerResponse) => {
+        if (response && response.error) {
+          set({ last_error: response.error });
+        }
+      },
+    );
   },
 
   discard_card: (card_id: string) => {
     const { roomId } = get();
     const playerId = localStorage.getItem("baralho_player_id");
-    socket.emit("action_discard", { roomId, card_id, playerId }, (response: ServerResponse) => {
-      if (response && response.error) {
-        set({ last_error: response.error });
-      }
-    });
+    socket.emit(
+      "action_discard",
+      { roomId, card_id, playerId },
+      (response: ServerResponse) => {
+        if (response && response.error) {
+          set({ last_error: response.error });
+        }
+      },
+    );
   },
 
   meld_cards: (card_ids: string[]) => {
     const { roomId } = get();
     const playerId = localStorage.getItem("baralho_player_id");
-    socket.emit("action_meld", { roomId, card_ids, playerId }, (response: ServerResponse) => {
-      if (response && response.error) {
-        set({ last_error: response.error });
-      }
-    });
+    socket.emit(
+      "action_meld",
+      { roomId, card_ids, playerId },
+      (response: ServerResponse) => {
+        if (response && response.error) {
+          set({ last_error: response.error });
+        }
+      },
+    );
   },
 
   add_to_meld: (card_ids: string[], meld_index: number) => {
@@ -649,7 +701,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         if (response && response.error) {
           set({ last_error: response.error });
         }
-      }
+      },
     );
   },
 
@@ -663,7 +715,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         if (response && response.error) {
           set({ last_error: response.error });
         }
-      }
+      },
     );
   },
 
@@ -682,7 +734,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         if (response && response.error) {
           set({ last_error: response.error });
         }
-      }
+      },
     );
   },
 
@@ -702,11 +754,14 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   setRules: (rules) => {
     const { roomId } = get();
     const playerId = localStorage.getItem("baralho_player_id");
-    
+
     // Atualização otimista local
     set({ rules });
-    
-    console.log(`[RULES] Emitindo atualização de regras para sala ${roomId}:`, rules);
+
+    console.log(
+      `[RULES] Emitindo atualização de regras para sala ${roomId}:`,
+      rules,
+    );
     socket.emit("action_update_rules", { roomId, rules, playerId });
   },
 

@@ -132,7 +132,7 @@ export const GameMenu = ({
                   }`}
                 >
                   <Wand2 size={16} />
-                  {showSortButton ? "Organizar: ON" : "B. Organizar: OFF"}
+                  {showSortButton ? "Organizar: ON" : "Organizar: OFF"}
                 </button>
               )}
 

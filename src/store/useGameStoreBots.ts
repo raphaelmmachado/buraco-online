@@ -272,7 +272,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         deck = new_deck;
         set({
           dead_piles: remaining_piles,
-          last_info: "Um monte do morto foi usado.",
+          last_info: "Morto está sendo usado ou algum jogador pegou.",
         });
       } else {
         const t1_score = calculate_score(

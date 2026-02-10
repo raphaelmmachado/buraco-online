@@ -35,8 +35,8 @@ export const MeldBadge = ({ meld }: { meld: CardType[] }) => {
       label = "Perfeita!";
       break;
     default:
+      color = "bg-slate-700 backdrop-blur-sm";
       label = `${length} / 7`;
-      color = "bg-slate-700/80 backdrop-blur-sm";
   }
 
   return (

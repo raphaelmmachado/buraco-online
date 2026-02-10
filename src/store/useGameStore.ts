@@ -122,6 +122,7 @@ interface GameActions {
   add_to_meld: (card_ids: string[], meld_index: number) => void;
   pick_up_discard_new_meld: (card_ids: string[]) => void;
   pick_up_discard_add_to_meld: (meld_index: number, card_ids: string[]) => void;
+  useJoker: (cardId: string) => void;
   kickPlayer: (playerId: number) => void;
   startGame: (winCondition?: WinCondition) => void;
   updateWinCondition: (winCondition?: WinCondition) => void;
@@ -684,6 +685,16 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         }
       }
     );
+  },
+
+  useJoker: (cardId: string) => {
+    const { roomId } = get();
+    const playerId = localStorage.getItem("baralho_player_id");
+    socket.emit("action_use_joker", { roomId, cardId, playerId }, (response: ServerResponse) => {
+      if (response && response.error) {
+        set({ last_error: response.error });
+      }
+    });
   },
 
   startGame: (winCondition) => {

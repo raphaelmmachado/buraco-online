@@ -3,13 +3,28 @@
 // Este arquivo é responsável pela preparação inicial do jogo.
 // =============================================================================
 
-import { type Card, GAME_RULES, SUITS, VALUES } from "../types/card";
+import {
+  type Card,
+  type JokerAbility,
+  GAME_RULES,
+  SUITS,
+  VALUES,
+  JOKER_SUIT,
+} from "../types/card";
+import { type GameRules, DEFAULT_RULES } from "../types/rules";
 
 export interface InitialDistribution {
   hands: Record<number, Card[]>;
   dead_piles: Card[][];
   remaining_deck: Card[];
 }
+
+const JOKER_ABILITIES_MAP: Record<string, JokerAbility> = {
+  "0_0": "VIEW_HAND",
+  "0_1": "STEAL_CARD",
+  "1_0": "SKIP_TURN",
+  "1_1": "SWAP_PARTNER",
+};
 
 const shuffle = (array: Card[]): Card[] => {
   const new_array = [...array];
@@ -24,13 +39,14 @@ const shuffle = (array: Card[]): Card[] => {
 
 /**
  * Cria o baralho completo para o jogo de Buraco.
- * @returns {Card[]} - Um array com todas as 104 cartas.
+ * @returns {Card[]} - Um array com todas as cartas.
  */
-export const create_deck = (): Card[] => {
+export const create_deck = (rules: GameRules = DEFAULT_RULES): Card[] => {
   console.log(`[GAME] Criando baralho com ${GAME_RULES.DECKS_TO_USE} decks.`);
   const deck: Card[] = [];
 
   for (let i = 0; i < GAME_RULES.DECKS_TO_USE; i++) {
+    // Cartas Normais
     for (const suit of SUITS) {
       for (const value of VALUES) {
         const newCard: Card = {
@@ -41,6 +57,22 @@ export const create_deck = (): Card[] => {
           deckIndex: i,
         };
         deck.push(newCard);
+      }
+    }
+
+    // Magic Jokers (2 por deck) - Apenas se ativado nas regras
+    if (rules.useMagicJokers) {
+      for (let j = 0; j < 2; j++) {
+        const abilityKey = `${i}_${j}`;
+        const jokerCard: Card = {
+          id: `JOKER_${i}_${j}_${Math.random().toString(36).substring(2, 6)}`,
+          color: "magic",
+          suit: JOKER_SUIT,
+          value: "JOKER",
+          deckIndex: i,
+          ability: JOKER_ABILITIES_MAP[abilityKey] || "VIEW_HAND",
+        };
+        deck.push(jokerCard);
       }
     }
   }

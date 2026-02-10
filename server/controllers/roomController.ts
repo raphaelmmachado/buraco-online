@@ -369,7 +369,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
         });
 
         console.log(`Criando sala ${roomId} [${mode}]`);
-        const deck = create_deck();
+        const deck = create_deck(DEFAULT_RULES);
         const setup = distribute_cards(deck, mode);
 
         // Organiza as mãos automaticamente após a distribuição

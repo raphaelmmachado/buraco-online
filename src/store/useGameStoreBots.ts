@@ -67,6 +67,7 @@ interface GameActions {
     meld_index: number,
     bridge_card_ids: string[],
   ) => void;
+  use_joker: (cardId: string) => void;
   clear_error: () => void;
   toggleAnimations: () => void;
   toggleSortButton: () => void;
@@ -200,7 +201,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       winCondition = config as WinCondition;
     }
 
-    const full_deck = create_deck();
+    const full_deck = create_deck(rules);
     const setup = distribute_cards(full_deck, mode);
 
     // Organiza as mãos automaticamente
@@ -234,8 +235,8 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
   },
 
   next_round: () => {
-    const { mode, round_count } = get();
-    const full_deck = create_deck();
+    const { mode, round_count, rules } = get();
+    const full_deck = create_deck(rules);
     const setup = distribute_cards(full_deck, mode);
 
     // Organiza as mãos automaticamente
@@ -678,6 +679,128 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       const next_player = get_next_player(current_player, mode);
       set({ current_player: next_player, turn_phase: "DRAW" });
     }
+  },
+
+  use_joker: (cardId) => {
+    const { hands, current_player, turn_phase, mode } = get();
+    if (turn_phase === "DRAW") {
+      set({ last_error: "Você deve comprar uma carta antes de usar o Joker." });
+      return;
+    }
+
+    const my_hand = hands[current_player];
+    const joker = my_hand.find((c) => c.id === cardId);
+    if (!joker || joker.value !== "JOKER" || !joker.ability) return;
+
+    // Consome o Joker
+    const new_hand_after_joker = my_hand.filter((c) => c.id !== cardId);
+
+    // Determina o Alvo (Próximo Jogador)
+    const next_player = get_next_player(current_player, mode);
+    const target_hand = hands[next_player];
+
+    let infoMsg = "";
+
+    switch (joker.ability) {
+      case "VIEW_HAND": {
+        const cardsNames = target_hand
+          .map((c) => `[${c.value}${c.suit.emoji || c.suit.icon}]`)
+          .join(" ");
+        infoMsg = `👁️ VISÃO: Jogador ${next_player} tem: ${cardsNames}`;
+        get().addEvent(
+          `Usou VISÃO contra Jogador ${next_player}`,
+          "info",
+          current_player,
+        );
+        set({ last_info: infoMsg });
+        // Limpa após 2 segundos
+        setTimeout(() => set({ last_info: null }), 2000);
+        break;
+      }
+
+      case "STEAL_CARD": {
+        if (target_hand.length > 0) {
+          const randomIdx = Math.floor(Math.random() * target_hand.length);
+          const stolenCard = target_hand[randomIdx];
+          const newTargetHand = target_hand.filter((_, i) => i !== randomIdx);
+          const newMyHand = sort_cards([...new_hand_after_joker, stolenCard]);
+
+          set({
+            hands: {
+              ...hands,
+              [current_player]: newMyHand,
+              [next_player]: newTargetHand,
+            },
+          });
+          get().addEvent(
+            `ROUBOU uma carta do Jogador ${next_player}`,
+            "success",
+            current_player,
+          );
+        }
+        break;
+      }
+
+      case "SKIP_TURN": {
+        get().addEvent(`PULOU o descarte!`, "info", current_player);
+        const nextP = get_next_player(current_player, mode);
+        set({
+          hands: { ...hands, [current_player]: new_hand_after_joker },
+          current_player: nextP,
+          turn_phase: "DRAW",
+          last_error: null,
+        });
+        return; // Sai pois o turno acabou
+      }
+
+      case "SWAP_PARTNER": {
+        if (mode === "2v2") {
+          const partner = current_player <= 2 ? current_player + 2 : current_player - 2;
+          const partner_hand = hands[partner];
+          if (partner_hand.length > 0 && new_hand_after_joker.length > 0) {
+            const myIdx = Math.floor(Math.random() * new_hand_after_joker.length);
+            const pIdx = Math.floor(Math.random() * partner_hand.length);
+
+            const myCard = new_hand_after_joker[myIdx];
+            const pCard = partner_hand[pIdx];
+
+            const finalMyHand = sort_cards([
+              ...new_hand_after_joker.filter((_, i) => i !== myIdx),
+              pCard,
+            ]);
+            const finalPartnerHand = sort_cards([
+              ...partner_hand.filter((_, i) => i !== pIdx),
+              myCard,
+            ]);
+
+            set({
+              hands: {
+                ...hands,
+                [current_player]: finalMyHand,
+                [partner]: finalPartnerHand,
+              },
+            });
+            get().addEvent(
+              `TROCOU carta com o parceiro!`,
+              "success",
+              current_player,
+            );
+          }
+        } else {
+            set({ last_error: "Troca com parceiro só funciona em duplas (2v2)." });
+            return; // Joker não consumido se inválido? Vamos consumir pra evitar exploit
+        }
+        break;
+      }
+    }
+
+    // Atualização padrão para o Joker consumido
+    set({
+      hands: { ...hands, [current_player]: new_hand_after_joker },
+      last_error: null,
+    });
+
+    if (new_hand_after_joker.length === 0) get().internal_handle_empty_hand("DIRECT");
   },
 
   sort_my_hand: () => {

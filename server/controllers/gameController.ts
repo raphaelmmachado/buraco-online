@@ -667,4 +667,150 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
     broadcast_game_update(io, roomId);
     saveState();
   });
+
+  socket.on(
+    "action_use_joker",
+    (
+      { roomId, cardId, playerId }: { roomId: string; cardId: string; playerId?: string },
+      callback?: (res: ServerResponse) => void,
+    ) => {
+      const game = games[roomId];
+      if (!game) return;
+
+      const ctx = validateTurn(game, socket.id, playerId);
+      if (!ctx) {
+        if (callback) callback({ error: "Não é a sua vez." });
+        return;
+      }
+      const { player_id } = ctx;
+
+      if (game.turn_phase !== "ACTION") {
+        if (callback)
+          callback({
+            error: "Você deve comprar uma carta antes de usar o Joker.",
+          });
+        return;
+      }
+
+      const player_hand = game.hands[player_id];
+      if (!player_hand) return;
+
+      const jokerIdx = player_hand.findIndex((c) => c.id === cardId);
+      if (jokerIdx === -1) return;
+      const joker = player_hand[jokerIdx];
+
+      if (!joker || joker.value !== "JOKER" || !joker.ability) {
+        if (callback)
+          callback({ error: "Carta selecionada não é um Magic Joker." });
+        return;
+      }
+
+      // Consome o Joker
+      player_hand.splice(jokerIdx, 1);
+
+      const next_player = get_next_player(player_id, game.mode);
+      const target_hand = game.hands[next_player];
+
+      switch (joker.ability) {
+        case "VIEW_HAND": {
+          if (target_hand) {
+            const cardsNames = target_hand
+              .map((c) => `[${c.value}${c.suit.emoji || c.suit.icon}]`)
+              .join(" ");
+            const infoMsg = `👁️ VISÃO: Jogador ${next_player} tem: ${cardsNames}`;
+            // Envia mensagem privada para o usuário
+            socket.emit("info_msg", infoMsg);
+            io.to(roomId).emit(
+              "info_msg",
+              `O Jogador ${player_id} usou VISÃO contra o Jogador ${next_player}.`,
+            );
+          }
+          break;
+        }
+
+        case "STEAL_CARD": {
+          if (target_hand && target_hand.length > 0) {
+            const randomIdx = Math.floor(Math.random() * target_hand.length);
+            const stolenCard = target_hand.splice(randomIdx, 1)[0];
+            if (stolenCard) {
+                player_hand.push(stolenCard);
+                game.hands[player_id] = sort_cards(player_hand);
+                game.hands[next_player] = sort_cards(target_hand);
+                io.to(roomId).emit(
+                  "info_msg",
+                  `O Jogador ${player_id} ROUBOU uma carta do Jogador ${next_player}.`,
+                );
+            }
+          }
+          break;
+        }
+
+        case "SKIP_TURN": {
+          io.to(roomId).emit(
+            "info_msg",
+            `O Jogador ${player_id} PULOU o descarte usando o Joker!`,
+          );
+          game.turn_phase = "DRAW";
+          game.current_player = get_next_player(game.current_player, game.mode);
+          game.last_drawn_card_id = null;
+
+          // Inicia timer do próximo
+          startTurnTimer(io, roomId);
+
+          // Verifica se o próximo é bot
+          const nextPData = game.players_data[game.current_player as PlayerID];
+          if (nextPData && nextPData.isBot) {
+            process_bot_turn(io, roomId);
+          }
+          
+          // Se o turno pulou, fazemos o broadcast e retornamos
+          if (player_hand.length === 0) {
+            handle_empty_hand(game, player_id, "INDIRECT"); // Descarte implícito
+          }
+          saveState();
+          broadcast_game_update(io, roomId);
+          return;
+        }
+
+        case "SWAP_PARTNER": {
+          if (game.mode === "2v2") {
+            const partner = player_id <= 2 ? player_id + 2 : player_id - 2;
+            const partner_hand = game.hands[partner];
+            if (
+              partner_hand &&
+              partner_hand.length > 0 &&
+              player_hand.length > 0
+            ) {
+              const myIdx = Math.floor(Math.random() * player_hand.length);
+              const pIdx = Math.floor(Math.random() * partner_hand.length);
+
+              const myCard = player_hand.splice(myIdx, 1)[0];
+              const pCard = partner_hand.splice(pIdx, 1)[0];
+
+              if (myCard && pCard) {
+                  player_hand.push(pCard);
+                  partner_hand.push(myCard);
+    
+                  game.hands[player_id] = sort_cards(player_hand);
+                  game.hands[partner] = sort_cards(partner_hand);
+                  io.to(roomId).emit(
+                    "info_msg",
+                    `O Jogador ${player_id} trocou uma carta com seu parceiro.`,
+                  );
+              }
+            }
+          }
+          break;
+        }
+      }
+
+      if (player_hand.length === 0) {
+        handle_empty_hand(game, player_id, "DIRECT");
+      }
+
+      saveState();
+      startTurnTimer(io, roomId);
+      broadcast_game_update(io, roomId);
+    },
+  );
 };

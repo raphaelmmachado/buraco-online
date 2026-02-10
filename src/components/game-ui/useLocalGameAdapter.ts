@@ -58,6 +58,7 @@ export interface GameAdapterInterface {
   add_to_meld: (card_ids: string[], meld_index: number) => void;
   pick_up_discard_new_meld: (card_ids: string[]) => void;
   pick_up_discard_add_to_meld: (meld_index: number, card_ids: string[]) => void;
+  useJoker: (cardId: string) => void;
   startGame: (winCondition?: WinCondition) => void;
   nextRound: () => void;
   voteNext: () => void;
@@ -139,6 +140,7 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       add_to_meld: local.add_card_to_meld,
       pick_up_discard_new_meld: local.pick_up_discard_new_meld,
       pick_up_discard_add_to_meld: local.pick_up_discard_add_to_meld,
+      useJoker: local.use_joker,
       startGame: local.start_game,
       nextRound: local.next_round,
       voteNext: () => {

@@ -10,6 +10,7 @@ export interface GameRules {
   pointsKingCanastra: number;        // Pontos canastra de 500 (13 cartas limpa) - Default 500
   pointsAceCanastra: number;         // Pontos canastra Real (14 cartas limpa) - Default 1000
   penaltyDeadPileNotTaken: number;   // Penalidade morto não pego (Default 100)
+  useMagicJokers: boolean;           // Ativar cartas de RPG Magic Jokers
 }
 
 export const DEFAULT_RULES: GameRules = {
@@ -21,4 +22,5 @@ export const DEFAULT_RULES: GameRules = {
   pointsKingCanastra: 500,
   pointsAceCanastra: 1000,
   penaltyDeadPileNotTaken: 100,
+  useMagicJokers: false,
 };

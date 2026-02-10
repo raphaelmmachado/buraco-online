@@ -162,12 +162,12 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     }
   }, [game.last_error, game]);
 
-  // Auto-clear info after 3 seconds
+  // Auto-clear info after 2 seconds
   useEffect(() => {
     if (game.last_info) {
       const timer = setTimeout(() => {
         game.clear_info?.();
-      }, 3000);
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [game.last_info, game]);
@@ -269,6 +269,11 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   };
 
   // Prepare Props Object
+  const myHand = (game.hands[my_player_id] as Card[]) || [];
+  const isJokerSelected = selectedCards.some(id => 
+    myHand.find(c => c.id === id)?.value === "JOKER"
+  );
+
   const layoutProps: GameLayoutProps = {
     game,
     selectedCards,
@@ -286,6 +291,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     onDiscardClick: handleDiscardClick,
     onMeldClick: handleMeldClick,
     onNewMeldClick: handleNewMeldClick,
+    onUseJoker: game.useJoker,
     toggleSelect,
     onCardClick: toggleSelect, // Alias for toggleSelect in props if needed
     startDrag,
@@ -556,9 +562,12 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           {/* FOOTER: [MONTE] [MÃO] [LIXO] */}
           <footer
             id="game-footer"
-            className="h-32 md:h-[20%] bg-linear-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md px-1 pb-1 z-40
-           relative w-full flex items-end justify-between gap-1 md:gap-6 pointer-events-none"
+            className={`${isJokerSelected ? 'h-64' : 'h-32'} md:h-[20%] transition-all duration-300 ease-out overflow-visible px-1 pb-1 z-40
+           relative w-full flex items-end justify-between gap-1 md:gap-6 pointer-events-none`}
           >
+            {/* Visual Background (Gradient) - Fixed height to not cover the table */}
+            <div className="absolute inset-0 top-auto h-32 md:h-full bg-linear-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md -z-10 pointer-events-none" />
+
             {isMobile ? (
               <GameFooterMobile {...layoutProps} my_player_id={my_player_id} />
             ) : (
@@ -587,14 +596,14 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
             {game.last_info && (
               <div
                 id="info-toast"
-                className="absolute -top-16 left-1/2 -translate-x-1/2 bg-slate-700/90 backdrop-blur
-               text-white px-6 py-2 rounded-md text-sm font-black shadow-2xl
-                flex items-center gap-3 border border-white/10 z-100 pointer-events-auto"
+                className="absolute -top-20 left-1/2 -translate-x-1/2 bg-slate-800/95 backdrop-blur-md
+               text-white px-6 py-3 rounded-2xl text-sm md:text-base font-bold shadow-2xl
+                flex items-center gap-3 border border-white/10 z-100 pointer-events-auto min-w-max animate-bounce-in"
               >
-                <span>ℹ️ {game.last_info}</span>
+                <span className="tracking-tight">{game.last_info}</span>
                 <button
                   onClick={game.clear_info}
-                  className="bg-white/10 hover:bg-white/20 rounded-lg w-5 h-5 flex items-center justify-center cursor-pointer"
+                  className="bg-white/10 hover:bg-white/20 rounded-full w-6 h-6 flex items-center justify-center cursor-pointer"
                 >
                   ✕
                 </button>

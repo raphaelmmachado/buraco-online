@@ -14,6 +14,7 @@ export const GameFooterMobile = ({
       selectedCardIds={selectedCards}
       lastDrawnCardId={game.last_drawn_card_id}
       onCardClick={toggleSelect}
+      onUseJoker={game.useJoker}
       onSortHand={game.sort_hand}
       showSortButton={game.showSortButton}
       showCardMarkers={game.showCardMarkers}

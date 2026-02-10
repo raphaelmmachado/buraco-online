@@ -36,6 +36,7 @@ export const GameFooterDesktop = ({
         selectedCardIds={selectedCards}
         lastDrawnCardId={game.last_drawn_card_id}
         onCardClick={toggleSelect}
+        onUseJoker={game.useJoker}
         onSortHand={game.sort_hand}
         isMobile={false}
         showSortButton={game.showSortButton}

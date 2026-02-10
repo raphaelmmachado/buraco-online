@@ -118,12 +118,14 @@ export const MeldCard = ({
       >
         <SuitIcon suit={card.suit.name} className="w-5 h-5 md:w-7 md:h-7" />
       </div>
-      <div
-        className={`self-end rotate-180 flex flex-col ${isAccessibilityMode ? "gap-y-0.5 md:gap-y-2" : ""} items-center leading-none z-10`}
-      >
-        <span className={valueClass}>{card.value}</span>
-        <SuitIcon suit={card.suit.name} className={suitClass} />
-      </div>
+      {!isAccessibilityMode && (
+        <div
+          className={`self-end rotate-180 flex flex-col items-center leading-none z-10`}
+        >
+          <span className={valueClass}>{card.value}</span>
+          <SuitIcon suit={card.suit.name} className={suitClass} />
+        </div>
+      )}
     </motion.div>
   );
 };

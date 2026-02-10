@@ -67,6 +67,15 @@ export const get_sequence_details = (cards: Card[]): SequenceDetails => {
   if (cards.length < GAME_RULES.MIN_CARDS_FOR_MELD) {
     return { is_valid: false, error: "Um jogo deve ter no mínimo 3 cartas." };
   }
+
+  // Coringas Mágicos não podem ser usados em sequências
+  if (cards.some((c) => c.value === "JOKER")) {
+    return {
+      is_valid: false,
+      error: "Coringas Mágicos não podem ser usados em sequências.",
+    };
+  }
+
   if (cards.length > GAME_RULES.MAX_LENGTH) {
     return { is_valid: false, error: "Um jogo não pode ter mais de 14 cartas (A a A)." };
   }

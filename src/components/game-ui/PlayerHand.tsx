@@ -9,6 +9,7 @@ interface PlayerHandProps {
   selectedCardIds: string[];
   lastDrawnCardId?: string | null;
   onCardClick: (id: string) => void;
+  onUseJoker?: (cardId: string) => void;
   onSortHand: () => void;
   isMobile: boolean;
   showSortButton?: boolean;
@@ -65,6 +66,7 @@ export const PlayerHand = ({
   selectedCardIds,
   lastDrawnCardId,
   onCardClick,
+  onUseJoker,
   onSortHand,
   isMobile,
   showSortButton = false,
@@ -250,6 +252,7 @@ export const PlayerHand = ({
                   isSelected={isSelected}
                   isLastDrawn={card.id === lastDrawnCardId}
                   onClick={() => onCardClick(card.id)}
+                  onUseJoker={onUseJoker}
                   markerColor={showCardMarkers ? cardMarkers[card.id] : null}
                   onSetMarker={
                     showCardMarkers
@@ -398,6 +401,7 @@ export const PlayerHand = ({
                           isSelected={isSelected}
                           isLastDrawn={card.id === lastDrawnCardId}
                           onClick={() => onCardClick(card.id)}
+                          onUseJoker={onUseJoker}
                           markerColor={
                             showCardMarkers ? cardMarkers[card.id] : null
                           }

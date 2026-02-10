@@ -106,7 +106,7 @@ export const start_next_round = (game: ServerGameState) => {
     game.status = "PLAYING";
     
     // Create new deck and distribute
-    const deck = create_deck();
+    const deck = create_deck(game.rules);
     const setup = distribute_cards(deck, game.mode);
 
     // Sort hands
@@ -139,7 +139,7 @@ export const start_new_match = (game: ServerGameState) => {
     game.round_count = 1;
     game.status = "PLAYING";
     
-    const deck = create_deck();
+    const deck = create_deck(game.rules);
     const setup = distribute_cards(deck, game.mode);
 
     const sorted_hands: Record<number, Card[]> = {};

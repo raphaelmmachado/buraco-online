@@ -27,6 +27,17 @@ export interface GameAdapterInterface {
   turn_phase: "DRAW" | "ACTION" | "DISCARD";
   current_player: number;
   last_drawn_card_id: string | null;
+  magic_joker: {
+    direction: 1 | -1;
+    is_discard_frozen: boolean;
+    power_selection?: {
+      player_id: number;
+      target_player_id: number;
+      ability: string;
+      selected_card_id?: string;
+      stage: "PICK_MY_CARD" | "PICK_THEIR_CARD";
+    };
+  };
   final_score: {
     team_1: number;
     team_2: number;
@@ -59,6 +70,8 @@ export interface GameAdapterInterface {
   pick_up_discard_new_meld: (card_ids: string[]) => void;
   pick_up_discard_add_to_meld: (meld_index: number, card_ids: string[]) => void;
   useJoker: (cardId: string) => void;
+  power_pick_card: (cardId: string) => void;
+  power_cancel: () => void;
   startGame: (winCondition?: WinCondition) => void;
   nextRound: () => void;
   voteNext: () => void;
@@ -90,19 +103,37 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
   }, [local.mode]);
 
   const adapter = useMemo(() => {
+    // Sanitização local: Esconde as cartas dos bots a menos que um poder as revele
+    const sanitizedHands: Record<number, Card[] | number> = {};
+    const myPlayerId = 1;
+
+    Object.keys(local.hands).forEach((idStr) => {
+      const id = Number(idStr);
+      const isMe = id === myPlayerId;
+      const isPowerTarget = 
+        local.magic_joker.power_selection?.player_id === myPlayerId && 
+        local.magic_joker.power_selection?.target_player_id === id;
+
+      if (isMe || isPowerTarget) {
+        sanitizedHands[id] = local.hands[id];
+      } else {
+        sanitizedHands[id] = local.hands[id]?.length || 0;
+      }
+    });
+
     return {
       // State
       status: local.status,
       mode: local.mode,
       roomId: "LOCAL_DEBUG",
-      my_player_number: 1, // Always Player 1 in local mode
+      my_player_number: myPlayerId, 
       my_player_name: "Você",
       players_data,
       rules: local.rules,
 
       deck_count: local.deck.length,
       discard_pile: local.discard_pile,
-      hands: local.hands,
+      hands: sanitizedHands,
       team_melds: local.team_melds,
       dead_piles_count: local.dead_piles.length,
       has_taken_dead_pile: [
@@ -112,6 +143,7 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       turn_phase: local.turn_phase,
       current_player: local.current_player,
       last_drawn_card_id: local.last_drawn_card_id,
+      magic_joker: local.magic_joker,
       final_score: local.final_score
         ? {
             team_1: local.final_score.team_1.total_score,
@@ -141,6 +173,8 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       pick_up_discard_new_meld: local.pick_up_discard_new_meld,
       pick_up_discard_add_to_meld: local.pick_up_discard_add_to_meld,
       useJoker: local.use_joker,
+      power_pick_card: local.power_pick_card,
+      power_cancel: local.power_cancel,
       startGame: local.start_game,
       nextRound: local.next_round,
       voteNext: () => {

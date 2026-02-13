@@ -27,11 +27,18 @@ const MARKER_COLORS = [
   { name: "Vermelho", color: "#ef4444", class: "bg-red-500" },
 ];
 
-const ABILITY_DESCRIPTIONS: Record<string, string> = {
-  VIEW_HAND: "VISÃO: Veja a mão do próximo",
-  STEAL_CARD: "ROUBAR: Pegue uma carta do próximo",
-  SKIP_TURN: "PULO: Pule sua vez sem descartar",
-  SWAP_PARTNER: "TROCA: Troque de carta com parceiro",
+const ABILITY_DESCRIPTIONS: Record<string, { name: string; desc: string }> = {
+  VIEW_HAND: { name: "Visão", desc: "Veja a mão do próximo" },
+  STEAL_CARD: { name: "Roubo", desc: "Pegue uma carta dele" },
+  SKIP_TURN: { name: "Pulo", desc: "Pula vez sem descartar" },
+  SWAP_PARTNER: { name: "Troca", desc: "Troque com seu parceiro" },
+  FREEZE_PILE: { name: "Gelo", desc: "Congela o lixo" },
+  SHUFFLE_DISCARD: { name: "Limpeza", desc: "Lixo volta ao monte" },
+  TAX_COLLECTOR: { name: "Imposto", desc: "Todos descartam 1" },
+  GIFT_CARD: { name: "Presente", desc: "Dê sua pior carta" },
+  SKIP_NEXT: { name: "Bloqueio", desc: "Pula a vez do próximo" },
+  REVERSE: { name: "Reverso", desc: "Inverte o sentido" },
+  SURGICAL_SWAP: { name: "Cirúrgico", desc: "Escolha o que trocar" },
 };
 
 /**
@@ -69,13 +76,13 @@ const AccessibilityCardContent = ({
                 initial={{ opacity: 0, scale: 0.8, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.8, y: 10 }}
-                className="absolute -top-14 md:-top-16 left-1/2 -translate-x-1/2 w-28 md:w-40 bg-violet-900/95 backdrop-blur-md border border-violet-400 text-white p-1.5 md:p-2 rounded-xl shadow-2xl z-50 pointer-events-none"
+                className="absolute -top-14 md:-top-16 left-1/2 -translate-x-1/2 w-28 md:w-40 bg-violet-900/95 backdrop-blur-md border border-violet-400 text-white p-1.5 md:p-2 rounded-xl shadow-2xl z-50 pointer-events-none text-center"
               >
                 <div className="text-[7px] md:text-[10px] font-black uppercase tracking-widest text-violet-300 mb-0.5 md:mb-1">
-                  Poder Ativo
+                  {abilityInfo.name}
                 </div>{" "}
                 <div className="text-[9px] md:text-xs font-bold leading-tight">
-                  {abilityInfo}
+                  {abilityInfo.desc}
                 </div>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] md:border-8 border-transparent border-t-violet-900" />
               </motion.div>
@@ -148,13 +155,13 @@ const JokerCardContent = ({
             initial={{ opacity: 0, scale: 0.8, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 10 }}
-            className="absolute -top-14 md:-top-16 left-1/2 -translate-x-1/2 w-28 md:w-40 bg-violet-900/95 backdrop-blur-md border border-violet-400 text-white p-1.5 md:p-2 rounded-xl shadow-2xl z-50 pointer-events-none"
+            className="absolute -top-14 md:-top-16 left-1/2 -translate-x-1/2 w-28 md:w-40 bg-violet-900/95 backdrop-blur-md border border-violet-400 text-white p-1.5 md:p-2 rounded-xl shadow-2xl z-50 pointer-events-none text-center"
           >
             <div className="text-[7px] md:text-[10px] font-black uppercase tracking-widest text-violet-300 mb-0.5 md:mb-1">
-              Poder Ativo{" "}
+              {abilityInfo.name}
             </div>
             <div className="text-[9px] md:text-xs font-bold leading-tight">
-              {abilityInfo}
+              {abilityInfo.desc}
             </div>
             <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] md:border-8 border-transparent border-t-violet-900" />
           </motion.div>
@@ -167,10 +174,8 @@ const JokerCardContent = ({
       {/* Símbolo Topo-Esquerda */}
       <div className="self-start flex flex-col items-center leading-none z-10 gap-y-1">
         <span className={`${valueClass} text-xs md:text-lg tracking-tighter`}>
-          Joker
+          {abilityInfo ? abilityInfo.name : "Joker"}
         </span>
-        {/* desativado para joker
-        <SuitIcon suit={card.suit.name} className={suitClass} /> */}
       </div>
 
       {/* Imagem Central */}
@@ -191,8 +196,8 @@ const JokerCardContent = ({
       {/* Joker Ability Description */}
       {abilityInfo && (
         <div className="absolute bottom-1 left-0 right-0 px-0.5 text-center leading-none z-20 pointer-events-none">
-          <span className="text-[6px] md:text-[8px] font-black uppercase text-violet-700">
-            {abilityInfo}
+          <span className="text-[7px] md:text-[9px] font-bold uppercase text-violet-900 bg-white/40 px-1 rounded-sm backdrop-blur-[1px]">
+            {abilityInfo.desc}
           </span>
         </div>
       )}
@@ -361,7 +366,7 @@ export const HandCard = ({
               "linear-gradient(to bottom, rgba(255,255,255,0.2), transparent)",
           }}
         >
-          <div className="absolute top-0 left-0 right-0 h-1_bg-black/10" />
+          <div className="absolute top-0 left-0 right-0 h-1 bg-black/10" />
         </motion.div>
       )}
 

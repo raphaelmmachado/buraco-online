@@ -215,15 +215,18 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
     }
 
     // Gravação direta no estado global para evitar perda de referência
-    games[actualRoomId].rules = { ...rules };
-    console.log(`[RULES] OK: Regras atualizadas e gravadas no servidor para a sala ${actualRoomId}.`);
-    
-    // Notifica os outros jogadores que as regras mudaram
-    io.to(actualRoomId).emit("info_msg", "O líder da sala atualizou as regras do jogo.");
+    const actualGame = games[actualRoomId];
+    if (actualGame) {
+        actualGame.rules = { ...rules };
+        console.log(`[RULES] OK: Regras atualizadas e gravadas no servidor para a sala ${actualRoomId}.`);
+        
+        // Notifica os outros jogadores que as regras mudaram
+        io.to(actualRoomId).emit("info_msg", "O líder da sala atualizou as regras do jogo.");
 
-    // Força o broadcast usando o objeto global atualizado
-    broadcast_game_update(io, actualRoomId);
-    saveState();
+        // Força o broadcast usando o objeto global atualizado
+        broadcast_game_update(io, actualRoomId);
+        saveState();
+    }
   });
 
   socket.on("action_update_config", ({ roomId, winCondition }: { roomId: string, winCondition?: WinCondition }) => {
@@ -396,6 +399,10 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
           cumulative_score: { team_1: 0, team_2: 0 },
           round_count: 1,
           rules: { ...DEFAULT_RULES },
+          magic_joker: {
+            direction: 1,
+            is_discard_frozen: false,
+          },
         };
         saveState();
       }

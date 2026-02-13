@@ -33,6 +33,7 @@ interface FinishScreenProps {
   onPlayAgain: () => void;
   onLeave: () => void;
   isLeader?: boolean;
+  rules?: any; // Add rules to props
 }
 
 export const FinishScreen = ({
@@ -48,6 +49,7 @@ export const FinishScreen = ({
   rematchVotes = {},
   totalHumanPlayers = 0,
   isLeader = false,
+  rules,
 }: FinishScreenProps) => {
   const effectiveScore = cumulativeScore || {
     team_1: finalScore.team_1,
@@ -212,6 +214,7 @@ export const FinishScreen = ({
           score={finalScore.team_1}
           details={finalScore.details_t1}
           delay={0.4}
+          rules={rules}
         />
         <TeamRoundCard
           title="OPONENTE"
@@ -220,6 +223,7 @@ export const FinishScreen = ({
           score={finalScore.team_2}
           details={finalScore.details_t2}
           delay={0.5}
+          rules={rules}
         />
       </div>
 
@@ -272,6 +276,7 @@ const TeamRoundCard = ({
   score,
   details,
   delay,
+  rules,
 }: {
   title: string;
   teamId: number;
@@ -279,6 +284,7 @@ const TeamRoundCard = ({
   score: number;
   details: ScoreResult;
   delay: number;
+  rules: any;
 }) => (
   <motion.div
     initial={{ x: teamId === 1 ? -20 : 20, opacity: 0 }}
@@ -328,24 +334,70 @@ const TeamRoundCard = ({
         </div>
       </div>
 
-      <DetailedScoreBreakdown result={details} />
+      <DetailedScoreBreakdown result={details} rules={rules} />
     </div>
   </motion.div>
 );
 
-const DetailedScoreBreakdown = ({ result }: { result: ScoreResult }) => {
-  // Calculamos o bônus de batida subtraindo canastras do bônus total
+const DetailedScoreBreakdown = ({ result, rules }: { result: ScoreResult, rules: any }) => {
+  const r = rules || {
+    pointsCleanCanastra: 200,
+    pointsDirtyCanastra: 100,
+    pointsKingCanastra: 500,
+    pointsAceCanastra: 1000,
+    penaltyDeadPileNotTaken: -100
+  };
+
+  // Calculamos o bônus de canastras usando as regras
   const canastraPointsTotal =
-    result.details.CLEAN * MELD_POINTS.CLEAN +
-    result.details.DIRTY * MELD_POINTS.DIRTY +
-    result.details.KING * MELD_POINTS.KING +
-    result.details.ACE * MELD_POINTS.ACE;
+    result.details.CLEAN * r.pointsCleanCanastra +
+    result.details.DIRTY * r.pointsDirtyCanastra +
+    result.details.KING * r.pointsKingCanastra +
+    result.details.ACE * r.pointsAceCanastra;
+  
   const beatBonus = result.did_beat
     ? result.bonus_points - canastraPointsTotal
     : 0;
 
   // Penalidades
-  const deadPilePenalty = !result.has_taken_dead_pile ? 100 : 0;
+  const deadPilePenalty = !result.has_taken_dead_pile ? Math.abs(r.penaltyDeadPileNotTaken) : 0;
+  const handPenalty = result.penalty_points - deadPilePenalty;
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* GANHOS */}
+      <div className="space-y-1">
+        <div className="flex items-center gap-2 mb-3 text-green-400/50">
+          <Sparkles size={14} />
+          <span className="text-[10px] font-black uppercase tracking-[0.2em]">
+            Bonificações
+          </span>
+        </div>
+        <StatRow
+          label="Limpas"
+          count={result.details.CLEAN}
+          total={result.details.CLEAN * r.pointsCleanCanastra}
+          color="text-blue-400"
+        />
+        <StatRow
+          label="Sujas"
+          count={result.details.DIRTY}
+          total={result.details.DIRTY * r.pointsDirtyCanastra}
+          color="text-orange-400"
+        />
+        <StatRow
+          label="Excelente (A a K)"
+          count={result.details.KING}
+          total={result.details.KING * r.pointsKingCanastra}
+          color="text-violet-400"
+        />
+        <StatRow
+          label="Perfeitas (A a A)"
+          count={result.details.ACE}
+          total={result.details.ACE * r.pointsAceCanastra}
+          color="text-green-400"
+        />
+        {beatBonus > 0 && (
   const handPenalty = result.penalty_points - deadPilePenalty;
 
   return (

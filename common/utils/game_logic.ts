@@ -20,10 +20,8 @@ export interface InitialDistribution {
 }
 
 const ALL_JOKER_ABILITIES: JokerAbility[] = [
+  "SURGICAL_SWAP",
   "VIEW_HAND",
-  "STEAL_CARD",
-  "SKIP_TURN",
-  "SWAP_PARTNER",
 ];
 
 const shuffle = (array: Card[]): Card[] => {

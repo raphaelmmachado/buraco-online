@@ -7,22 +7,21 @@ import {
   requires_clean_to_empty_hand,
   has_clean_canastra,
   get_team,
-  check_championship_status,
   start_next_round,
   start_new_match,
+  calculate_game_end_score,
 } from "../services/gameService";
 import {
   broadcast_game_update,
   process_bot_turn,
 } from "../services/botService";
-import { calculate_score } from "../../common/utils/scoring";
 import { sort_cards, organize_meld } from "../../common/utils/sort_cards";
 import {
   validate_sequence,
   validate_discard_pickup,
   validate_discard_add_to_meld,
 } from "../../common/utils/rules_logic";
-import { type Card } from "../../common/types/card";
+import { type Card, CARD_POINTS } from "../../common/types/card";
 import { type ServerResponse, type PlayerID } from "../types";
 import { startTurnTimer, stopTurnTimer } from "../services/timerService";
 
@@ -55,39 +54,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
             game.deck = new_deck;
           }
         } else {
-          const t1_hand_1 = game.hands[1] ?? [];
-          const t1_hand_2 = game.hands[3] ?? [];
-          const t2_hand_1 = game.hands[2] ?? [];
-          const t2_hand_2 = game.hands[4] ?? [];
-
-          const t1_melds = game.team_melds[1] ?? [];
-          const t2_melds = game.team_melds[2] ?? [];
-
-          const t1_taken = game.has_taken_dead_pile[0];
-          const t2_taken = game.has_taken_dead_pile[1];
-
-          const t1_score = calculate_score(
-            t1_melds,
-            [t1_hand_1, t1_hand_2],
-            false,
-            !t1_taken,
-            game.rules,
-          );
-          const t2_score = calculate_score(
-            t2_melds,
-            [t2_hand_1, t2_hand_2],
-            false,
-            !t2_taken,
-            game.rules,
-          );
-
-          check_championship_status(
-            game,
-            t1_score.total_score,
-            t2_score.total_score,
-            t1_score,
-            t2_score,
-          );
+          calculate_game_end_score(game);
           stopTurnTimer(roomId);
           broadcast_game_update(io, roomId);
           return;
@@ -103,6 +70,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         game.hands[player_id] = sort_cards(player_hand);
         game.last_drawn_card_id = card.id;
         game.turn_phase = "ACTION";
+        game.magic_joker.is_discard_frozen = false; // Turn started, unfreeze for next player if needed
         saveState();
         startTurnTimer(io, roomId);
         broadcast_game_update(io, roomId);
@@ -132,6 +100,12 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
 
       if (game.turn_phase !== "DRAW" || game.discard_pile.length === 0) {
         if (callback) callback({ error: "Não pode comprar do lixo agora." });
+        return;
+      }
+
+      if (game.magic_joker.is_discard_frozen) {
+        if (callback)
+          callback({ error: "O lixo está congelado por um Joker!" });
         return;
       }
 
@@ -223,6 +197,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       }
 
       game.turn_phase = "ACTION";
+      game.magic_joker.is_discard_frozen = false;
       const updated_hand = game.hands[player_id];
 
       if (updated_hand && updated_hand.length === 0) {
@@ -262,6 +237,12 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
 
       if (game.turn_phase !== "DRAW" || game.discard_pile.length === 0) {
         if (callback) callback({ error: "Não pode comprar do lixo agora." });
+        return;
+      }
+
+      if (game.magic_joker.is_discard_frozen) {
+        if (callback)
+          callback({ error: "O lixo está congelado por um Joker!" });
         return;
       }
 
@@ -357,6 +338,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       }
 
       game.turn_phase = "ACTION";
+      game.magic_joker.is_discard_frozen = false;
 
       const updated_hand = game.hands[player_id];
       if (updated_hand && updated_hand.length === 0) {
@@ -449,6 +431,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         startTurnTimer(io, roomId);
       }
 
+      saveState();
       broadcast_game_update(io, roomId);
     },
   );
@@ -547,6 +530,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         handle_empty_hand(game, player_id, "DIRECT");
         startTurnTimer(io, roomId);
       }
+      saveState();
       broadcast_game_update(io, roomId);
     },
   );
@@ -608,7 +592,11 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
 
       if (game.status !== "FINISHED") {
         game.turn_phase = "DRAW";
-        game.current_player = get_next_player(game.current_player, game.mode);
+        game.current_player = get_next_player(
+          game.current_player,
+          game.mode,
+          game.magic_joker.direction,
+        );
         game.last_drawn_card_id = null; // Limpa o destaque da carta comprada
         startTurnTimer(io, roomId);
 
@@ -619,6 +607,106 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         }
       }
 
+      saveState();
+      broadcast_game_update(io, roomId);
+    },
+  );
+
+  socket.on(
+    "action_power_pick_card",
+    (
+      {
+        roomId,
+        cardId,
+        playerId,
+      }: { roomId: string; cardId: string; playerId?: string },
+      callback?: (res: ServerResponse) => void,
+    ) => {
+      const game = games[roomId];
+      if (!game || !game.magic_joker.power_selection) return;
+
+      const selection = game.magic_joker.power_selection;
+      const ctx = validateTurn(game, socket.id, playerId);
+      if (!ctx || ctx.player_id !== selection.player_id) {
+        if (callback) callback({ error: "Não é sua vez de selecionar." });
+        return;
+      }
+
+      const player_id = ctx.player_id;
+
+      if (selection.stage === "PICK_MY_CARD") {
+        // Valida se a carta está na mão do jogador
+        const hasCard = game.hands[player_id]?.some((c) => c.id === cardId);
+        if (!hasCard) {
+          if (callback) callback({ error: "Carta não encontrada na sua mão." });
+          return;
+        }
+        selection.selected_card_id = cardId;
+        selection.stage = "PICK_THEIR_CARD";
+        if (callback) callback({ success: true });
+      } else if (selection.stage === "PICK_THEIR_CARD") {
+        // Valida se a carta está na mão do alvo
+        const target_hand = game.hands[selection.target_player_id];
+        const theirCardIdx = target_hand?.findIndex((c) => c.id === cardId);
+
+        if (theirCardIdx === undefined || theirCardIdx === -1) {
+          if (callback)
+            callback({ error: "Carta não encontrada na mão do parceiro." });
+          return;
+        }
+
+        const myHand = game.hands[player_id];
+        const myCardIdx = myHand?.findIndex(
+          (c) => c.id === selection.selected_card_id,
+        );
+
+        if (myCardIdx !== undefined && myCardIdx !== -1 && target_hand) {
+          // EXECUTA A TROCA
+          const myCard = myHand!.splice(myCardIdx, 1)[0]!;
+          const theirCard = target_hand.splice(theirCardIdx, 1)[0]!;
+
+          myHand!.push(theirCard);
+          target_hand.push(myCard);
+
+          game.hands[player_id] = sort_cards(myHand!);
+          game.hands[selection.target_player_id] = sort_cards(target_hand);
+
+          // Limpa o estado do poder
+          delete game.magic_joker.power_selection;
+
+          io.to(roomId).emit(
+            "info_msg",
+            `[SWAP] Troca Cirúrgica concluída com sucesso!`,
+          );
+          if (callback) callback({ success: true });
+        }
+      }
+
+      saveState();
+      broadcast_game_update(io, roomId);
+    },
+  );
+
+  socket.on(
+    "action_power_cancel",
+    ({ roomId, playerId }: { roomId: string; playerId?: string }) => {
+      const game = games[roomId];
+      if (!game || !game.magic_joker.power_selection) return;
+
+      const selection = game.magic_joker.power_selection;
+      const ctx = validateTurn(game, socket.id, playerId);
+
+      // Apenas o jogador que iniciou o poder pode cancelar
+      if (!ctx || ctx.player_id !== selection.player_id) return;
+
+      delete game.magic_joker.power_selection;
+
+      io.to(roomId).emit(
+        "info_msg",
+        `[SWAP] O Jogador ${ctx.player_id} cancelou a ação do Joker.`,
+      );
+
+      saveState();
       broadcast_game_update(io, roomId);
     },
   );
@@ -727,22 +815,38 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       // Consome o Joker
       player_hand.splice(jokerIdx, 1);
 
-      const next_player = get_next_player(player_id, game.mode);
+      const next_player = get_next_player(
+        player_id,
+        game.mode,
+        game.magic_joker.direction,
+      );
       const target_hand = game.hands[next_player];
 
       switch (joker.ability) {
         case "VIEW_HAND": {
           if (target_hand) {
-            const cardsNames = target_hand
-              .map((c) => `${c.value}${c.suit.emoji || c.suit.icon}`)
-              .join(" ");
-            const infoMsg = `[EYE] VISÃO: Jogador ${next_player} tem: ${cardsNames}`;
-            // Envia mensagem privada para o usuário
-            socket.emit("info_msg", infoMsg);
+            game.magic_joker.power_selection = {
+              player_id: player_id,
+              target_player_id: next_player,
+              ability: "VIEW_HAND",
+              stage: "PICK_MY_CARD", // Stage irrelevante aqui, mas necessário para o tipo
+            };
+
             io.to(roomId).emit(
               "info_msg",
-              `O Jogador ${player_id} usou VISÃO contra o Jogador ${next_player}.`,
+              `[EYE] O Jogador ${player_id} está espiando a mão do Jogador ${next_player}!`,
             );
+
+            // Agenda a limpeza automática após 3 segundos
+            setTimeout(() => {
+              if (
+                game.magic_joker.power_selection?.ability === "VIEW_HAND" &&
+                game.magic_joker.power_selection.player_id === player_id
+              ) {
+                delete game.magic_joker.power_selection;
+                broadcast_game_update(io, roomId);
+              }
+            }, 3000);
           }
           break;
         }
@@ -769,7 +873,11 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
             `[SKIP] O Jogador ${player_id} PULOU o descarte usando o Joker!`,
           );
           game.turn_phase = "DRAW";
-          game.current_player = get_next_player(game.current_player, game.mode);
+          game.current_player = get_next_player(
+            game.current_player,
+            game.mode,
+            game.magic_joker.direction,
+          );
           game.last_drawn_card_id = null;
 
           // Inicia timer do próximo
@@ -811,14 +919,151 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
           }
           break;
         }
+
+        case "SKIP_NEXT": {
+          const victim = get_next_player(
+            player_id,
+            game.mode,
+            game.magic_joker.direction,
+          );
+          io.to(roomId).emit(
+            "info_msg",
+            `[SKIP] O Jogador ${player_id} PULOU a vez do Jogador ${victim}!`,
+          );
+          // O turno pula o próximo e vai para o subsequente
+          game.current_player = get_next_player(
+            victim,
+            game.mode,
+            game.magic_joker.direction,
+          );
+          game.turn_phase = "DRAW";
+          game.last_drawn_card_id = null;
+          startTurnTimer(io, roomId);
+
+          // Verifica se o NOVO jogador é um bot
+          const nextPData = game.players_data[game.current_player as PlayerID];
+          if (nextPData && nextPData.isBot) {
+            process_bot_turn(io, roomId);
+          }
+          break;
+        }
+
+        case "REVERSE": {
+          game.magic_joker.direction =
+            game.magic_joker.direction === 1 ? -1 : 1;
+          io.to(roomId).emit(
+            "info_msg",
+            `[REVERSE] O Jogador ${player_id} INVERTEU o sentido do jogo!`,
+          );
+          break;
+        }
+
+        case "FREEZE_PILE": {
+          game.magic_joker.is_discard_frozen = true;
+          io.to(roomId).emit(
+            "info_msg",
+            `[ALERT] O Jogador ${player_id} CONGELOU o lixo! O próximo não pode pegar.`,
+          );
+          break;
+        }
+
+        case "SHUFFLE_DISCARD": {
+          if (game.discard_pile.length > 1) {
+            const cards_to_return = [...game.discard_pile];
+            const top_card = cards_to_return.shift()!;
+            game.deck.push(...cards_to_return);
+            // Embaralha o deck com as novas cartas
+            const shuffled = [...game.deck];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
+            }
+            game.deck = shuffled;
+            game.discard_pile = [top_card];
+            io.to(roomId).emit(
+              "info_msg",
+              `[ALERT] O Jogador ${player_id} LIMPOU o lixo e embaralhou no monte!`,
+            );
+          }
+          break;
+        }
+
+        case "TAX_COLLECTOR": {
+          io.to(roomId).emit(
+            "info_msg",
+            `[ALERT] IMPOSTO! Todos descartam uma carta aleatória.`,
+          );
+          Object.keys(game.hands).forEach((pId) => {
+            const hand = game.hands[Number(pId)];
+            if (hand && hand.length > 1) {
+              const idx = Math.floor(Math.random() * hand.length);
+              const discarded = hand.splice(idx, 1)[0];
+              if (discarded) game.discard_pile.unshift(discarded);
+              game.hands[Number(pId)] = sort_cards(hand);
+            }
+          });
+          break;
+        }
+
+        case "GIFT_CARD": {
+          const victim = get_next_player(
+            player_id,
+            game.mode,
+            game.magic_joker.direction,
+          );
+          if (player_hand.length > 0) {
+            // Pega a carta de menor pontuação/valor para dar de "presente"
+            player_hand.sort((a, b) => {
+              const pA = CARD_POINTS[a.value] || 0;
+              const pB = CARD_POINTS[b.value] || 0;
+              return pA - pB;
+            });
+            const gift = player_hand.shift()!;
+            const target_hand = game.hands[victim];
+            if (target_hand) {
+              target_hand.push(gift);
+              game.hands[victim] = sort_cards(target_hand);
+              io.to(roomId).emit(
+                "info_msg",
+                `[STEAL] O Jogador ${player_id} deu um "PRESENTE" para o Jogador ${victim}!`,
+              );
+            }
+          }
+          break;
+        }
+
+        case "SURGICAL_SWAP": {
+          if (game.mode === "2v2") {
+            const partner = player_id <= 2 ? player_id + 2 : player_id - 2;
+            game.magic_joker.power_selection = {
+              player_id: player_id,
+              target_player_id: partner,
+              ability: "SURGICAL_SWAP",
+              stage: "PICK_MY_CARD",
+            };
+            io.to(roomId).emit(
+              "info_msg",
+              `[SWAP] O Jogador ${player_id} iniciou uma TROCA CIRÚRGICA com o parceiro!`,
+            );
+          } else {
+            if (callback)
+              callback({ error: "Este poder só funciona em duplas (2v2)." });
+            return;
+          }
+          break;
+        }
       }
 
-      // No final do switch, removemos qualquer possibilidade de dessincronização 
+      // No final do switch, removemos qualquer possibilidade de dessincronização
       // garantindo que a mão do jogador atual seja atualizada no estado global.
       game.hands[player_id] = sort_cards(player_hand);
 
       if (game.hands[player_id].length === 0) {
-        handle_empty_hand(game, player_id, game.turn_phase === "DRAW" ? "INDIRECT" : "DIRECT");
+        handle_empty_hand(
+          game,
+          player_id,
+          game.turn_phase === "DRAW" ? "INDIRECT" : "DIRECT",
+        );
       }
 
       saveState();

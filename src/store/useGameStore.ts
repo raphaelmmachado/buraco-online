@@ -26,6 +26,17 @@ interface IncomingServerState {
     { socketId: string; userName: string; isBot?: boolean; playerId: string; isReady?: boolean }
   >;
   rules: GameRules;
+  magic_joker?: {
+    direction: 1 | -1;
+    is_discard_frozen: boolean;
+    power_selection?: {
+      player_id: number;
+      target_player_id: number;
+      ability: string;
+      selected_card_id?: string;
+      stage: "PICK_MY_CARD" | "PICK_THEIR_CARD";
+    };
+  };
   turn_start_time?: number;
   last_drawn_card_id: string | null;
   has_taken_dead_pile: [boolean, boolean];
@@ -92,6 +103,17 @@ interface GameState {
   turn_phase: "DRAW" | "ACTION" | "DISCARD";
   current_player: number;
   rules: GameRules;
+  magic_joker: {
+    direction: 1 | -1;
+    is_discard_frozen: boolean;
+    power_selection?: {
+      player_id: number;
+      target_player_id: number;
+      ability: string;
+      selected_card_id?: string;
+      stage: "PICK_MY_CARD" | "PICK_THEIR_CARD";
+    };
+  };
   turn_start_time?: number;
   last_drawn_card_id: string | null;
   final_score: {
@@ -123,6 +145,8 @@ interface GameActions {
   pick_up_discard_new_meld: (card_ids: string[]) => void;
   pick_up_discard_add_to_meld: (meld_index: number, card_ids: string[]) => void;
   useJoker: (cardId: string) => void;
+  power_pick_card: (cardId: string) => void;
+  power_cancel: () => void;
   kickPlayer: (playerId: number) => void;
   startGame: (winCondition?: WinCondition) => void;
   updateWinCondition: (winCondition?: WinCondition) => void;
@@ -197,6 +221,10 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   turn_phase: "DRAW",
   current_player: 1,
   rules: { ...DEFAULT_RULES },
+  magic_joker: {
+    direction: 1,
+    is_discard_frozen: false,
+  },
   last_drawn_card_id: null,
   final_score: null,
   cumulative_score: { team_1: 0, team_2: 0 },
@@ -606,6 +634,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       round_count: server_data.round_count || 1,
       win_condition: server_data.win_condition,
       rematch_votes: server_data.rematch_votes || {},
+      magic_joker: server_data.magic_joker || { direction: 1, is_discard_frozen: false },
       last_error: null,
     });
   },
@@ -695,6 +724,22 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         set({ last_error: response.error });
       }
     });
+  },
+
+  power_pick_card: (cardId: string) => {
+    const { roomId } = get();
+    const playerId = localStorage.getItem("baralho_player_id");
+    socket.emit("action_power_pick_card", { roomId, cardId, playerId }, (response: ServerResponse) => {
+      if (response && response.error) {
+        set({ last_error: response.error });
+      }
+    });
+  },
+
+  power_cancel: () => {
+    const { roomId } = get();
+    const playerId = localStorage.getItem("baralho_player_id");
+    socket.emit("action_power_cancel", { roomId, playerId });
   },
 
   startGame: (winCondition) => {

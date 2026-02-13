@@ -4,7 +4,7 @@
 // =============================================================================
 
 import { create } from "zustand";
-import type { Card } from "../../common/types/card";
+import { type Card, CARD_POINTS } from "../../common/types/card";
 import { distribute_cards, create_deck } from "../../common/utils/game_logic";
 import { sort_cards, organize_meld } from "../../common/utils/sort_cards";
 import {
@@ -34,6 +34,17 @@ interface GameState {
   turn_phase: "DRAW" | "ACTION" | "DISCARD";
   current_player: PlayerID;
   rules: GameRules;
+  magic_joker: {
+    direction: 1 | -1;
+    is_discard_frozen: boolean;
+    power_selection?: {
+      player_id: number;
+      target_player_id: number;
+      ability: string;
+      selected_card_id?: string;
+      stage: "PICK_MY_CARD" | "PICK_THEIR_CARD";
+    };
+  };
   last_drawn_card_id: string | null;
   final_score: { team_1: ScoreResult; team_2: ScoreResult } | null;
   cumulative_score: { team_1: number; team_2: number };
@@ -68,6 +79,8 @@ interface GameActions {
     bridge_card_ids: string[],
   ) => void;
   use_joker: (cardId: string) => void;
+  power_pick_card: (cardId: string) => void;
+  power_cancel: () => void;
   clear_error: () => void;
   toggleAnimations: () => void;
   toggleSortButton: () => void;
@@ -102,6 +115,10 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
   turn_phase: "DRAW",
   current_player: 1,
   rules: { ...DEFAULT_RULES },
+  magic_joker: {
+    direction: 1,
+    is_discard_frozen: false,
+  },
   last_drawn_card_id: null,
   final_score: null,
   cumulative_score: { team_1: 0, team_2: 0 },
@@ -131,6 +148,10 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       turn_phase: "DRAW",
       current_player: 1,
       rules: { ...DEFAULT_RULES },
+      magic_joker: {
+        direction: 1,
+        is_discard_frozen: false,
+      },
       last_drawn_card_id: null,
       final_score: null,
       cumulative_score: { team_1: 0, team_2: 0 },
@@ -222,6 +243,10 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       turn_phase: "DRAW",
       current_player: 1,
       rules,
+      magic_joker: {
+        direction: 1,
+        is_discard_frozen: false,
+      },
       last_drawn_card_id: null,
       final_score: null,
       cumulative_score: { team_1: 0, team_2: 0 },
@@ -255,6 +280,10 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       team_melds: { 1: [], 2: [] },
       turn_phase: "DRAW",
       current_player: 1,
+      magic_joker: {
+        direction: 1,
+        is_discard_frozen: false,
+      },
       last_drawn_card_id: null,
       final_score: null,
       round_count: round_count + 1,
@@ -701,24 +730,11 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
 
     let infoMsg = "";
     let finalHands = { ...hands, [current_player]: new_hand_after_joker };
+    let finalDirection = get().magic_joker.direction;
+    let finalIsFrozen = get().magic_joker.is_discard_frozen;
+    let powerSelection = undefined;
 
     switch (joker.ability) {
-      case "VIEW_HAND": {
-        const cardsNames = target_hand
-          .map((c) => `${c.value}${c.suit.emoji || c.suit.icon}`)
-          .join(" ");
-        infoMsg = `Jogador ${next_player} tem: ${cardsNames}`;
-        get().addEvent(
-          `Usou VISÃO contra Jogador ${next_player}`,
-          "info",
-          current_player,
-        );
-        set({ last_info: infoMsg });
-        // Limpa após 2 segundos
-        setTimeout(() => set({ last_info: null }), 2000);
-        break;
-      }
-
       case "STEAL_CARD": {
         if (target_hand.length > 0) {
           const randomIdx = Math.floor(Math.random() * target_hand.length);
@@ -750,7 +766,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
           turn_phase: "DRAW",
           last_error: null,
         });
-        return; // Sai pois o turno acabou
+        return;
       }
 
       case "SWAP_PARTNER": {
@@ -796,15 +812,194 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         }
         break;
       }
+
+      case "SKIP_NEXT": {
+        const victim = get_next_player(current_player, mode);
+        const nextOfVictim = get_next_player(victim, mode);
+        get().addEvent(`BLOQUEOU Jogador ${victim}!`, "info", current_player);
+        set({
+          hands: finalHands,
+          current_player: nextOfVictim,
+          turn_phase: "DRAW",
+          last_error: null,
+        });
+        return;
+      }
+
+      case "REVERSE": {
+        finalDirection = finalDirection === 1 ? -1 : 1;
+        get().addEvent(`INVERTEU o jogo!`, "info", current_player);
+        break;
+      }
+
+      case "FREEZE_PILE": {
+        finalIsFrozen = true;
+        get().addEvent(`CONGELOU o lixo!`, "info", current_player);
+        break;
+      }
+
+      case "SHUFFLE_DISCARD": {
+        if (get().discard_pile.length > 1) {
+          const cards_to_return = [...get().discard_pile];
+          const top_card = cards_to_return.shift()!;
+          const new_deck = sort_cards([...get().deck, ...cards_to_return]); // Simplified shuffle for local
+          set({ deck: new_deck, discard_pile: [top_card] });
+          get().addEvent(`LIMPOU o lixo!`, "info", current_player);
+        }
+        break;
+      }
+
+      case "TAX_COLLECTOR": {
+        get().addEvent(`IMPOSTO COLETIVO!`, "warning", current_player);
+        const updatedHands = { ...hands, [current_player]: new_hand_after_joker };
+        const newDiscard = [...get().discard_pile];
+
+        Object.keys(updatedHands).forEach((pId) => {
+          const h = updatedHands[Number(pId)];
+          if (h && h.length > 1) {
+            const idx = Math.floor(Math.random() * h.length);
+            const discarded = h.splice(idx, 1)[0];
+            if (discarded) newDiscard.unshift(discarded);
+            updatedHands[Number(pId)] = sort_cards(h);
+          }
+        });
+        finalHands = updatedHands;
+        set({ discard_pile: newDiscard });
+        break;
+      }
+
+      case "GIFT_CARD": {
+        const victim = get_next_player(current_player, mode);
+        if (new_hand_after_joker.length > 0) {
+          const mySorted = [...new_hand_after_joker].sort((a, b) => (CARD_POINTS[a.value] || 0) - (CARD_POINTS[b.value] || 0));
+          const gift = mySorted.shift()!;
+          const victimHand = [...(hands[victim] || [])];
+          victimHand.push(gift);
+          finalHands = {
+            ...hands,
+            [current_player]: mySorted,
+            [victim]: sort_cards(victimHand),
+          };
+          get().addEvent(`DEU UM PRESENTE!`, "info", current_player);
+        }
+        break;
+      }
+
+      case "VIEW_HAND": {
+        const victim = get_next_player(current_player, mode);
+        powerSelection = {
+          player_id: current_player,
+          target_player_id: victim,
+          ability: "VIEW_HAND",
+          stage: "PICK_MY_CARD" as const,
+        };
+        get().addEvent(`ESPIANDO ADVERSÁRIO!`, "info", current_player);
+        
+        setTimeout(() => {
+          const { magic_joker: mj } = get();
+          if (mj.power_selection?.ability === "VIEW_HAND") {
+            set({
+              magic_joker: { ...mj, power_selection: undefined }
+            });
+          }
+        }, 3000);
+        break;
+      }
+
+      case "SURGICAL_SWAP": {
+        if (mode === "2v2") {
+          const partner = current_player <= 2 ? current_player + 2 : current_player - 2;
+          powerSelection = {
+            player_id: current_player,
+            target_player_id: partner,
+            ability: "SURGICAL_SWAP",
+            stage: "PICK_MY_CARD" as const,
+          };
+          get().addEvent(`TROCA CIRÚRGICA ATIVA!`, "info", current_player);
+        } else {
+          set({ last_error: "Troca Cirúrgica só funciona em duplas (2v2)." });
+          return;
+        }
+        break;
+      }
     }
 
     set({
       hands: finalHands,
+      magic_joker: {
+        ...get().magic_joker,
+        direction: finalDirection,
+        is_discard_frozen: finalIsFrozen,
+        power_selection: powerSelection,
+      },
       last_error: null,
     });
 
     if (finalHands[current_player].length === 0)
       get().internal_handle_empty_hand("DIRECT");
+  },
+
+  power_pick_card: (cardId) => {
+    const { magic_joker, hands, current_player } = get();
+    if (!magic_joker.power_selection) return;
+
+    const selection = magic_joker.power_selection;
+
+    if (selection.stage === "PICK_MY_CARD") {
+      const my_hand = hands[current_player];
+      if (!my_hand.some((c) => c.id === cardId)) {
+        set({ last_error: "Carta não encontrada na sua mão." });
+        return;
+      }
+      set({
+        magic_joker: {
+          ...magic_joker,
+          power_selection: { ...selection, selected_card_id: cardId, stage: "PICK_THEIR_CARD" },
+        },
+      });
+    } else if (selection.stage === "PICK_THEIR_CARD") {
+      const target_hand = hands[selection.target_player_id];
+      const theirCardIdx = target_hand.findIndex((c) => c.id === cardId);
+
+      if (theirCardIdx === -1) {
+        set({ last_error: "Carta não encontrada na mão do parceiro." });
+        return;
+      }
+
+      const myHand = [...hands[current_player]];
+      const myCardIdx = myHand.findIndex((c) => c.id === selection.selected_card_id);
+
+      if (myCardIdx !== -1) {
+        const newTargetHand = [...target_hand];
+        const myCard = myHand.splice(myCardIdx, 1)[0]!;
+        const theirCard = newTargetHand.splice(theirCardIdx, 1)[0]!;
+
+        myHand.push(theirCard);
+        newTargetHand.push(myCard);
+
+        set({
+          hands: {
+            ...hands,
+            [current_player]: sort_cards(myHand),
+            [selection.target_player_id]: sort_cards(newTargetHand),
+          },
+          magic_joker: {
+            ...magic_joker,
+            power_selection: undefined,
+          },
+        });
+        get().addEvent("Troca Cirúrgica concluída!", "success", current_player);
+      }
+    }
+  },
+
+  power_cancel: () => {
+    set((state) => ({
+      magic_joker: {
+        ...state.magic_joker,
+        power_selection: undefined,
+      },
+    }));
   },
 
   sort_my_hand: () => {

@@ -20,6 +20,19 @@ export interface ServerGameState {
   players_data: Partial<Record<PlayerID, PlayerData>>;
   rules: GameRules;
   
+  // Power states grouped
+  magic_joker: {
+    direction: 1 | -1;
+    is_discard_frozen: boolean;
+    power_selection?: {
+      player_id: number;
+      target_player_id: number;
+      ability: string;
+      selected_card_id?: string; // Carta de 'quem usa'
+      stage: "PICK_MY_CARD" | "PICK_THEIR_CARD";
+    };
+  };
+  
   // Championship State
   win_condition?: WinCondition;
   cumulative_score: { team_1: number; team_2: number };

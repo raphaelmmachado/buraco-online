@@ -37,7 +37,7 @@ export const MeldCard = ({
   const isAccessibilityMode = useGameStore(
     (state) => state.isAccessibilityMode,
   );
-  
+
   const imageSrc = getCardImageSrc(card.value, card.suit.name);
 
   const isFromMe = enterFrom === "bottom";
@@ -128,7 +128,8 @@ export const MeldCard = ({
         />
       ) : (
         <div
-          className={`${isAccessibilityMode ? "opacity-0" : "opacity-10"} absolute inset-0 flex items-center justify-center pointer-events-none `}
+          className={`${isAccessibilityMode ? "opacity-100" : "opacity-10"}
+           absolute top-3 left-3 inset-0 flex items-center justify-center pointer-events-none`}
         >
           <SuitIcon suit={card.suit.name} className="w-5 h-5 md:w-7 md:h-7" />
         </div>
@@ -139,7 +140,7 @@ export const MeldCard = ({
         <div
           className={`self-end rotate-180 flex flex-col items-center leading-none z-10`}
         >
-          <span className={valueClass}>{card.value}</span>
+          {/* <span className={valueClass}>{card.value}</span> */}
           <SuitIcon suit={card.suit.name} className={suitClass} />
         </div>
       )}

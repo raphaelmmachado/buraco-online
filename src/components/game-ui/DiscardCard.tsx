@@ -23,6 +23,13 @@ const ABILITY_DESCRIPTIONS: Record<string, string> = {
   STEAL_CARD: "ROUBAR",
   SKIP_TURN: "PULO",
   SWAP_PARTNER: "TROCA",
+  FREEZE_PILE: "GELO",
+  SHUFFLE_DISCARD: "LIMPEZA",
+  TAX_COLLECTOR: "IMPOSTO",
+  GIFT_CARD: "PRESENTE",
+  SKIP_NEXT: "BLOQUEIO",
+  REVERSE: "REVERSO",
+  SURGICAL_SWAP: "CIRÚRGICO",
 };
 
 function getStableNumber(id: string, min: number, max: number) {

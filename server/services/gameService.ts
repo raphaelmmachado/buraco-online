@@ -9,9 +9,17 @@ export const get_team = (player_id: number): TeamID => {
   return (player_id % 2 !== 0 ? 1 : 2) as TeamID;
 };
 
-export const get_next_player = (current: number, mode: GameMode): number => {
+export const get_next_player = (
+  current: number,
+  mode: GameMode,
+  direction: 1 | -1 = 1,
+): number => {
   if (mode === "1v1") return current === 1 ? 2 : 1;
-  return (current % 4) + 1;
+  // No modo 2v2 (4 jogadores), usamos a direção
+  let next = current + direction;
+  if (next > 4) next = 1;
+  if (next < 1) next = 4;
+  return next;
 };
 
 export const has_clean_canastra = (
@@ -122,6 +130,10 @@ export const start_next_round = (game: ServerGameState) => {
     game.team_melds = { 1: [], 2: [] };
     game.dead_piles = setup.dead_piles;
     game.has_taken_dead_pile = [false, false];
+    game.magic_joker = {
+        direction: 1,
+        is_discard_frozen: false,
+    };
     game.turn_phase = "DRAW";
     game.current_player = 1; // Or rotate starter? For now, Player 1 starts always.
     game.last_drawn_card_id = null;
@@ -153,6 +165,10 @@ export const start_new_match = (game: ServerGameState) => {
     game.team_melds = { 1: [], 2: [] };
     game.dead_piles = setup.dead_piles;
     game.has_taken_dead_pile = [false, false];
+    game.magic_joker = {
+        direction: 1,
+        is_discard_frozen: false,
+    };
     game.turn_phase = "DRAW";
     game.current_player = 1;
     game.last_drawn_card_id = null;
@@ -228,27 +244,47 @@ export const handle_empty_hand = (
   } else {
     // Fim de jogo: Não tem morto para pegar
     console.log(`Fim de Jogo! Sem mortos disponíveis.`);
-
-    const t1_taken = game.has_taken_dead_pile[0];
-    const t2_taken = game.has_taken_dead_pile[1];
-
-    const t1_score = calculate_score(
-      t1_melds,
-      [t1_hand_1, t1_hand_2],
-      team_id === 1,
-      !t1_taken,
-      game.rules
-    );
-    const t2_score = calculate_score(
-      t2_melds,
-      [t2_hand_1, t2_hand_2],
-      team_id === 2,
-      !t2_taken,
-      game.rules
-    );
-
-    check_championship_status(game, t1_score.total_score, t2_score.total_score, t1_score, t2_score);
+    calculate_game_end_score(game);
   }
+};
+
+/**
+ * Calcula o placar final quando o deck acaba ou o jogo termina sem batida direta.
+ */
+export const calculate_game_end_score = (game: ServerGameState) => {
+  const t1_hand_1 = game.hands[1] ?? [];
+  const t1_hand_2 = game.hands[3] ?? [];
+  const t2_hand_1 = game.hands[2] ?? [];
+  const t2_hand_2 = game.hands[4] ?? [];
+
+  const t1_melds = game.team_melds[1] ?? [];
+  const t2_melds = game.team_melds[2] ?? [];
+
+  const t1_taken = game.has_taken_dead_pile[0];
+  const t2_taken = game.has_taken_dead_pile[1];
+
+  const t1_score = calculate_score(
+    t1_melds,
+    [t1_hand_1, t1_hand_2],
+    false,
+    !t1_taken,
+    game.rules,
+  );
+  const t2_score = calculate_score(
+    t2_melds,
+    [t2_hand_1, t2_hand_2],
+    false,
+    !t2_taken,
+    game.rules,
+  );
+
+  check_championship_status(
+    game,
+    t1_score.total_score,
+    t2_score.total_score,
+    t1_score,
+    t2_score,
+  );
 };
 
 export const get_player_id_by_socket = (
@@ -311,10 +347,19 @@ export const sanitize_state = (
   // Para cada jogador, decide se envia as cartas ou apenas a contagem
   Object.keys(game.hands).forEach((idStr) => {
     const id = Number(idStr);
-    if (id === myPlayerId) {
-      sanitizedHands[id] = game.hands[id] || []; // Minha mão completa (ou vazio se erro)
+    
+    // Regra: Eu vejo minha própria mão
+    const isMe = id === myPlayerId;
+    
+    // Regra: Eu vejo a mão do alvo se eu estiver usando um poder de seleção
+    const isPowerTarget = 
+      game.magic_joker.power_selection?.player_id === myPlayerId && 
+      game.magic_joker.power_selection?.target_player_id === id;
+
+    if (isMe || isPowerTarget) {
+      sanitizedHands[id] = game.hands[id] || [];
     } else {
-      sanitizedHands[id] = game.hands[id]?.length || 0; // Apenas contagem dos outros
+      sanitizedHands[id] = game.hands[id]?.length || 0;
     }
   });
 
@@ -338,5 +383,6 @@ export const sanitize_state = (
     win_condition: game.win_condition,
     rematch_votes: game.rematch_votes || {},
     rules: game.rules,
+    magic_joker: game.magic_joker,
   };
 };

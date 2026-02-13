@@ -6,6 +6,7 @@ const hearts = SUITS.find(s => s.name === "copas")!;
 const clubs = SUITS.find(s => s.name === "paus")!;
 
 type SuccessMeld = Extract<MeldValidation, { is_valid: true }>;
+type FailMeld = Extract<MeldValidation, { is_valid: false }>;
 
 const createCard = (value: CardValue, suit: Suit, id: string): Card => ({
   id,
@@ -31,7 +32,7 @@ describe("validate_discard_add_to_meld", () => {
     const result = validate_discard_add_to_meld(target_meld, bridge_cards, discard_card);
     
     expect(result.is_valid).toBe(false);
-    expect(result.error).toBe("Proibido usar curinga da mão para realizar a pegada do lixo.");
+    expect((result as FailMeld).error).toBe("Proibido usar curinga da mão para realizar a pegada do lixo.");
   });
 
   test("LEGAL: Adding to an already dirty meld", () => {
@@ -108,7 +109,7 @@ describe("validate_discard_add_to_meld", () => {
     const result = validate_discard_add_to_meld(target_meld, bridge_cards, discard_card);
     
     expect(result.is_valid).toBe(false);
-    expect(result.error).toBe("Proibido usar curinga da mão para realizar a pegada do lixo.");
+    expect((result as FailMeld).error).toBe("Proibido usar curinga da mão para realizar a pegada do lixo.");
   });
 });
 

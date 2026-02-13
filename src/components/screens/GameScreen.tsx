@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   LayoutGroup,
   MotionConfig,
@@ -15,6 +15,8 @@ import { FinishScreen } from "./FinishScreen";
 import { type GameAdapterInterface } from "../game-ui/useLocalGameAdapter";
 import { OpponentsHandsLayer } from "../game-ui/OpponentsHandsLayer";
 import { LoadingScreen } from "../ui/LoadingScreen";
+import { X } from "lucide-react";
+import { type Card } from "../../../common/types/card";
 
 // Custom Hooks
 import { useWakeLock } from "../../hooks/useWakeLock";
@@ -60,6 +62,24 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   const canDraw = isMyTurn && game.turn_phase === "DRAW";
   const canAction = isMyTurn && game.turn_phase === "ACTION";
 
+  const myHand = useMemo(() => (game.hands[my_player_id] as Card[]) || [], [game.hands, my_player_id]);
+  const topDiscardCard = game.discard_pile?.[0];
+
+  // Effect to synchronize selection with hand content
+  useEffect(() => {
+    const myHandIds = myHand.map(c => c.id);
+    
+    setSelectedCards(prev => {
+      const stillValid = prev.filter(id => 
+        myHandIds.includes(id) || (topDiscardCard && id === topDiscardCard.id)
+      );
+      if (stillValid.length !== prev.length) {
+        return stillValid;
+      }
+      return prev;
+    });
+  }, [myHand, topDiscardCard]);
+
   // Effect to delay finish screen
   useEffect(() => {
     if (game.status === "FINISHED" || game.status === "ROUND_OVER") {
@@ -69,6 +89,21 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
       return () => clearTimeout(timer);
     }
   }, [game.status]);
+
+  // Effect to auto-clear toasts
+  useEffect(() => {
+    if (game.last_error) {
+      const timer = setTimeout(() => game.clear_error(), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [game.last_error, game]);
+
+  useEffect(() => {
+    if (game.last_info) {
+      const timer = setTimeout(() => game.clear_info(), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [game.last_info, game]);
 
   // Safe calculation even if game data is incomplete initially
   const isGameOver = game.status === "FINISHED" || game.status === "ROUND_OVER";
@@ -97,7 +132,6 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     game.has_taken_dead_pile?.[opponent_team - 1] ?? false;
 
   // Discard Pile Logic
-  const topDiscardCard = game.discard_pile?.[0];
   const isDiscardSelected =
     !!topDiscardCard && selectedCards.includes(topDiscardCard.id);
 
@@ -127,6 +161,19 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   const { opponentHeight, startDrag } = useScreenDrag(35);
   // Pass a safe isMyTurn even if game is loading
   useGameAudio(game, isMyTurn);
+
+  // Force layout refresh when tab gains focus
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        // simulamos resize para consertar animações framer motion quando minimiza a janela
+        window.dispatchEvent(new Event("resize"));
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
 
   // Effect to calculate player positions for portal
   useEffect(() => {
@@ -270,9 +317,6 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
 
   // Prepare Props Object
   const myHand = (game.hands[my_player_id] as Card[]) || [];
-  const isJokerSelected = selectedCards.some(id => 
-    myHand.find(c => c.id === id)?.value === "JOKER"
-  );
 
   const layoutProps: GameLayoutProps = {
     game,
@@ -562,8 +606,8 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           {/* FOOTER: [MONTE] [MÃO] [LIXO] */}
           <footer
             id="game-footer"
-            className={`${isJokerSelected ? 'h-64' : 'h-32'} md:h-[20%] transition-all duration-300 ease-out overflow-visible px-1 pb-1 z-40
-           relative w-full flex items-end justify-between gap-1 md:gap-6 pointer-events-none`}
+            className="h-32 md:h-[20%] transition-all duration-300 ease-out overflow-visible px-1 pb-1 z-40
+           relative w-full flex items-end justify-between gap-1 md:gap-6 pointer-events-none"
           >
             {/* Visual Background (Gradient) - Fixed height to not cover the table */}
             <div className="absolute inset-0 top-auto h-32 md:h-full bg-linear-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md -z-10 pointer-events-none" />
@@ -574,39 +618,51 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               <GameFooterDesktop {...layoutProps} my_player_id={my_player_id} />
             )}
 
-            {/* ERROR TOAST */}
+            {/* ERROR TOAST (Standardized with EventBalloon) */}
             {game.last_error && (
               <div
                 id="error-toast"
-                className="absolute -top-16 left-1/2 -translate-x-1/2 bg-red-600/90 backdrop-blur
-               text-white px-6 py-2 rounded-md text-sm font-black shadow-2xl
-                flex items-center gap-3 border border-white/20 z-100 pointer-events-auto"
+                className="absolute -top-20 left-1/2 -translate-x-1/2 z-100 pointer-events-auto"
               >
-                <span>⚠️ {game.last_error}</span>
-                <button
-                  onClick={game.clear_error}
-                  className="bg-black/20 hover:bg-black/40 rounded-lg w-5 h-5 flex items-center justify-center cursor-pointer"
-                >
-                  ✕
-                </button>
+                <div className="relative">
+                  <EventBalloon 
+                    message={`[ALERT] ${game.last_error}`} 
+                    x={0} 
+                    y={0} 
+                    isStatic={true}
+                    customColor="bg-red-600/95"
+                  />
+                  <button
+                    onClick={game.clear_error}
+                    className="absolute -top-2 -right-2 bg-red-800 hover:bg-red-700 rounded-full w-5 h-5 flex items-center justify-center cursor-pointer text-white border border-white/10 z-[60] shadow-lg"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
             )}
 
-            {/* INFO TOAST (Gray) */}
+            {/* INFO TOAST (Using EventBalloon style for icons) */}
             {game.last_info && (
               <div
                 id="info-toast"
-                className="absolute -top-20 left-1/2 -translate-x-1/2 bg-slate-800/95 backdrop-blur-md
-               text-white px-6 py-3 rounded-2xl text-sm md:text-base font-bold shadow-2xl
-                flex items-center gap-3 border border-white/10 z-100 pointer-events-auto min-w-max animate-bounce-in"
+                className="absolute -top-20 left-1/2 -translate-x-1/2 z-100 pointer-events-auto"
               >
-                <span className="tracking-tight">{game.last_info}</span>
-                <button
-                  onClick={game.clear_info}
-                  className="bg-white/10 hover:bg-white/20 rounded-full w-6 h-6 flex items-center justify-center cursor-pointer"
-                >
-                  ✕
-                </button>
+                <div className="relative">
+                  <EventBalloon 
+                    message={game.last_info} 
+                    x={0} 
+                    y={0} 
+                    isStatic={true}
+                    customColor="bg-slate-800/95"
+                  />
+                  <button
+                    onClick={game.clear_info}
+                    className="absolute -top-2 -right-2 bg-slate-700 hover:bg-slate-600 rounded-full w-5 h-5 flex items-center justify-center cursor-pointer text-white border border-white/10 z-[60] shadow-lg"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
             )}
           </footer>

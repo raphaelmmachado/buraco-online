@@ -445,9 +445,9 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       top_card,
       get().rules,
     );
-    console.log(`[LOCAL PICKUP ADD RESULT] Valid: ${validation.valid}`);
+    console.log(`[LOCAL PICKUP ADD RESULT] Valid: ${validation.is_valid}`);
 
-    if (!validation.valid) {
+    if (!validation.is_valid) {
       set({ last_error: validation.error });
       return;
     }
@@ -700,13 +700,14 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
     const target_hand = hands[next_player];
 
     let infoMsg = "";
+    let finalHands = { ...hands, [current_player]: new_hand_after_joker };
 
     switch (joker.ability) {
       case "VIEW_HAND": {
         const cardsNames = target_hand
-          .map((c) => `[${c.value}${c.suit.emoji || c.suit.icon}]`)
+          .map((c) => `${c.value}${c.suit.emoji || c.suit.icon}`)
           .join(" ");
-        infoMsg = `👁️ VISÃO: Jogador ${next_player} tem: ${cardsNames}`;
+        infoMsg = `Jogador ${next_player} tem: ${cardsNames}`;
         get().addEvent(
           `Usou VISÃO contra Jogador ${next_player}`,
           "info",
@@ -725,13 +726,12 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
           const newTargetHand = target_hand.filter((_, i) => i !== randomIdx);
           const newMyHand = sort_cards([...new_hand_after_joker, stolenCard]);
 
-          set({
-            hands: {
-              ...hands,
-              [current_player]: newMyHand,
-              [next_player]: newTargetHand,
-            },
-          });
+          finalHands = {
+            ...hands,
+            [current_player]: newMyHand,
+            [next_player]: newTargetHand,
+          };
+
           get().addEvent(
             `ROUBOU uma carta do Jogador ${next_player}`,
             "success",
@@ -745,7 +745,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         get().addEvent(`PULOU o descarte!`, "info", current_player);
         const nextP = get_next_player(current_player, mode);
         set({
-          hands: { ...hands, [current_player]: new_hand_after_joker },
+          hands: finalHands,
           current_player: nextP,
           turn_phase: "DRAW",
           last_error: null,
@@ -755,10 +755,13 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
 
       case "SWAP_PARTNER": {
         if (mode === "2v2") {
-          const partner = current_player <= 2 ? current_player + 2 : current_player - 2;
+          const partner =
+            current_player <= 2 ? current_player + 2 : current_player - 2;
           const partner_hand = hands[partner];
           if (partner_hand.length > 0 && new_hand_after_joker.length > 0) {
-            const myIdx = Math.floor(Math.random() * new_hand_after_joker.length);
+            const myIdx = Math.floor(
+              Math.random() * new_hand_after_joker.length,
+            );
             const pIdx = Math.floor(Math.random() * partner_hand.length);
 
             const myCard = new_hand_after_joker[myIdx];
@@ -773,13 +776,12 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
               myCard,
             ]);
 
-            set({
-              hands: {
-                ...hands,
-                [current_player]: finalMyHand,
-                [partner]: finalPartnerHand,
-              },
-            });
+            finalHands = {
+              ...hands,
+              [current_player]: finalMyHand,
+              [partner]: finalPartnerHand,
+            };
+
             get().addEvent(
               `TROCOU carta com o parceiro!`,
               "success",
@@ -787,20 +789,22 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
             );
           }
         } else {
-            set({ last_error: "Troca com parceiro só funciona em duplas (2v2)." });
-            return; // Joker não consumido se inválido? Vamos consumir pra evitar exploit
+          set({
+            last_error: "Troca com parceiro só funciona em duplas (2v2).",
+          });
+          return;
         }
         break;
       }
     }
 
-    // Atualização padrão para o Joker consumido
     set({
-      hands: { ...hands, [current_player]: new_hand_after_joker },
+      hands: finalHands,
       last_error: null,
     });
 
-    if (new_hand_after_joker.length === 0) get().internal_handle_empty_hand("DIRECT");
+    if (finalHands[current_player].length === 0)
+      get().internal_handle_empty_hand("DIRECT");
   },
 
   sort_my_hand: () => {

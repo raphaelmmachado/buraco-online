@@ -82,7 +82,11 @@ const CARD_DEFINITIONS = [
   { val: "J", weight: [11], points: 10 },
   { val: "Q", weight: [12], points: 10 },
   { val: "K", weight: [13], points: 10 },
-  { val: "JOKER", weight: [], points: 50 }, // Jokers não entram em sequências
+  {
+    val: "JOKER",
+    weight: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+    points: 50,
+  },
 ] as const;
 
 // -----------------------------------------------------------------------------

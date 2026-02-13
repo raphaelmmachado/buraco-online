@@ -19,12 +19,12 @@ export interface InitialDistribution {
   remaining_deck: Card[];
 }
 
-const JOKER_ABILITIES_MAP: Record<string, JokerAbility> = {
-  "0_0": "VIEW_HAND",
-  "0_1": "STEAL_CARD",
-  "1_0": "SKIP_TURN",
-  "1_1": "SWAP_PARTNER",
-};
+const ALL_JOKER_ABILITIES: JokerAbility[] = [
+  "VIEW_HAND",
+  "STEAL_CARD",
+  "SKIP_TURN",
+  "SWAP_PARTNER",
+];
 
 const shuffle = (array: Card[]): Card[] => {
   const new_array = [...array];
@@ -63,14 +63,17 @@ export const create_deck = (rules: GameRules = DEFAULT_RULES): Card[] => {
     // Magic Jokers (2 por deck) - Apenas se ativado nas regras
     if (rules.useMagicJokers) {
       for (let j = 0; j < 2; j++) {
-        const abilityKey = `${i}_${j}`;
+        const randomAbility =
+          ALL_JOKER_ABILITIES[
+            Math.floor(Math.random() * ALL_JOKER_ABILITIES.length)
+          ];
         const jokerCard: Card = {
           id: `JOKER_${i}_${j}_${Math.random().toString(36).substring(2, 6)}`,
           color: "magic",
           suit: JOKER_SUIT,
           value: "JOKER",
           deckIndex: i,
-          ability: JOKER_ABILITIES_MAP[abilityKey] || "VIEW_HAND",
+          ability: randomAbility,
         };
         deck.push(jokerCard);
       }

@@ -30,7 +30,7 @@ describe("validate_discard_add_to_meld", () => {
 
     const result = validate_discard_add_to_meld(target_meld, bridge_cards, discard_card);
     
-    expect(result.valid).toBe(false);
+    expect(result.is_valid).toBe(false);
     expect(result.error).toBe("Proibido usar curinga da mão para realizar a pegada do lixo.");
   });
 
@@ -50,7 +50,7 @@ describe("validate_discard_add_to_meld", () => {
 
     const result = validate_discard_add_to_meld(target_meld, bridge_cards, discard_card);
     
-    expect(result.valid).toBe(true);
+    expect(result.is_valid).toBe(true);
   });
 
   test("LEGAL: Using a natural 2 from hand to pick up discard", () => {
@@ -67,7 +67,7 @@ describe("validate_discard_add_to_meld", () => {
 
     const result = validate_discard_add_to_meld(target_meld, bridge_cards, discard_card);
     
-    expect(result.valid).toBe(true);
+    expect(result.is_valid).toBe(true);
   });
 
   test("LEGAL: 'Pushing' a joker that becomes natural (Scenário do usuário)", () => {
@@ -89,7 +89,7 @@ describe("validate_discard_add_to_meld", () => {
     // Since original was dirty, it should be LEGAL.
     const result = validate_discard_add_to_meld(target_meld, bridge_cards, discard_card);
     
-    expect(result.valid).toBe(true);
+    expect(result.is_valid).toBe(true);
   });
 
   test("ILLEGAL: Using off-suit 2 from hand to pick up discard for clean meld", () => {
@@ -107,7 +107,7 @@ describe("validate_discard_add_to_meld", () => {
 
     const result = validate_discard_add_to_meld(target_meld, bridge_cards, discard_card);
     
-    expect(result.valid).toBe(false);
+    expect(result.is_valid).toBe(false);
     expect(result.error).toBe("Proibido usar curinga da mão para realizar a pegada do lixo.");
   });
 });

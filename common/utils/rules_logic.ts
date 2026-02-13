@@ -51,6 +51,7 @@ export const is_wildcard_usage = (
   weight: number,
   target_suit: string
 ): boolean => {
+  if (card.value === "JOKER") return true; // Joker é sempre curinga
   if (card.value === "2") {
     // Só é natural se o peso for 2 (sua posição real) E o naipe bater.
     return !(weight === 2 && card.suit.name === target_suit);
@@ -66,14 +67,6 @@ export const get_sequence_details = (cards: Card[]): SequenceDetails => {
   // 1. Validações básicas de quantidade
   if (cards.length < GAME_RULES.MIN_CARDS_FOR_MELD) {
     return { is_valid: false, error: "Um jogo deve ter no mínimo 3 cartas." };
-  }
-
-  // Coringas Mágicos não podem ser usados em sequências
-  if (cards.some((c) => c.value === "JOKER")) {
-    return {
-      is_valid: false,
-      error: "Coringas Mágicos não podem ser usados em sequências.",
-    };
   }
 
   if (cards.length > GAME_RULES.MAX_LENGTH) {
@@ -103,8 +96,9 @@ export const get_sequence_details = (cards: Card[]): SequenceDetails => {
   }
 
   // 2. Determina o naipe alvo (baseado nas cartas naturais)
-  const naturals = cards.filter((c) => c.value !== "2");
-  if (naturals.length === 0) return { is_valid: false, error: "O jogo precisa de cartas naturais." };
+  // Agora 'naturais' são cartas que não são o '2' E não são 'JOKER'
+  const naturals = cards.filter((c) => c.value !== "2" && c.value !== "JOKER");
+  if (naturals.length === 0) return { is_valid: false, error: "O jogo precisa de pelo menos uma carta natural (não coringa)." };
 
   const target_suit = naturals[0]?.suit.name;
   if (!target_suit || !naturals.every((c) => c.suit.name === target_suit)) {
@@ -114,8 +108,13 @@ export const get_sequence_details = (cards: Card[]): SequenceDetails => {
   // 3. Executa o SOLVER recursivo para encontrar a melhor sequência
   const card_options = cards.map((card) => {
     let weights: number[] = [];
-    if (card.value !== "2" && card.suit.name !== target_suit) weights = [];
-    else weights = [...CARD_VALUE_WEIGHTS[card.value]]; // Pega pesos possíveis (ex: Ás pode ser 1 ou 14)
+    if (card.value === "JOKER") {
+      weights = [...CARD_VALUE_WEIGHTS[card.value]];
+    } else if (card.value !== "2" && card.suit.name !== target_suit) {
+      weights = [];
+    } else {
+      weights = [...CARD_VALUE_WEIGHTS[card.value]];
+    }
     return { card, weights };
   });
 
@@ -178,8 +177,14 @@ const validate_assignment = (
 
   let wildcard_count = 0;
   for (const card of cards) {
-    // Cartas naturais fora do naipe invalidam o jogo
-    if (card.value !== "2" && card.suit.name !== target_suit) return false;
+    // Cartas naturais fora do naipe invalidam o jogo (exceto o Joker que é universal)
+    if (
+      card.value !== "2" &&
+      card.value !== "JOKER" &&
+      card.suit.name !== target_suit
+    ) {
+      return false;
+    }
 
     const w = assigned[card.id];
     if (w !== undefined && is_wildcard_usage(card, w, target_suit)) {
@@ -255,7 +260,7 @@ export const validate_discard_pickup = (
   if (!validation_result.is_valid) return false;
 
   // Se a regra permite pegar com curinga, basta ser válido.
-  // Se NÃO permite (padrão), o jogo resultante deve ser LIMPO.
+  // Se NÃO permite (padrão), o jogo resultante deve ser LIMPO (sem 2 e sem JOKER).
   if (rules.canPickUpDiscardWithJoker) {
     return true;
   }
@@ -269,29 +274,29 @@ export const validate_discard_add_to_meld = (
   bridge_cards: Card[],
   discard_card: Card,
   rules: GameRules = DEFAULT_RULES
-): { valid: boolean; error?: string } => {
+): MeldValidation => {
   const proposed_meld = [...target_meld, ...bridge_cards, discard_card];
   const details = get_sequence_details(proposed_meld);
 
-  if (!details.is_valid) return { valid: false, error: details.error };
+  if (!details.is_valid) return { is_valid: false, error: details.error };
 
   // Se a regra permite pegar com curinga da mão, não precisamos validar a 'limpeza' da pegada
-  if (rules.canPickUpDiscardWithJoker) return { valid: true };
+  if (rules.canPickUpDiscardWithJoker) return { is_valid: true, canastra_type: details.canastra_type, is_clean: details.is_clean };
 
   // REGRA ESPECIAL: "Proibido pegar lixo com curinga da mão" se o jogo original era limpo.
   const original_details = get_sequence_details(target_meld);
-  if (original_details.is_valid && !original_details.is_clean) return { valid: true };
+  if (original_details.is_valid && !original_details.is_clean) return { is_valid: true, canastra_type: details.canastra_type, is_clean: details.is_clean };
 
-  const naturals = proposed_meld.filter((c) => c.value !== "2");
+  const naturals = proposed_meld.filter((c) => c.value !== "2" && c.value !== "JOKER");
   const target_suit = naturals[0]?.suit.name;
-  if (!target_suit) return { valid: false, error: "Erro interno." };
+  if (!target_suit) return { is_valid: false, error: "Erro interno." };
 
   for (const card of bridge_cards) {
     const w = details.assigned_weights[card.id];
     if (w !== undefined && is_wildcard_usage(card, w, target_suit)) {
-       return { valid: false, error: "Proibido usar curinga da mão para realizar a pegada do lixo." };
+       return { is_valid: false, error: "Proibido usar curinga da mão para realizar a pegada do lixo." };
     }
   }
 
-  return { valid: true };
+  return { is_valid: true, canastra_type: details.canastra_type, is_clean: details.is_clean };
 };

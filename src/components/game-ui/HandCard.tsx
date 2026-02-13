@@ -30,8 +30,237 @@ const MARKER_COLORS = [
 const ABILITY_DESCRIPTIONS: Record<string, string> = {
   VIEW_HAND: "VISÃO: Veja a mão do próximo",
   STEAL_CARD: "ROUBAR: Pegue uma carta do próximo",
-  SKIP_TURN: "PULO: Pule o descarte e encerre",
-  SWAP_PARTNER: "TROCA: Troque carta com parceiro",
+  SKIP_TURN: "PULO: Pule sua vez sem descartar",
+  SWAP_PARTNER: "TROCA: Troque de carta com parceiro",
+};
+
+/**
+ * Componente interno para renderizar o conteúdo em modo de ACESSIBILIDADE
+ * Focado em alto contraste, fontes grandes e menos ruído visual.
+ */
+const AccessibilityCardContent = ({
+  card,
+  isSelected,
+  isHovered,
+  imageSrc,
+  onUseJoker,
+  valueClass,
+  suitClass,
+}: {
+  card: CardType;
+  isSelected: boolean;
+  isHovered: boolean;
+  imageSrc?: string;
+  onUseJoker?: (id: string) => void;
+  valueClass: string;
+  suitClass: string;
+}) => {
+  const isJoker = card.value === "JOKER";
+  const abilityInfo = card.ability ? ABILITY_DESCRIPTIONS[card.ability] : null;
+
+  return (
+    <>
+      {/* Se for Joker, mantém os elementos interativos essenciais */}
+      {isJoker && (
+        <>
+          <AnimatePresence>
+            {(isSelected || isHovered) && abilityInfo && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.8, y: 10 }}
+                className="absolute -top-14 md:-top-16 left-1/2 -translate-x-1/2 w-28 md:w-40 bg-violet-900/95 backdrop-blur-md border border-violet-400 text-white p-1.5 md:p-2 rounded-xl shadow-2xl z-50 pointer-events-none"
+              >
+                <div className="text-[7px] md:text-[10px] font-black uppercase tracking-widest text-violet-300 mb-0.5 md:mb-1">
+                  Poder Ativo
+                </div>{" "}
+                <div className="text-[9px] md:text-xs font-bold leading-tight">
+                  {abilityInfo}
+                </div>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] md:border-8 border-transparent border-t-violet-900" />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {isSelected && onUseJoker && (
+            <motion.button
+              initial={{ scale: 0, y: 10 }}
+              animate={{ scale: 1, y: 0 }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onUseJoker(card.id);
+              }}
+              className="absolute -top-24 md:-top-28 left-1/2 -translate-x-1/2 bg-violet-600 text-white text-[9px] md:text-[10px] font-black py-2 md:py-2.5 px-4 md:px-5 rounded-full shadow-[0_0_20px_rgba(124,58,237,0.5)] z-50 whitespace-nowrap border border-violet-400"
+            >
+              USAR JOKER
+            </motion.button>
+          )}
+        </>
+      )}
+
+      {/* Visual de Acessibilidade: Valor e Naipe empilhados e grandes */}
+      <div className="self-start flex flex-col items-center leading-none z-10 gap-y-1 md:gap-y-2">
+        <span className={valueClass}>{isJoker ? "JK" : card.value}</span>
+        <SuitIcon suit={card.suit.name} className={suitClass} />
+      </div>
+
+      {/* Imagem Central (Opacidade reduzida para priorizar o valor/naipe) */}
+      {imageSrc && (
+        <img
+          src={imageSrc}
+          alt="Card illustration"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-20"
+          draggable={false}
+        />
+      )}
+    </>
+  );
+};
+
+/**
+ * Componente interno para renderizar o conteúdo específico de um Magic Joker (Modo Padrão)
+ */
+const JokerCardContent = ({
+  card,
+  isSelected,
+  isHovered,
+  imageSrc,
+  onUseJoker,
+  valueClass,
+}: {
+  card: CardType;
+  isSelected: boolean;
+  isHovered: boolean;
+  imageSrc?: string;
+  onUseJoker?: (id: string) => void;
+  valueClass: string;
+}) => {
+  const abilityInfo = card.ability ? ABILITY_DESCRIPTIONS[card.ability] : null;
+
+  return (
+    <>
+      {/* Joker Power Overlay */}
+      <AnimatePresence>
+        {(isSelected || isHovered) && abilityInfo && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 10 }}
+            className="absolute -top-14 md:-top-16 left-1/2 -translate-x-1/2 w-28 md:w-40 bg-violet-900/95 backdrop-blur-md border border-violet-400 text-white p-1.5 md:p-2 rounded-xl shadow-2xl z-50 pointer-events-none"
+          >
+            <div className="text-[7px] md:text-[10px] font-black uppercase tracking-widest text-violet-300 mb-0.5 md:mb-1">
+              Poder Ativo{" "}
+            </div>
+            <div className="text-[9px] md:text-xs font-bold leading-tight">
+              {abilityInfo}
+            </div>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] md:border-8 border-transparent border-t-violet-900" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Joker Glow Effect */}
+      <div className="absolute inset-0 bg-linear-to-br from-violet-500/10 to-transparent pointer-events-none rounded-md" />
+
+      {/* Símbolo Topo-Esquerda */}
+      <div className="self-start flex flex-col items-center leading-none z-10 gap-y-1">
+        <span className={`${valueClass} text-xs md:text-lg tracking-tighter`}>
+          Joker
+        </span>
+        {/* desativado para joker
+        <SuitIcon suit={card.suit.name} className={suitClass} /> */}
+      </div>
+
+      {/* Imagem Central */}
+      {imageSrc ? (
+        <img
+          src={imageSrc}
+          alt="Joker"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-100 max-w-12"
+          draggable={false}
+        />
+      ) : (
+        <SuitIcon
+          suit={card.suit.name}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20 w-6 h-6 md:w-8 md:h-8 pointer-events-none"
+        />
+      )}
+
+      {/* Joker Ability Description */}
+      {abilityInfo && (
+        <div className="absolute bottom-1 left-0 right-0 px-0.5 text-center leading-none z-20 pointer-events-none">
+          <span className="text-[6px] md:text-[8px] font-black uppercase text-violet-700">
+            {abilityInfo}
+          </span>
+        </div>
+      )}
+
+      {/* USE BUTTON */}
+      {isSelected && onUseJoker && (
+        <motion.button
+          initial={{ scale: 0, y: 10 }}
+          animate={{ scale: 1, y: 0 }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onUseJoker(card.id);
+          }}
+          className="absolute -top-24 md:-top-28 left-1/2 -translate-x-1/2 bg-violet-600 text-white text-[9px] md:text-[10px] font-black py-2 md:py-2.5 px-4 md:px-5 rounded-full shadow-[0_0_20px_rgba(124,58,237,0.5)] z-50 whitespace-nowrap border border-violet-400"
+        >
+          USAR JOKER
+        </motion.button>
+      )}
+    </>
+  );
+};
+
+/**
+ * Componente interno para renderizar o conteúdo de uma carta normal (Modo Padrão)
+ */
+const NormalCardContent = ({
+  card,
+  imageSrc,
+  valueClass,
+  suitClass,
+}: {
+  card: CardType;
+  imageSrc?: string;
+  valueClass: string;
+  suitClass: string;
+}) => {
+  return (
+    <>
+      {/* Símbolo Topo-Esquerda */}
+      <div className="self-start flex flex-col items-center leading-none z-10 gap-y-1">
+        <span className={valueClass}>{card.value}</span>
+        <SuitIcon suit={card.suit.name} className={suitClass} />
+      </div>
+
+      {/* Imagem Central */}
+      {imageSrc ? (
+        <img
+          src={imageSrc}
+          alt={`${card.value} de ${card.suit.name}`}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-100"
+          draggable={false}
+        />
+      ) : (
+        <SuitIcon
+          suit={card.suit.name}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20 w-6 h-6 md:w-8 md:h-8 pointer-events-none"
+        />
+      )}
+
+      {/* Símbolo Inferior-Direita (Invertido) */}
+      <div className="self-end flex flex-col items-center leading-none rotate-180 z-10">
+        <span className={valueClass}>{card.value}</span>
+        <SuitIcon suit={card.suit.name} className={suitClass} />
+      </div>
+    </>
+  );
 };
 
 export const HandCard = ({
@@ -48,33 +277,25 @@ export const HandCard = ({
   onSetMarker,
 }: HandCardProps) => {
   const [showPicker, setShowPicker] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const [pickerDirection, setPickerDirection] = useState<"left" | "right">(
     "left",
   );
 
   const handlePaletteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-
-    // Detectar se a carta está muito à esquerda da tela
     const rect = e.currentTarget.getBoundingClientRect();
-    if (rect.left < 60) {
-      setPickerDirection("right");
-    } else {
-      setPickerDirection("left");
-    }
-
+    setPickerDirection(rect.left < 60 ? "right" : "left");
     setShowPicker(!showPicker);
   };
+
   const isRed = card.color === "red";
   const isJoker = card.value === "JOKER";
-  const abilityInfo = card.ability ? ABILITY_DESCRIPTIONS[card.ability] : null;
-
   const isAccessibilityMode = useGameStore(
     (state) => state.isAccessibilityMode,
   );
   const imageSrc = getCardImageSrc(card.value, card.suit.name);
 
-  // Estilos de texto: Mantendo simples, com ajustes md: apenas para desktop
   const valueClass = isAccessibilityMode
     ? `font-bold text-2xl md:text-4xl scale-y-125 origin-top ${card.value === "10" ? "tracking-tighter" : ""}`
     : "font-black md:text-2xl";
@@ -90,28 +311,15 @@ export const HandCard = ({
       : "text-slate-900";
 
   if (isAccessibilityMode) {
-    // Cores de alto contraste para acessibilidade
-    switch (card.suit.name) {
-      case "copas":
-        textColorClass = "text-red-600";
-        break;
-      case "ouro":
-        textColorClass = "text-orange-600";
-        break;
-      case "espadas":
-        textColorClass = "text-slate-900";
-        break;
-      case "paus":
-        textColorClass = "text-blue-900";
-        break;
-      case "joker":
-        textColorClass = "text-violet-900";
-        break;
-    }
+    const contrastColors: Record<string, string> = {
+      copas: "text-red-600",
+      ouro: "text-orange-600",
+      espadas: "text-slate-900",
+      paus: "text-blue-900",
+      joker: "text-violet-900",
+    };
+    textColorClass = contrastColors[card.suit.name] || textColorClass;
   }
-
-  // Joker Power Overlay (Visible when selected or hovered)
-  const [isHovered, setIsHovered] = useState(false);
 
   return (
     <motion.div
@@ -130,7 +338,7 @@ export const HandCard = ({
         w-14 h-20 md:w-20 md:h-32 transform origin-bottom isolate group
         ${
           isSelected
-            ? "border-yellow-400 ring-4 ring-yellow-400/30 shadow-yellow-500/50 shadow-2xl z-50"
+            ? "border-yellow-400 ring-4 ring-yellow-400/30 shadow-yellow-500/50 shadow-2xl"
             : isLastDrawn
               ? "border-blue-400 ring-2 ring-blue-400/50 shadow-blue-500/30"
               : "border-slate-300"
@@ -141,33 +349,7 @@ export const HandCard = ({
       `}
       style={style}
     >
-      {/* Joker Power Overlay (Visible when selected or hovered) */}
-      <AnimatePresence>
-        {isJoker && (isSelected || isHovered) && abilityInfo && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 10 }}
-            className="absolute -top-14 md:-top-16 left-1/2 -translate-x-1/2 w-28 md:w-40 bg-violet-900/95 backdrop-blur-md border border-violet-400 text-white p-1.5 md:p-2 rounded-xl shadow-2xl z-50 pointer-events-none"
-          >
-            <div className="text-[7px] md:text-[10px] font-black uppercase tracking-widest text-violet-300 mb-0.5 md:mb-1">
-              Poder Ativo
-            </div>
-            <div className="text-[9px] md:text-xs font-bold leading-tight">
-              {abilityInfo}
-            </div>
-            {/* Arrow pointing down */}
-            <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] md:border-8 border-transparent border-t-violet-900" />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Joker Glow Effect */}
-      {isJoker && (
-        <div className="absolute inset-0 bg-linear-to-br from-violet-500/10 to-transparent pointer-events-none rounded-md" />
-      )}
-
-      {/* Marcador de Cor (Bookmark/Ribbon Style) */}
+      {/* Marcador de Cor */}
       {markerColor && (
         <motion.div
           initial={{ y: -10, opacity: 0 }}
@@ -179,71 +361,40 @@ export const HandCard = ({
               "linear-gradient(to bottom, rgba(255,255,255,0.2), transparent)",
           }}
         >
-          {/* Detalhe da dobra da fita no topo */}
-          <div className="absolute top-0 left-0 right-0 h-1 bg-black/10" />
+          <div className="absolute top-0 left-0 right-0 h-1_bg-black/10" />
         </motion.div>
       )}
 
-      {/* Símbolo Topo-Esquerda */}
-      <div
-        className={`self-start flex flex-col items-center leading-none z-10  ${isAccessibilityMode ? "gap-y-4" : "gap-y-1"}`}
-      >
-        <span className={valueClass}>{isJoker ? "JK" : card.value}</span>
-        <SuitIcon suit={card.suit.name} className={suitClass} />
-      </div>
-
-      {/* Imagem Central */}
-      {imageSrc ? (
-        <img
-          src={imageSrc}
-          alt={`${card.value} de ${card.suit.name}`}
-          className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none ${isAccessibilityMode ? "opacity-30" : "opacity-100"}`}
-          draggable={false}
+      {/* Conteúdo da Carta */}
+      {isAccessibilityMode ? (
+        <AccessibilityCardContent
+          card={card}
+          isSelected={isSelected}
+          isHovered={isHovered}
+          imageSrc={imageSrc}
+          onUseJoker={onUseJoker}
+          valueClass={valueClass}
+          suitClass={suitClass}
         />
-      ) : !isAccessibilityMode ? (
-        <SuitIcon
-          suit={card.suit.name}
-          className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20 w-6 h-6 md:w-8 md:h-8 pointer-events-none`}
+      ) : isJoker ? (
+        <JokerCardContent
+          card={card}
+          isSelected={isSelected}
+          isHovered={isHovered}
+          imageSrc={imageSrc}
+          onUseJoker={onUseJoker}
+          valueClass={valueClass}
         />
       ) : (
-        <></>
+        <NormalCardContent
+          card={card}
+          imageSrc={imageSrc}
+          valueClass={valueClass}
+          suitClass={suitClass}
+        />
       )}
 
-      {/* Joker Ability Description */}
-      {isJoker && abilityInfo && (
-        <div className="absolute bottom-1 left-0 right-0 px-0.5 text-center leading-[0.6rem] md:leading-[0.8rem] z-20 pointer-events-none">
-          <span className="text-[6px] md:text-[8px] font-black uppercase tracking-tighter text-violet-700">
-            {abilityInfo}
-          </span>
-        </div>
-      )}
-
-      {/* USE BUTTON */}
-      {isJoker && isSelected && onUseJoker && (
-        <motion.button
-          initial={{ scale: 0, y: 10 }}
-          animate={{ scale: 1, y: 0 }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={(e) => {
-            e.stopPropagation();
-            onUseJoker(card.id);
-          }}
-          className="absolute -top-24 md:-top-28 left-1/2 -translate-x-1/2 bg-violet-600 text-white text-[9px] md:text-[10px] font-black py-2 md:py-2.5 px-4 md:px-5 rounded-full shadow-[0_0_20px_rgba(124,58,237,0.5)] z-50 whitespace-nowrap border border-violet-400"
-        >
-          USAR JOKER
-        </motion.button>
-      )}
-
-      {/* Símbolo Inferior-Direita (Invertido) - Oculto em Acessibilidade para dar foco ao valor maior */}
-      {!isAccessibilityMode && !isJoker && (
-        <div className="self-end flex flex-col items-center leading-none rotate-180 z-10">
-          <span className={valueClass}>{card.value}</span>
-          <SuitIcon suit={card.suit.name} className={suitClass} />
-        </div>
-      )}
-
-      {/* Botão de Marcador (Bottom Left) */}
+      {/* Botão de Marcador */}
       {onSetMarker && (
         <div className="absolute bottom-0 left-0 z-40">
           <button

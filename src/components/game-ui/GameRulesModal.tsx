@@ -151,6 +151,9 @@ const RulesListView = ({ rules }: { rules: GameRules }) => {
               }
             >
               Magic Jokers (Cartas de Poder)
+              <span className="ml-2 text-[8px] font-black text-blue-400 uppercase">
+                * Novo
+              </span>
             </span>
           </div>
         </div>
@@ -303,11 +306,11 @@ export const GameRulesModal = ({
                   isHost={isHost}
                   onToggle={toggleRule}
                 />
-                <div className="pt-2">
+                <div className="relative border border-blue-500 rounded-lg animate-pulse">
                   <RuleToggle
                     label="Coringas Mágicos"
                     ruleKey="useMagicJokers"
-                    info="Adiciona cartas especiais com poderes (Roubar, Ver Mão, Pular Vez). Recomendado para partidas mais dinâmicas!"
+                    info="Coringas especiais que tem poderes e também continuam servindo como coringa. É destruído ao usar o poder."
                     rules={localRules}
                     isHost={isHost}
                     onToggle={toggleRule}

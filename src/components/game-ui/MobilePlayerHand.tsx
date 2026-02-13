@@ -46,8 +46,7 @@ export const MobilePlayerHand = ({
       {/* Scrollable Container - Added pt-32 to allow Joker UI to appear within h-64 */}
       <div
         ref={scrollContainerRef}
-        className="w-full overflow-x-auto flex items-end pb-4 pt-32 gap-[-10px]
-         snap-x snap-mandatory scrollbar-hide"
+        className="w-full overflow-x-auto flex items-end pb-4 pt-16 snap-x snap-mandatory scrollbar-hide"
         style={{
           paddingRight: "50%", // Space for the last card to be centered or visible
           paddingLeft: "20px",
@@ -78,7 +77,7 @@ export const MobilePlayerHand = ({
                   animate={{
                     opacity: 1,
                     x: 0,
-                    y: isSelected ? -8 : 0,
+                    y: isSelected ? -15 : 0,
                     scale: 1,
                     rotate: 0,
                   }}
@@ -87,13 +86,13 @@ export const MobilePlayerHand = ({
                       ? {
                           type: "spring",
                           stiffness: 400,
-                          damping: 25,
+                          damping: 30,
                           delay: isDealing ? i * 0.04 : 0,
                         }
                       : { duration: 0 }
                   }
-                  exit={{ opacity: 0, scale: 0.5, y: -50 }} // Exit to discard usually
-                  className={`relative shrink-0 snap-center pointer-events-auto`}
+                  exit={{ opacity: 0, scale: 0.5, y: -50 }}
+                  className="relative shrink-0 snap-center pointer-events-auto"
                 >
                   <HandCard
                     card={card}

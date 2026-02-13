@@ -113,7 +113,11 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
   socket.on(
     "action_pick_up_discard_new_meld",
     (
-      { roomId, card_ids, playerId }: { roomId: string; card_ids: string[]; playerId?: string },
+      {
+        roomId,
+        card_ids,
+        playerId,
+      }: { roomId: string; card_ids: string[]; playerId?: string },
       callback?: (res: ServerResponse) => void,
     ) => {
       const game = games[roomId];
@@ -288,7 +292,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         game.rules,
       );
 
-      if (!validation.valid) {
+      if (!validation.is_valid) {
         if (callback)
           callback({ error: `Movimento inválido: ${validation.error}` });
         return;
@@ -367,7 +371,11 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
   socket.on(
     "action_meld",
     (
-      { roomId, card_ids, playerId }: { roomId: string; card_ids: string[]; playerId?: string },
+      {
+        roomId,
+        card_ids,
+        playerId,
+      }: { roomId: string; card_ids: string[]; playerId?: string },
       callback?: (res: ServerResponse) => void,
     ) => {
       const game = games[roomId];
@@ -546,7 +554,11 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
   socket.on(
     "action_discard",
     (
-      { roomId, card_id, playerId }: { roomId: string; card_id: string; playerId?: string },
+      {
+        roomId,
+        card_id,
+        playerId,
+      }: { roomId: string; card_id: string; playerId?: string },
       callback?: (res: ServerResponse) => void,
     ) => {
       const game = games[roomId];
@@ -611,22 +623,25 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
     },
   );
 
-  socket.on("action_sort_hand", ({ roomId, playerId }: { roomId: string, playerId?: string }) => {
-    const game = games[roomId];
-    if (!game) return;
+  socket.on(
+    "action_sort_hand",
+    ({ roomId, playerId }: { roomId: string; playerId?: string }) => {
+      const game = games[roomId];
+      if (!game) return;
 
-    const ctx = validateTurn(game, socket.id, playerId);
-    if (!ctx) return;
-    const player_id = ctx.player_id;
+      const ctx = validateTurn(game, socket.id, playerId);
+      if (!ctx) return;
+      const player_id = ctx.player_id;
 
-    const current_hand = game.hands[player_id];
+      const current_hand = game.hands[player_id];
 
-    if (current_hand) {
-      // Manual sort now randomizes suit order to allow user customization
-      game.hands[player_id] = sort_cards(current_hand, true);
-      broadcast_game_update(io, roomId);
-    }
-  });
+      if (current_hand) {
+        // Manual sort now randomizes suit order to allow user customization
+        game.hands[player_id] = sort_cards(current_hand, true);
+        broadcast_game_update(io, roomId);
+      }
+    },
+  );
 
   socket.on("action_vote_next", ({ roomId }: { roomId: string }) => {
     const game = games[roomId];
@@ -671,7 +686,11 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
   socket.on(
     "action_use_joker",
     (
-      { roomId, cardId, playerId }: { roomId: string; cardId: string; playerId?: string },
+      {
+        roomId,
+        cardId,
+        playerId,
+      }: { roomId: string; cardId: string; playerId?: string },
       callback?: (res: ServerResponse) => void,
     ) => {
       const game = games[roomId];
@@ -715,9 +734,9 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         case "VIEW_HAND": {
           if (target_hand) {
             const cardsNames = target_hand
-              .map((c) => `[${c.value}${c.suit.emoji || c.suit.icon}]`)
+              .map((c) => `${c.value}${c.suit.emoji || c.suit.icon}`)
               .join(" ");
-            const infoMsg = `👁️ VISÃO: Jogador ${next_player} tem: ${cardsNames}`;
+            const infoMsg = `[EYE] VISÃO: Jogador ${next_player} tem: ${cardsNames}`;
             // Envia mensagem privada para o usuário
             socket.emit("info_msg", infoMsg);
             io.to(roomId).emit(
@@ -733,13 +752,12 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
             const randomIdx = Math.floor(Math.random() * target_hand.length);
             const stolenCard = target_hand.splice(randomIdx, 1)[0];
             if (stolenCard) {
-                player_hand.push(stolenCard);
-                game.hands[player_id] = sort_cards(player_hand);
-                game.hands[next_player] = sort_cards(target_hand);
-                io.to(roomId).emit(
-                  "info_msg",
-                  `O Jogador ${player_id} ROUBOU uma carta do Jogador ${next_player}.`,
-                );
+              player_hand.push(stolenCard);
+              game.hands[next_player] = sort_cards(target_hand);
+              io.to(roomId).emit(
+                "info_msg",
+                `[STEAL] O Jogador ${player_id} ROUBOU uma carta do Jogador ${next_player}.`,
+              );
             }
           }
           break;
@@ -748,7 +766,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         case "SKIP_TURN": {
           io.to(roomId).emit(
             "info_msg",
-            `O Jogador ${player_id} PULOU o descarte usando o Joker!`,
+            `[SKIP] O Jogador ${player_id} PULOU o descarte usando o Joker!`,
           );
           game.turn_phase = "DRAW";
           game.current_player = get_next_player(game.current_player, game.mode);
@@ -762,14 +780,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
           if (nextPData && nextPData.isBot) {
             process_bot_turn(io, roomId);
           }
-          
-          // Se o turno pulou, fazemos o broadcast e retornamos
-          if (player_hand.length === 0) {
-            handle_empty_hand(game, player_id, "INDIRECT"); // Descarte implícito
-          }
-          saveState();
-          broadcast_game_update(io, roomId);
-          return;
+          break;
         }
 
         case "SWAP_PARTNER": {
@@ -788,15 +799,13 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
               const pCard = partner_hand.splice(pIdx, 1)[0];
 
               if (myCard && pCard) {
-                  player_hand.push(pCard);
-                  partner_hand.push(myCard);
-    
-                  game.hands[player_id] = sort_cards(player_hand);
-                  game.hands[partner] = sort_cards(partner_hand);
-                  io.to(roomId).emit(
-                    "info_msg",
-                    `O Jogador ${player_id} trocou uma carta com seu parceiro.`,
-                  );
+                player_hand.push(pCard);
+                partner_hand.push(myCard);
+                game.hands[partner] = sort_cards(partner_hand);
+                io.to(roomId).emit(
+                  "info_msg",
+                  `[SWAP] O Jogador ${player_id} trocou uma carta com seu parceiro.`,
+                );
               }
             }
           }
@@ -804,12 +813,18 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         }
       }
 
-      if (player_hand.length === 0) {
-        handle_empty_hand(game, player_id, "DIRECT");
+      // No final do switch, removemos qualquer possibilidade de dessincronização 
+      // garantindo que a mão do jogador atual seja atualizada no estado global.
+      game.hands[player_id] = sort_cards(player_hand);
+
+      if (game.hands[player_id].length === 0) {
+        handle_empty_hand(game, player_id, game.turn_phase === "DRAW" ? "INDIRECT" : "DIRECT");
       }
 
       saveState();
-      startTurnTimer(io, roomId);
+      if (game.turn_phase === "ACTION") {
+        startTurnTimer(io, roomId);
+      }
       broadcast_game_update(io, roomId);
     },
   );

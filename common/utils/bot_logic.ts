@@ -531,7 +531,7 @@ export const analyze_discard_pickup = (
 
           if (validation.is_valid) {
               const ruleCheck = validate_discard_add_to_meld(meld, [card], top_discard, rules);
-              if (!ruleCheck.valid) continue;
+              if (!ruleCheck.is_valid) continue;
 
               const meld_val = validate_sequence(meld);
               const was_clean = meld_val.is_valid && meld_val.is_clean;
@@ -553,7 +553,10 @@ export const analyze_discard_pickup = (
   // 3. Tenta criar um NOVO jogo usando a carta do lixo
   // Regra base: Para pegar o lixo para um jogo novo, ele deve ser obrigatoriamente LIMPO (3 naturais).
   // Se rules.canPickUpDiscardWithJoker for true, permite usar curinga da mão.
-  const suit_candidates = hand.filter((c) => c.suit.name === top_discard.suit.name || (c.value === "2" && rules.canPickUpDiscardWithJoker));
+  const suit_candidates = hand.filter((c) => 
+    c.suit.name === top_discard.suit.name || 
+    ((c.value === "2" || c.value === "JOKER") && rules.canPickUpDiscardWithJoker)
+  );
   
   if (suit_candidates.length >= 2) {
     for (let i = 0; i < suit_candidates.length; i++) {

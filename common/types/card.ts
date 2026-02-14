@@ -8,10 +8,21 @@
 // TIPOS DE DADOS FUNDAMENTAIS
 // -----------------------------------------------------------------------------
 
+export type JokerAbility =
+  | "VIEW_HAND"
+  | "STEAL_CARD"
+  | "SKIP_TURN"
+  | "SAFE"
+  | "SHUFFLE_DISCARD"
+  | "TAX_COLLECTOR"
+  | "SKIP_NEXT"
+  | "REVERSE"
+  | "SURGICAL_SWAP";
+
 export type Suit = {
-  icon: "♠" | "♣" | "♥" | "♦";
-  name: "espadas" | "paus" | "copas" | "ouro";
-  color: "red" | "black";
+  icon: "♠" | "♣" | "♥" | "♦" | "🃏";
+  name: "espadas" | "paus" | "copas" | "ouro" | "joker";
+  color: "red" | "black" | "magic";
   emoji?: string;
 };
 
@@ -28,14 +39,16 @@ export type CardValue =
   | "10"
   | "J"
   | "Q"
-  | "K";
+  | "K"
+  | "JOKER";
 
 export interface Card {
   id: string;
   value: CardValue;
   suit: Suit;
-  color: "red" | "black";
+  color: "red" | "black" | "magic";
   deckIndex?: number;
+  ability?: JokerAbility;
 }
 
 // -----------------------------------------------------------------------------
@@ -48,6 +61,13 @@ export const SUITS: Suit[] = [
   { icon: "♥", name: "copas", color: "red", emoji: "♥️" },
   { icon: "♦", name: "ouro", color: "red", emoji: "♦️" },
 ];
+
+export const JOKER_SUIT: Suit = {
+  icon: "🃏",
+  name: "joker",
+  color: "magic",
+  emoji: "🃏",
+};
 
 const CARD_DEFINITIONS = [
   { val: "A", weight: [1, 14], points: 15 },
@@ -67,16 +87,21 @@ const CARD_DEFINITIONS = [
   { val: "J", weight: [11], points: 10 },
   { val: "Q", weight: [12], points: 10 },
   { val: "K", weight: [13], points: 10 },
+  {
+    val: "JOKER",
+    weight: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+    points: 50,
+  },
 ] as const;
 
 // -----------------------------------------------------------------------------
 // CONSTANTES DERIVADAS (Não mexer, são geradas automaticamente)
 // -----------------------------------------------------------------------------
 
-// Usado para criar o baralho
-export const VALUES: CardValue[] = CARD_DEFINITIONS.map(
-  (d) => d.val as CardValue,
-);
+// Usado para criar o baralho (Apenas cartas normais para o loop básico)
+export const VALUES: CardValue[] = CARD_DEFINITIONS.filter(
+  (d) => d.val !== "JOKER",
+).map((d) => d.val as CardValue);
 
 // Usado para validação de sequências (Rules) - Agora suporta múltiplos pesos
 export const CARD_VALUE_WEIGHTS: Record<CardValue, readonly number[]> =
@@ -100,6 +125,7 @@ export const PRIMARY_CARD_WEIGHTS: Record<CardValue, number> = {
   J: 11,
   Q: 12,
   K: 13,
+  JOKER: 99, // Fica no final da mão
 };
 
 // Usado para calcular a pontuação (Scoring)

@@ -25,6 +25,7 @@ export interface GameLayoutProps {
   onDiscardClick: () => void;
   onMeldClick: (teamId: number, meldIndex: number) => void;
   onNewMeldClick: () => void;
+  onUseJoker: (cardId: string) => void;
   toggleSelect: (id: string) => void;
   startDrag: MouseEventHandler | TouchEventHandler; // Type from useScreenDrag (React.MouseEventHandler | React.TouchEventHandler)
 

@@ -137,6 +137,25 @@ const RulesListView = ({ rules }: { rules: GameRules }) => {
               Equipe pode pegar os dois mortos
             </span>
           </div>
+          <div className="flex items-center gap-3 text-sm">
+            <div
+              className={`p-1 rounded ${rules.useMagicJokers ? "bg-violet-500/20 text-violet-400" : "bg-white/5 text-white/20"}`}
+            >
+              <Check size={14} strokeWidth={rules.useMagicJokers ? 4 : 1} />
+            </div>
+            <span
+              className={
+                rules.useMagicJokers
+                  ? "text-slate-200 font-bold"
+                  : "text-slate-500 line-through decoration-slate-700"
+              }
+            >
+              Magic Jokers (Cartas de Poder)
+              <span className="ml-2 text-[8px] font-black text-blue-400 uppercase">
+                * Novo
+              </span>
+            </span>
+          </div>
         </div>
       </div>
 
@@ -280,13 +299,23 @@ export const GameRulesModal = ({
                   onToggle={toggleRule}
                 />
                 <RuleToggle
-                  label="Permitido pegar os 2 mortos"
+                  label="Time pode pegar dois mortos"
                   ruleKey="teamCanTakeBothDeadPiles"
                   info="Permite que a mesma equipe pegue os dois mortos do jogo (um para cada jogador)."
                   rules={localRules}
                   isHost={isHost}
                   onToggle={toggleRule}
                 />
+                <div className="relative border border-blue-500 rounded-lg animate-pulse">
+                  <RuleToggle
+                    label="Coringas Mágicos"
+                    ruleKey="useMagicJokers"
+                    info="Coringas especiais que tem poderes e também continuam servindo como coringa. É destruído ao usar o poder."
+                    rules={localRules}
+                    isHost={isHost}
+                    onToggle={toggleRule}
+                  />
+                </div>
               </div>
 
               <div className="flex flex-col gap-3">

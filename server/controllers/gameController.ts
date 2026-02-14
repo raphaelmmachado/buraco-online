@@ -7,15 +7,15 @@ import {
   requires_clean_to_empty_hand,
   has_clean_canastra,
   get_team,
-  check_championship_status,
   start_next_round,
   start_new_match,
+  calculate_game_end_score,
 } from "../services/gameService";
 import {
   broadcast_game_update,
   process_bot_turn,
+  execute_joker_power,
 } from "../services/botService";
-import { calculate_score } from "../../common/utils/scoring";
 import { sort_cards, organize_meld } from "../../common/utils/sort_cards";
 import {
   validate_sequence,
@@ -55,39 +55,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
             game.deck = new_deck;
           }
         } else {
-          const t1_hand_1 = game.hands[1] ?? [];
-          const t1_hand_2 = game.hands[3] ?? [];
-          const t2_hand_1 = game.hands[2] ?? [];
-          const t2_hand_2 = game.hands[4] ?? [];
-
-          const t1_melds = game.team_melds[1] ?? [];
-          const t2_melds = game.team_melds[2] ?? [];
-
-          const t1_taken = game.has_taken_dead_pile[0];
-          const t2_taken = game.has_taken_dead_pile[1];
-
-          const t1_score = calculate_score(
-            t1_melds,
-            [t1_hand_1, t1_hand_2],
-            false,
-            !t1_taken,
-            game.rules,
-          );
-          const t2_score = calculate_score(
-            t2_melds,
-            [t2_hand_1, t2_hand_2],
-            false,
-            !t2_taken,
-            game.rules,
-          );
-
-          check_championship_status(
-            game,
-            t1_score.total_score,
-            t2_score.total_score,
-            t1_score,
-            t2_score,
-          );
+          calculate_game_end_score(game);
           stopTurnTimer(roomId);
           broadcast_game_update(io, roomId);
           return;
@@ -103,6 +71,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         game.hands[player_id] = sort_cards(player_hand);
         game.last_drawn_card_id = card.id;
         game.turn_phase = "ACTION";
+        game.magic_joker.is_discard_frozen = false; // Turn started, unfreeze for next player if needed
         saveState();
         startTurnTimer(io, roomId);
         broadcast_game_update(io, roomId);
@@ -113,7 +82,11 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
   socket.on(
     "action_pick_up_discard_new_meld",
     (
-      { roomId, card_ids, playerId }: { roomId: string; card_ids: string[]; playerId?: string },
+      {
+        roomId,
+        card_ids,
+        playerId,
+      }: { roomId: string; card_ids: string[]; playerId?: string },
       callback?: (res: ServerResponse) => void,
     ) => {
       const game = games[roomId];
@@ -128,6 +101,12 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
 
       if (game.turn_phase !== "DRAW" || game.discard_pile.length === 0) {
         if (callback) callback({ error: "Não pode comprar do lixo agora." });
+        return;
+      }
+
+      if (game.magic_joker.is_discard_frozen) {
+        if (callback)
+          callback({ error: "O lixo está congelado por um Joker!" });
         return;
       }
 
@@ -219,6 +198,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       }
 
       game.turn_phase = "ACTION";
+      game.magic_joker.is_discard_frozen = false;
       const updated_hand = game.hands[player_id];
 
       if (updated_hand && updated_hand.length === 0) {
@@ -261,6 +241,12 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         return;
       }
 
+      if (game.magic_joker.is_discard_frozen) {
+        if (callback)
+          callback({ error: "O lixo está congelado por um Joker!" });
+        return;
+      }
+
       const team_id = get_team(player_id);
       const team_melds = game.team_melds[team_id];
       const target_meld = team_melds?.[meld_index];
@@ -288,7 +274,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         game.rules,
       );
 
-      if (!validation.valid) {
+      if (!validation.is_valid) {
         if (callback)
           callback({ error: `Movimento inválido: ${validation.error}` });
         return;
@@ -353,6 +339,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       }
 
       game.turn_phase = "ACTION";
+      game.magic_joker.is_discard_frozen = false;
 
       const updated_hand = game.hands[player_id];
       if (updated_hand && updated_hand.length === 0) {
@@ -367,7 +354,11 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
   socket.on(
     "action_meld",
     (
-      { roomId, card_ids, playerId }: { roomId: string; card_ids: string[]; playerId?: string },
+      {
+        roomId,
+        card_ids,
+        playerId,
+      }: { roomId: string; card_ids: string[]; playerId?: string },
       callback?: (res: ServerResponse) => void,
     ) => {
       const game = games[roomId];
@@ -441,6 +432,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         startTurnTimer(io, roomId);
       }
 
+      saveState();
       broadcast_game_update(io, roomId);
     },
   );
@@ -539,6 +531,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         handle_empty_hand(game, player_id, "DIRECT");
         startTurnTimer(io, roomId);
       }
+      saveState();
       broadcast_game_update(io, roomId);
     },
   );
@@ -546,7 +539,11 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
   socket.on(
     "action_discard",
     (
-      { roomId, card_id, playerId }: { roomId: string; card_id: string; playerId?: string },
+      {
+        roomId,
+        card_id,
+        playerId,
+      }: { roomId: string; card_id: string; playerId?: string },
       callback?: (res: ServerResponse) => void,
     ) => {
       const game = games[roomId];
@@ -596,7 +593,25 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
 
       if (game.status !== "FINISHED") {
         game.turn_phase = "DRAW";
-        game.current_player = get_next_player(game.current_player, game.mode);
+        let nextPlayer = get_next_player(
+          game.current_player,
+          game.mode,
+          game.magic_joker.direction,
+        );
+
+        // Se houver um bloqueio pendente, pula o próximo e vai para o subsequente
+        if (game.magic_joker.pending_skip) {
+          console.log(`[SKIP] Pulando a vez do Jogador ${nextPlayer} devido ao Bloqueio.`);
+          nextPlayer = get_next_player(
+            nextPlayer,
+            game.mode,
+            game.magic_joker.direction,
+          );
+          game.magic_joker.pending_skip = false;
+          io.to(roomId).emit("info_msg", "Vez pulada pelo Bloqueio!");
+        }
+
+        game.current_player = nextPlayer;
         game.last_drawn_card_id = null; // Limpa o destaque da carta comprada
         startTurnTimer(io, roomId);
 
@@ -607,26 +622,130 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         }
       }
 
+      saveState();
       broadcast_game_update(io, roomId);
     },
   );
 
-  socket.on("action_sort_hand", ({ roomId, playerId }: { roomId: string, playerId?: string }) => {
-    const game = games[roomId];
-    if (!game) return;
+  socket.on(
+    "action_power_pick_card",
+    (
+      {
+        roomId,
+        cardId,
+        playerId,
+      }: { roomId: string; cardId: string; playerId?: string },
+      callback?: (res: ServerResponse) => void,
+    ) => {
+      const game = games[roomId];
+      if (!game || !game.magic_joker.power_selection) return;
 
-    const ctx = validateTurn(game, socket.id, playerId);
-    if (!ctx) return;
-    const player_id = ctx.player_id;
+      const selection = game.magic_joker.power_selection;
+      const ctx = validateTurn(game, socket.id, playerId);
+      if (!ctx || ctx.player_id !== selection.player_id) {
+        if (callback) callback({ error: "Não é sua vez de selecionar." });
+        return;
+      }
 
-    const current_hand = game.hands[player_id];
+      const player_id = ctx.player_id;
 
-    if (current_hand) {
-      // Manual sort now randomizes suit order to allow user customization
-      game.hands[player_id] = sort_cards(current_hand, true);
+      if (selection.stage === "PICK_MY_CARD") {
+        // Valida se a carta está na mão do jogador
+        const hasCard = game.hands[player_id]?.some((c) => c.id === cardId);
+        if (!hasCard) {
+          if (callback) callback({ error: "Carta não encontrada na sua mão." });
+          return;
+        }
+        selection.selected_card_id = cardId;
+        selection.stage = "PICK_THEIR_CARD";
+        if (callback) callback({ success: true });
+      } else if (selection.stage === "PICK_THEIR_CARD") {
+        // Valida se a carta está na mão do alvo
+        const target_hand = game.hands[selection.target_player_id];
+        const theirCardIdx = target_hand?.findIndex((c) => c.id === cardId);
+
+        if (theirCardIdx === undefined || theirCardIdx === -1) {
+          if (callback)
+            callback({ error: "Carta não encontrada na mão do parceiro." });
+          return;
+        }
+
+        const myHand = game.hands[player_id];
+        const myCardIdx = myHand?.findIndex(
+          (c) => c.id === selection.selected_card_id,
+        );
+
+        if (myCardIdx !== undefined && myCardIdx !== -1 && target_hand) {
+          // EXECUTA A TROCA
+          const myCard = myHand!.splice(myCardIdx, 1)[0]!;
+          const theirCard = target_hand.splice(theirCardIdx, 1)[0]!;
+
+          myHand!.push(theirCard);
+          target_hand.push(myCard);
+
+          game.hands[player_id] = sort_cards(myHand!);
+          game.hands[selection.target_player_id] = sort_cards(target_hand);
+
+          // Limpa o estado do poder
+          delete game.magic_joker.power_selection;
+
+          io.to(roomId).emit(
+            "info_msg",
+            `[SWAP] Troca Cirúrgica concluída com sucesso!`,
+          );
+          if (callback) callback({ success: true });
+        }
+      }
+
+      saveState();
       broadcast_game_update(io, roomId);
-    }
-  });
+    },
+  );
+
+  socket.on(
+    "action_power_cancel",
+    ({ roomId, playerId }: { roomId: string; playerId?: string }) => {
+      const game = games[roomId];
+      if (!game || !game.magic_joker.power_selection) return;
+
+      const selection = game.magic_joker.power_selection;
+      const ctx = validateTurn(game, socket.id, playerId);
+
+      // Apenas o jogador que iniciou o poder pode cancelar
+      if (!ctx || ctx.player_id !== selection.player_id) return;
+
+      delete game.magic_joker.power_selection;
+
+      io.to(roomId).emit(
+        "info_msg",
+        `[SWAP] O Jogador ${ctx.player_id} cancelou a ação do Joker.`,
+      );
+
+      saveState();
+      broadcast_game_update(io, roomId);
+    },
+  );
+
+  socket.on(
+    "action_sort_hand",
+    ({ roomId, playerId }: { roomId: string; playerId?: string }) => {
+      const game = games[roomId];
+      if (!game) return;
+
+      const ctx = validateTurn(game, socket.id, playerId);
+      if (!ctx) return;
+      const player_id = ctx.player_id;
+
+      const current_hand = game.hands[player_id];
+
+      if (current_hand) {
+        // Manual sort now randomizes suit order to allow user customization
+        game.hands[player_id] = sort_cards(current_hand, true);
+        saveState();
+        broadcast_game_update(io, roomId);
+      }
+    },
+  );
 
   socket.on("action_vote_next", ({ roomId }: { roomId: string }) => {
     const game = games[roomId];
@@ -667,4 +786,46 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
     broadcast_game_update(io, roomId);
     saveState();
   });
+
+  socket.on(
+    "action_use_joker",
+    (
+      {
+        roomId,
+        cardId,
+        playerId,
+      }: { roomId: string; cardId: string; playerId?: string },
+      callback?: (res: ServerResponse) => void,
+    ) => {
+      const game = games[roomId];
+      if (!game) return;
+
+      const ctx = validateTurn(game, socket.id, playerId);
+      if (!ctx) {
+        if (callback) callback({ error: "Não é a sua vez." });
+        return;
+      }
+      const { player_id } = ctx;
+
+      if (game.turn_phase !== "ACTION") {
+        if (callback)
+          callback({
+            error: "Você deve comprar uma carta antes de usar o Joker.",
+          });
+        return;
+      }
+
+      const result = execute_joker_power(io, game, player_id, cardId, roomId);
+
+      if (result?.error && callback) {
+        callback({ error: result.error });
+        return;
+      }
+
+      if (game.turn_phase === "ACTION") {
+        startTurnTimer(io, roomId);
+      }
+      broadcast_game_update(io, roomId);
+    },
+  );
 };

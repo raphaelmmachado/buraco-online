@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { type Card as CardType } from "../../../common/types/card";
 import { SuitIcon } from "./SuitIcon";
 import { useGameStore } from "../../store/useGameStore";
+import { getCardImageSrc } from "../../utils/card_image_map";
 import {
   type ScreenDirection,
   getAnimationOrigin,
@@ -16,6 +17,19 @@ interface DiscardCardProps {
   originDirection?: ScreenDirection; // Nova prop para saber de onde vem a carta
   quantity?: number;
 }
+
+const ABILITY_DESCRIPTIONS: Record<string, string> = {
+  VIEW_HAND: "VISÃO",
+  STEAL_CARD: "ROUBAR",
+  SKIP_TURN: "PULO",
+  SAFE: "SEGURO",
+  SHUFFLE_DISCARD: "LIMPEZA",
+  TAX_COLLECTOR: "IMPOSTO",
+  SKIP_NEXT: "BLOQUEIO",
+  REVERSE: "REVERSO",
+  SURGICAL_SWAP: "CIRÚRGICO",
+};
+
 function getStableNumber(id: string, min: number, max: number) {
   let hash = 0;
   // Transforma a string do ID em um número (soma dos códigos ASCII)
@@ -60,6 +74,10 @@ export const DiscardCard = ({
     );
   }
   const isRed = card.suit.color === "red";
+  const isJoker = card.value === "JOKER";
+  const imageSrc = getCardImageSrc(card.value, card.suit.name);
+  const abilityInfo = card.ability ? ABILITY_DESCRIPTIONS[card.ability] : null;
+
   // Se a carta vem de "mim" (bottom), usamos layoutId para transição mágica da mão.
   // Se vem de outros, usamos animação explícita de entrada.
   // MAS sempre mantemos layoutId para permitir que a carta "voe" para a mão de quem pegar o lixo.
@@ -99,7 +117,12 @@ export const DiscardCard = ({
     ? "w-5 h-5 md:w-8 md:h-8"
     : "w-3 h-3 md:w-5 md:h-5";
 
-  let textColorClass = isRed ? "text-red-600" : "text-slate-900";
+  let textColorClass = isRed
+    ? "text-red-600"
+    : isJoker
+      ? "text-violet-700"
+      : "text-slate-900";
+
   if (isAccessibilityMode) {
     switch (card.suit.name) {
       case "copas":
@@ -113,6 +136,9 @@ export const DiscardCard = ({
         break;
       case "paus":
         textColorClass = "text-blue-900";
+        break;
+      case "joker":
+        textColorClass = "text-violet-900";
         break;
     }
   }
@@ -156,7 +182,7 @@ export const DiscardCard = ({
         {...animationProps}
         onClick={onClick}
         className={`
-        relative rounded-md shadow-lg border bg-white select-none
+        relative rounded-md shadow-lg border select-none
          flex flex-col items-center p-1 z-10 w-14 h-20 md:w-20 md:h-32 justify-between
         ${
           isActionable
@@ -170,25 +196,53 @@ export const DiscardCard = ({
               ? "ring-4 ring-red-500/40 shadow-[0_0_15px_rgba(239,68,68,0.4)] z-10 border-transparent"
               : "border-slate-300"
         }
+        ${isJoker ? "bg-linear-to-br from-violet-100 to-indigo-200 border-violet-400" : "bg-white"}
         ${textColorClass}
       `}
       >
+        {/* Joker Glow Effect */}
+        {isJoker && (
+          <div className="absolute inset-0 bg-linear-to-br from-violet-500/10 to-transparent pointer-events-none rounded-md" />
+        )}
+
         <div
-          className={`self-start flex flex-col ${isAccessibilityMode ? "gap-y-4 md:gap-y-5" : "gap-y-1"}
+          className={`self-start flex flex-col ${isAccessibilityMode ? "gap-y-3" : "gap-y-1"}
            items-center leading-none z-10`}
         >
-          <span className={valueClass}>{card.value}</span>
-          <SuitIcon suit={card.suit.name} className={suitClass} />
+          <span
+            className={`${valueClass} ${isJoker && !isAccessibilityMode ? "text-[10px] md:text-base font-black tracking-tighter" : ""}`}
+          >
+            {isJoker ? (isAccessibilityMode ? "JK" : "JOKER") : card.value}
+          </span>
+          {!isJoker && <SuitIcon suit={card.suit.name} className={suitClass} />}
         </div>
 
-        {/* NAIPE CENTRAL CENTRALIZADO */}
-        <div
-          className={`absolute inset-0 flex items-center justify-center pointer-events-none ${isAccessibilityMode ? "opacity-5" : "opacity-20"}`}
-        >
-          <SuitIcon suit={card.suit.name} className="w-6 h-6 md:w-8 md:h-8" />
-        </div>
+        {/* IMAGEM CENTRAL */}
+        {imageSrc ? (
+          <img
+            src={imageSrc}
+            alt={`${card.value} de ${card.suit.name}`}
+            className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[60%] md:-translate-y-1/2 pointer-events-none ${isAccessibilityMode ? "opacity-30" : "opacity-100"} ${isJoker ? "max-w-8 md:max-w-12" : ""}`}
+            draggable={false}
+          />
+        ) : (
+          <div
+            className={`absolute inset-0 flex items-center justify-center pointer-events-none ${isAccessibilityMode ? "opacity-5" : "opacity-20"}`}
+          >
+            <SuitIcon suit={card.suit.name} className="w-6 h-6 md:w-8 md:h-8" />
+          </div>
+        )}
 
-        {!isAccessibilityMode && (
+        {/* Joker Ability Label (Título do Poder) */}
+        {isJoker && abilityInfo && (
+          <div className="absolute bottom-1 md:bottom-2 left-0 right-0 px-1 text-center leading-none z-20 pointer-events-none">
+            <div className="bg-violet-600 text-white text-[6px] md:text-[8px] font-black py-0.5 md:py-1 px-0.5 rounded-sm shadow-sm uppercase tracking-tighter">
+              {abilityInfo}
+            </div>
+          </div>
+        )}
+
+        {!isAccessibilityMode && !isJoker && (
           <div
             className={`${isAccessibilityMode ? "gap-y-1 md:gap-y-2" : "gap-y-0"} 
             self-end flex flex-col items-center leading-none rotate-180 z-10`}

@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { type Card as CardType } from "../../../common/types/card";
 import { SuitIcon } from "./SuitIcon";
 import { useGameStore } from "../../store/useGameStore";
+import { getCardImageSrc } from "../../utils/card_image_map";
 import {
   type ScreenDirection,
   getAnimationOrigin,
@@ -32,13 +33,12 @@ export const MeldCard = ({
   style,
 }: MeldCardProps) => {
   const isRed = card.color === "red";
+  const isJoker = card.value === "JOKER";
   const isAccessibilityMode = useGameStore(
     (state) => state.isAccessibilityMode,
   );
-  // Se enterFrom for 'bottom', podemos usar layoutId (se a carta veio da minha mão)
-  // Mas como a carta pode ter vindo do monte ou lixo para a mão e depois para a mesa,
-  // e o ID é o mesmo, o layoutId funciona perfeitamente para "Mim".
-  // Para outros jogadores, usamos a animação de entrada explícita.
+
+  const imageSrc = getCardImageSrc(card.value, card.suit.name);
 
   const isFromMe = enterFrom === "bottom";
 
@@ -59,7 +59,6 @@ export const MeldCard = ({
             scale: 1,
             rotate: 0,
           },
-          // transition: removed to use MotionConfig context
         };
   }, [isFromMe, card.id, enterFrom]);
 
@@ -72,22 +71,21 @@ export const MeldCard = ({
     ? "w-4 h-4 md:w-6 md:h-6"
     : "w-2.5 h-2.5 md:w-4 md:h-4";
 
-  let textColorClass = isRed ? "text-red-600" : "text-slate-900";
+  let textColorClass = isRed
+    ? "text-red-600"
+    : isJoker
+      ? "text-violet-700"
+      : "text-slate-900";
+
   if (isAccessibilityMode) {
-    switch (card.suit.name) {
-      case "copas":
-        textColorClass = "text-red-600";
-        break;
-      case "ouro":
-        textColorClass = "text-orange-600";
-        break;
-      case "espadas":
-        textColorClass = "text-slate-900";
-        break;
-      case "paus":
-        textColorClass = "text-blue-900";
-        break;
-    }
+    const contrastColors: Record<string, string> = {
+      copas: "text-red-600",
+      ouro: "text-orange-600",
+      espadas: "text-slate-900",
+      paus: "text-blue-900",
+      joker: "text-violet-900",
+    };
+    textColorClass = contrastColors[card.suit.name] || textColorClass;
   }
 
   return (
@@ -95,7 +93,7 @@ export const MeldCard = ({
       {...animationProps}
       style={style}
       className={`
-        relative rounded-bl-none rounded-br-none rounded-md shadow-lg border bg-white select-none
+        relative rounded-bl-none rounded-br-none rounded-md shadow-lg border select-none
         flex flex-col items-center justify-between p-0.5
         w-11  md:w-16 md:h-20 ${isAccessibilityMode ? "h-12" : "h-11"}
         ${
@@ -103,26 +101,56 @@ export const MeldCard = ({
             ? "border-yellow-400 ring-2 ring-yellow-400/50 z-50 shadow-yellow-500/30"
             : "border-slate-200"
         }
+        ${isJoker ? "bg-linear-to-br from-violet-100 to-indigo-200 border-violet-400" : "bg-white"}
         ${textColorClass}
       `}
     >
+      {/* Joker Glow Effect */}
+      {isJoker && (
+        <div className="absolute inset-0 bg-linear-to-br from-violet-500/5 to-transparent pointer-events-none rounded-md" />
+      )}
+
+      {/* Símbolo Topo-Esquerda */}
       <div
-        className={`self-start flex flex-col ${isAccessibilityMode ? "gap-y-0.5 md:gap-y-3" : ""} items-center leading-none z-10`}
+        className={`self-start flex flex-col ${isAccessibilityMode ? "gap-y-0.5 md:gap-y-2" : isJoker ? "leading-[0.8]" : ""} items-center z-10 ${isJoker ? "p-0.5" : ""}`}
       >
-        <span className={valueClass}>{card.value}</span>
-        <SuitIcon suit={card.suit.name} className={suitClass} />
+        {isJoker && !isAccessibilityMode ? (
+          "JOKER".split("").map((char, i) => (
+            <span key={i} className="text-[8px] md:text-[10px] font-black leading-[0.8]">
+              {char}
+            </span>
+          ))
+        ) : (
+          <>
+            <span className={valueClass}>{isJoker ? "JK" : card.value}</span>
+            {!isJoker && <SuitIcon suit={card.suit.name} className={suitClass} />}
+          </>
+        )}
       </div>
 
-      <div
-        className={`${isAccessibilityMode ? "opacity-0" : "opacity-10"} absolute -bottom-3 left-1/2  md:-bottom-1 md:left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none `}
-      >
-        <SuitIcon suit={card.suit.name} className="w-5 h-5 md:w-7 md:h-7" />
-      </div>
-      {!isAccessibilityMode && (
+      {/* Imagem Central */}
+      {imageSrc ? (
+        <img
+          src={imageSrc}
+          alt="Card illustration"
+          className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none ${isAccessibilityMode ? "opacity-20" : "opacity-100"} ${isJoker ? "max-w-8 md:max-w-10" : "max-w-6 md:max-w-8 opacity-10"}`}
+          draggable={false}
+        />
+      ) : (
+        <div
+          className={`${isAccessibilityMode ? "opacity-100" : "opacity-10"}
+           absolute top-3 left-3 inset-0 flex items-center justify-center pointer-events-none`}
+        >
+          <SuitIcon suit={card.suit.name} className="w-5 h-5 md:w-7 md:h-7" />
+        </div>
+      )}
+
+      {/* Símbolo Inferior (Oculto em Joker para manter o estilo limpo) */}
+      {!isAccessibilityMode && !isJoker && (
         <div
           className={`self-end rotate-180 flex flex-col items-center leading-none z-10`}
         >
-          <span className={valueClass}>{card.value}</span>
+          {/* <span className={valueClass}>{card.value}</span> */}
           <SuitIcon suit={card.suit.name} className={suitClass} />
         </div>
       )}

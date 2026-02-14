@@ -19,33 +19,72 @@ export default defineConfig({
     }),
     tailwindcss(),
     VitePWA({
-      registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
+      registerType: "prompt",
+      includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg", "icon192.png", "icon512.png"],
+      injectRegister: 'auto',
       workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,mp3}"],
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,mp3,webp}"],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365, // <== 365 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'gstatic-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365, // <== 365 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+        ],
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
       },
       manifest: {
-        name: "Baralho Resenha",
-        short_name: "Baralho Resenha",
-        description: "Baralho da resenha.",
+        name: "Buraco Resenha",
+        short_name: "Buraco Resenha",
+        description: "O melhor jogo de Buraco online e offline.",
         theme_color: "#0f2e1a",
         background_color: "#0f2e1a",
         display: "fullscreen",
         orientation: "portrait",
+        start_url: "/",
+        scope: "/",
         icons: [
           {
             src: "icon192.png",
             sizes: "192x192",
-            type: "image/svg+xml",
+            type: "image/png",
           },
           {
             src: "icon512.png",
             sizes: "512x512",
-            type: "image/svg+xml",
+            type: "image/png",
           },
+          {
+            src: "icon512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable"
+          }
         ],
       },
     }),

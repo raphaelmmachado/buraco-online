@@ -9,6 +9,7 @@ interface MobilePlayerHandProps {
   selectedCardIds: string[];
   lastDrawnCardId?: string | null;
   onCardClick: (id: string) => void;
+  onUseJoker?: (cardId: string) => void;
   onSortHand: () => void;
   showSortButton?: boolean;
   showCardMarkers?: boolean;
@@ -21,6 +22,7 @@ export const MobilePlayerHand = ({
   selectedCardIds,
   lastDrawnCardId,
   onCardClick,
+  onUseJoker,
   onSortHand,
   showSortButton = false,
   showCardMarkers = false,
@@ -40,12 +42,11 @@ export const MobilePlayerHand = ({
   }
 
   return (
-    <div className="flex-1 w-full h-full relative flex flex-col pointer-events-auto">
-      {/* Scrollable Container */}
+    <div className="flex-1 w-full h-full relative flex flex-col justify-end pointer-events-auto overflow-visible">
+      {/* Scrollable Container - Added pt-32 to allow Joker UI to appear within h-64 */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 w-full overflow-x-auto flex items-end p-2 gap-[-10px]
-         snap-x snap-mandatory scrollbar-hide"
+        className="w-full overflow-x-auto flex items-end pb-4 pt-16 snap-x snap-mandatory scrollbar-hide"
         style={{
           paddingRight: "50%", // Space for the last card to be centered or visible
           paddingLeft: "20px",
@@ -76,7 +77,7 @@ export const MobilePlayerHand = ({
                   animate={{
                     opacity: 1,
                     x: 0,
-                    y: isSelected ? -8 : 0,
+                    y: isSelected ? -15 : 0,
                     scale: 1,
                     rotate: 0,
                   }}
@@ -85,19 +86,20 @@ export const MobilePlayerHand = ({
                       ? {
                           type: "spring",
                           stiffness: 400,
-                          damping: 25,
+                          damping: 30,
                           delay: isDealing ? i * 0.04 : 0,
                         }
                       : { duration: 0 }
                   }
-                  exit={{ opacity: 0, scale: 0.5, y: -50 }} // Exit to discard usually
-                  className={`relative shrink-0 snap-center pointer-events-auto`}
+                  exit={{ opacity: 0, scale: 0.5, y: -50 }}
+                  className="relative shrink-0 snap-center pointer-events-auto"
                 >
                   <HandCard
                     card={card}
                     isSelected={isSelected}
                     isLastDrawn={isLastDrawn}
                     onClick={() => onCardClick(card.id)}
+                    onUseJoker={onUseJoker}
                     className="w-16 h-24 shadow-md p-1"
                     markerColor={showCardMarkers ? cardMarkers[card.id] : null}
                     onSetMarker={

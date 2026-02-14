@@ -1,5 +1,5 @@
 import { type ScoreResult } from "../../../common/utils/scoring";
-import { MELD_POINTS } from "../../../common/types/card";
+import { type GameRules, DEFAULT_RULES } from "../../../common/types/rules";
 import { StyledButton } from "../ui/StyledButton";
 import {
   RotateCcw,
@@ -33,6 +33,7 @@ interface FinishScreenProps {
   onPlayAgain: () => void;
   onLeave: () => void;
   isLeader?: boolean;
+  rules?: GameRules; // Add rules to props
 }
 
 export const FinishScreen = ({
@@ -48,6 +49,7 @@ export const FinishScreen = ({
   rematchVotes = {},
   totalHumanPlayers = 0,
   isLeader = false,
+  rules,
 }: FinishScreenProps) => {
   const effectiveScore = cumulativeScore || {
     team_1: finalScore.team_1,
@@ -212,6 +214,7 @@ export const FinishScreen = ({
           score={finalScore.team_1}
           details={finalScore.details_t1}
           delay={0.4}
+          rules={rules || DEFAULT_RULES}
         />
         <TeamRoundCard
           title="OPONENTE"
@@ -220,6 +223,7 @@ export const FinishScreen = ({
           score={finalScore.team_2}
           details={finalScore.details_t2}
           delay={0.5}
+          rules={rules || DEFAULT_RULES}
         />
       </div>
 
@@ -272,6 +276,7 @@ const TeamRoundCard = ({
   score,
   details,
   delay,
+  rules,
 }: {
   title: string;
   teamId: number;
@@ -279,6 +284,7 @@ const TeamRoundCard = ({
   score: number;
   details: ScoreResult;
   delay: number;
+  rules: GameRules;
 }) => (
   <motion.div
     initial={{ x: teamId === 1 ? -20 : 20, opacity: 0 }}
@@ -328,24 +334,33 @@ const TeamRoundCard = ({
         </div>
       </div>
 
-      <DetailedScoreBreakdown result={details} />
+      <DetailedScoreBreakdown result={details} rules={rules} />
     </div>
   </motion.div>
 );
 
-const DetailedScoreBreakdown = ({ result }: { result: ScoreResult }) => {
-  // Calculamos o bônus de batida subtraindo canastras do bônus total
+const DetailedScoreBreakdown = ({ result, rules }: { result: ScoreResult, rules: GameRules }) => {
+  const r = rules || {
+    pointsCleanCanastra: 200,
+    pointsDirtyCanastra: 100,
+    pointsKingCanastra: 500,
+    pointsAceCanastra: 1000,
+    penaltyDeadPileNotTaken: -100
+  };
+
+  // Calculamos o bônus de canastras usando as regras
   const canastraPointsTotal =
-    result.details.CLEAN * MELD_POINTS.CLEAN +
-    result.details.DIRTY * MELD_POINTS.DIRTY +
-    result.details.KING * MELD_POINTS.KING +
-    result.details.ACE * MELD_POINTS.ACE;
+    result.details.CLEAN * r.pointsCleanCanastra +
+    result.details.DIRTY * r.pointsDirtyCanastra +
+    result.details.KING * r.pointsKingCanastra +
+    result.details.ACE * r.pointsAceCanastra;
+  
   const beatBonus = result.did_beat
     ? result.bonus_points - canastraPointsTotal
     : 0;
 
   // Penalidades
-  const deadPilePenalty = !result.has_taken_dead_pile ? 100 : 0;
+  const deadPilePenalty = !result.has_taken_dead_pile ? Math.abs(r.penaltyDeadPileNotTaken) : 0;
   const handPenalty = result.penalty_points - deadPilePenalty;
 
   return (
@@ -361,25 +376,25 @@ const DetailedScoreBreakdown = ({ result }: { result: ScoreResult }) => {
         <StatRow
           label="Limpas"
           count={result.details.CLEAN}
-          total={result.details.CLEAN * MELD_POINTS.CLEAN}
+          total={result.details.CLEAN * r.pointsCleanCanastra}
           color="text-blue-400"
         />
         <StatRow
           label="Sujas"
           count={result.details.DIRTY}
-          total={result.details.DIRTY * MELD_POINTS.DIRTY}
+          total={result.details.DIRTY * r.pointsDirtyCanastra}
           color="text-orange-400"
         />
         <StatRow
           label="Excelente (A a K)"
           count={result.details.KING}
-          total={result.details.KING * MELD_POINTS.KING}
+          total={result.details.KING * r.pointsKingCanastra}
           color="text-violet-400"
         />
         <StatRow
           label="Perfeitas (A a A)"
           count={result.details.ACE}
-          total={result.details.ACE * MELD_POINTS.ACE}
+          total={result.details.ACE * r.pointsAceCanastra}
           color="text-green-400"
         />
         {beatBonus > 0 && (
@@ -422,7 +437,7 @@ const DetailedScoreBreakdown = ({ result }: { result: ScoreResult }) => {
         {deadPilePenalty > 0 && (
           <div className="flex justify-between items-center py-2 text-red-400">
             <span className="text-sm font-black">Não pegou o Morto</span>
-            <span className="font-mono text-lg font-black">-100</span>
+            <span className="font-mono text-lg font-black">-{deadPilePenalty}</span>
           </div>
         )}
         <div className="flex justify-between items-center py-2">

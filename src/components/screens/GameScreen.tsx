@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   LayoutGroup,
   MotionConfig,
@@ -9,12 +9,15 @@ import { calculate_score } from "../../../common/utils/scoring";
 import { getPlayerDirection } from "../../utils/animation_utils";
 // UI Components
 import { MeldDisplay } from "../game-ui/MeldDisplay";
+import { HandCard } from "../game-ui/HandCard";
 import { GameMenu } from "../game-ui/GameMenu";
 import { HowToPlay } from "../game-ui/HowToPlay";
 import { FinishScreen } from "./FinishScreen";
 import { type GameAdapterInterface } from "../game-ui/useLocalGameAdapter";
 import { OpponentsHandsLayer } from "../game-ui/OpponentsHandsLayer";
 import { LoadingScreen } from "../ui/LoadingScreen";
+import { X } from "lucide-react";
+import { type Card } from "../../../common/types/card";
 
 // Custom Hooks
 import { useWakeLock } from "../../hooks/useWakeLock";
@@ -60,6 +63,17 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   const canDraw = isMyTurn && game.turn_phase === "DRAW";
   const canAction = isMyTurn && game.turn_phase === "ACTION";
 
+  const myHand = useMemo(() => (game.hands[my_player_id] as Card[]) || [], [game.hands, my_player_id]);
+  const topDiscardCard = game.discard_pile?.[0];
+
+  // Derived state: only cards that are actually in hand or top of discard are considered "selected"
+  const validSelectedCards = useMemo(() => {
+    const myHandIds = new Set(myHand.map(c => c.id));
+    return selectedCards.filter(id => 
+      myHandIds.has(id) || (topDiscardCard && id === topDiscardCard.id)
+    );
+  }, [selectedCards, myHand, topDiscardCard]);
+
   // Effect to delay finish screen
   useEffect(() => {
     if (game.status === "FINISHED" || game.status === "ROUND_OVER") {
@@ -69,6 +83,26 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
       return () => clearTimeout(timer);
     }
   }, [game.status]);
+
+  // Combined Effect to auto-clear toasts and cancel power
+  useEffect(() => {
+    const timers: (ReturnType<typeof setTimeout>)[] = [];
+
+    if (game.last_error) {
+      timers.push(setTimeout(() => game.clear_error(), 4000));
+    }
+
+    if (game.last_info) {
+      timers.push(setTimeout(() => game.clear_info?.(), 4000));
+    }
+
+    if (game.magic_joker.power_selection?.ability === "VIEW_HAND" && 
+        game.magic_joker.power_selection.player_id === my_player_id) {
+      timers.push(setTimeout(() => game.power_cancel(), 5000));
+    }
+
+    return () => timers.forEach(clearTimeout);
+  }, [game.last_error, game.last_info, game.magic_joker.power_selection, my_player_id, game]);
 
   // Safe calculation even if game data is incomplete initially
   const isGameOver = game.status === "FINISHED" || game.status === "ROUND_OVER";
@@ -97,7 +131,6 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     game.has_taken_dead_pile?.[opponent_team - 1] ?? false;
 
   // Discard Pile Logic
-  const topDiscardCard = game.discard_pile?.[0];
   const isDiscardSelected =
     !!topDiscardCard && selectedCards.includes(topDiscardCard.id);
 
@@ -128,6 +161,19 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   // Pass a safe isMyTurn even if game is loading
   useGameAudio(game, isMyTurn);
 
+  // Force layout refresh when tab gains focus
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        // simulamos resize para consertar animações framer motion quando minimiza a janela
+        window.dispatchEvent(new Event("resize"));
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
+
   // Effect to calculate player positions for portal
   useEffect(() => {
     const calculatePositions = () => {
@@ -151,26 +197,6 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
       window.removeEventListener("resize", calculatePositions);
     };
   }, [game.players_data, opponentHeight]);
-
-  // Auto-clear error after 3 seconds
-  useEffect(() => {
-    if (game.last_error) {
-      const timer = setTimeout(() => {
-        game.clear_error();
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [game.last_error, game]);
-
-  // Auto-clear info after 3 seconds
-  useEffect(() => {
-    if (game.last_info) {
-      const timer = setTimeout(() => {
-        game.clear_info?.();
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [game.last_info, game]);
 
   // GUARD: Wait for player identification to prevent "Ghost Mode"
   // Moved after hooks to strictly follow React Rules of Hooks
@@ -210,15 +236,30 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
         rematchVotes={game.rematch_votes}
         totalHumanPlayers={totalHumanPlayers}
         myPlayerId={mySocketId}
+        rules={game.rules}
       />
     );
   }
 
   // --- HANDLERS ---
   const toggleSelect = (id: string) => {
-    setSelectedCards((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
-    );
+    // Se estiver em modo de seleção de poder mágico, usa a ação de poder
+    if (game.magic_joker.power_selection?.player_id === my_player_id) {
+      game.power_pick_card(id);
+      return;
+    }
+
+    setSelectedCards((prev) => {
+      // Lazy cleanup: filter out invalid IDs from previous state while toggling
+      const myHandIds = new Set(myHand.map(c => c.id));
+      const filteredPrev = prev.filter(pId => 
+        myHandIds.has(pId) || (topDiscardCard && pId === topDiscardCard.id)
+      );
+      
+      return filteredPrev.includes(id) 
+        ? filteredPrev.filter((c) => c !== id) 
+        : [...filteredPrev, id];
+    });
   };
 
   const handleDeckClick = () => {
@@ -231,8 +272,8 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   const handleDiscardClick = () => {
     if (canDraw && topDiscardCard) {
       toggleSelect(topDiscardCard.id);
-    } else if (canAction && selectedCards.length === 1) {
-      game.discard_card(selectedCards[0]);
+    } else if (canAction && validSelectedCards.length === 1) {
+      game.discard_card(validSelectedCards[0]);
       setSelectedCards([]);
     }
   };
@@ -240,11 +281,11 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   const handleMeldClick = (teamId: number, meldIndex: number) => {
     if (teamId !== my_team) return;
 
-    if (canAction && selectedCards.length > 0) {
-      game.add_to_meld(selectedCards, meldIndex);
+    if (canAction && validSelectedCards.length > 0) {
+      game.add_to_meld(validSelectedCards, meldIndex);
       setSelectedCards([]);
     } else if (canDraw && isDiscardSelected) {
-      const handCardsForMeld = selectedCards.filter(
+      const handCardsForMeld = validSelectedCards.filter(
         (id) => id !== topDiscardCard?.id,
       );
       game.pick_up_discard_add_to_meld(meldIndex, handCardsForMeld);
@@ -252,15 +293,15 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     }
   };
 
-  const showNewMeldAction = canAction && selectedCards.length >= 3;
+  const showNewMeldAction = canAction && validSelectedCards.length >= 3;
   const showNewMeldPickUp =
-    canDraw && isDiscardSelected && selectedCards.length >= 3;
+    canDraw && isDiscardSelected && validSelectedCards.length >= 3;
 
   const handleNewMeldClick = () => {
     if (showNewMeldAction) {
-      game.meld_cards(selectedCards);
+      game.meld_cards(validSelectedCards);
     } else if (showNewMeldPickUp) {
-      const handCardsForMeld = selectedCards.filter(
+      const handCardsForMeld = validSelectedCards.filter(
         (id) => id !== topDiscardCard?.id,
       );
       game.pick_up_discard_new_meld(handCardsForMeld);
@@ -269,9 +310,10 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   };
 
   // Prepare Props Object
+
   const layoutProps: GameLayoutProps = {
     game,
-    selectedCards,
+    selectedCards: validSelectedCards,
     isMyTurn,
     canDraw,
     canAction,
@@ -286,6 +328,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     onDiscardClick: handleDiscardClick,
     onMeldClick: handleMeldClick,
     onNewMeldClick: handleNewMeldClick,
+    onUseJoker: game.useJoker,
     toggleSelect,
     onCardClick: toggleSelect, // Alias for toggleSelect in props if needed
     startDrag,
@@ -357,8 +400,65 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
             )}
         </AnimatePresence>
 
-        <OpponentsHandsLayer game={game} visible={showOpponentHands} />
-        <main
+          <OpponentsHandsLayer
+            game={game}
+            visible={showOpponentHands}
+            onCardClick={toggleSelect}
+          />
+
+          {/* == VISION POWER MODAL OVERLAY == */}
+          <AnimatePresence>
+            {game.magic_joker.power_selection?.ability === "VIEW_HAND" &&
+              game.magic_joker.power_selection.player_id === my_player_id && (
+                <Portal>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-none"
+                  >
+                    <motion.div 
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.9, opacity: 0 }}
+                      transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                      className="bg-slate-900/95 p-6 md:p-8 rounded-[2rem] border-4 border-violet-500/50 shadow-[0_0_80px_rgba(139,92,246,0.3)] flex flex-col items-center gap-6"
+                    >
+                      <div className="flex items-center gap-3 bg-violet-600 px-6 py-2 rounded-full shadow-lg">
+                        <span className="text-white font-black uppercase tracking-widest text-xs md:text-sm">
+                          Espiando Adversário
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap justify-center gap-2 md:gap-3 max-w-[85vw] md:max-w-2xl">
+                        {(
+                          game.hands[
+                            game.magic_joker.power_selection.target_player_id
+                          ] as Card[]
+                        ).map((card) => (
+                          <div
+                            key={card.id}
+                            className="w-16 h-24 md:w-24 md:h-36 shadow-xl"
+                          >
+                            <HandCard
+                              card={card}
+                              isSelected={false}
+                              className="w-full h-full border border-white/10 rounded-lg"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div className="text-violet-400 text-[10px] font-bold uppercase tracking-widest animate-pulse">
+                        Saindo em alguns segundos...
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                </Portal>
+              )}
+          </AnimatePresence>
+
+          <main
           id="game-screen"
           className="h-screen w-screen bg-[#0f2e1a] text-white overflow-hidden flex flex-col select-none relative font-sans"
         >
@@ -446,6 +546,37 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               backgroundSize: "30px 30px",
             }}
           ></div>
+
+          {/* == POWER INSTRUCTION OVERLAY == */}
+          <AnimatePresence>
+            {game.magic_joker.power_selection?.player_id === my_player_id && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="absolute top-20 left-1/2 -translate-x-1/2 z-100 pointer-events-none"
+              >
+                <div className="bg-violet-600/90 backdrop-blur-md px-6 py-3 rounded-full border border-violet-400 shadow-[0_0_30px_rgba(124,58,237,0.5)] flex items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 bg-white rounded-full animate-ping" />
+                    <span className="text-white font-black uppercase tracking-widest text-xs md:text-sm">
+                      {game.magic_joker.power_selection.ability === "VIEW_HAND"
+                        ? "Espiando a mão do adversário..."
+                        : game.magic_joker.power_selection.stage === "PICK_MY_CARD"
+                          ? "Escolha uma carta da sua mão para dar"
+                          : "Agora escolha uma carta do seu parceiro para pegar"}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => game.power_cancel()}
+                    className="pointer-events-auto bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold uppercase px-3 py-1 rounded-full border border-white/20 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* ÁREA DO ADVERSÁRIO (Resizable) */}
           <section
@@ -556,48 +687,63 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
           {/* FOOTER: [MONTE] [MÃO] [LIXO] */}
           <footer
             id="game-footer"
-            className="h-32 md:h-[20%] bg-linear-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md px-1 pb-1 z-40
+            className="h-32 md:h-[20%] transition-all duration-300 ease-out overflow-visible px-1 pb-1 z-40
            relative w-full flex items-end justify-between gap-1 md:gap-6 pointer-events-none"
           >
+            {/* Visual Background (Gradient) - Fixed height to not cover the table */}
+            <div className="absolute inset-0 top-auto h-32 md:h-full bg-linear-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md -z-10 pointer-events-none" />
+
             {isMobile ? (
               <GameFooterMobile {...layoutProps} my_player_id={my_player_id} />
             ) : (
               <GameFooterDesktop {...layoutProps} my_player_id={my_player_id} />
             )}
 
-            {/* ERROR TOAST */}
+            {/* ERROR TOAST (Standardized with EventBalloon) */}
             {game.last_error && (
               <div
                 id="error-toast"
-                className="absolute -top-16 left-1/2 -translate-x-1/2 bg-red-600/90 backdrop-blur
-               text-white px-6 py-2 rounded-md text-sm font-black shadow-2xl
-                flex items-center gap-3 border border-white/20 z-100 pointer-events-auto"
+                className="absolute -top-20 left-1/2 -translate-x-1/2 z-100 pointer-events-auto"
               >
-                <span>⚠️ {game.last_error}</span>
-                <button
-                  onClick={game.clear_error}
-                  className="bg-black/20 hover:bg-black/40 rounded-lg w-5 h-5 flex items-center justify-center cursor-pointer"
-                >
-                  ✕
-                </button>
+                <div className="relative">
+                  <EventBalloon 
+                    message={`[ALERT] ${game.last_error}`} 
+                    x={0} 
+                    y={0} 
+                    isStatic={true}
+                    customColor="bg-red-600/95"
+                  />
+                  <button
+                    onClick={game.clear_error}
+                    className="absolute -top-2 -right-2 bg-red-800 hover:bg-red-700 rounded-full w-5 h-5 flex items-center justify-center cursor-pointer text-white border border-white/10 z-[60] shadow-lg"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
             )}
 
-            {/* INFO TOAST (Gray) */}
+            {/* INFO TOAST (Using EventBalloon style for icons) */}
             {game.last_info && (
               <div
                 id="info-toast"
-                className="absolute -top-16 left-1/2 -translate-x-1/2 bg-slate-700/90 backdrop-blur
-               text-white px-6 py-2 rounded-md text-sm font-black shadow-2xl
-                flex items-center gap-3 border border-white/10 z-100 pointer-events-auto"
+                className="absolute -top-20 left-1/2 -translate-x-1/2 z-100 pointer-events-auto"
               >
-                <span>ℹ️ {game.last_info}</span>
-                <button
-                  onClick={game.clear_info}
-                  className="bg-white/10 hover:bg-white/20 rounded-lg w-5 h-5 flex items-center justify-center cursor-pointer"
-                >
-                  ✕
-                </button>
+                <div className="relative">
+                  <EventBalloon 
+                    message={game.last_info} 
+                    x={0} 
+                    y={0} 
+                    isStatic={true}
+                    customColor="bg-slate-800/95"
+                  />
+                  <button
+                    onClick={game.clear_info}
+                    className="absolute -top-2 -right-2 bg-slate-700 hover:bg-slate-600 rounded-full w-5 h-5 flex items-center justify-center cursor-pointer text-white border border-white/10 z-[60] shadow-lg"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
             )}
           </footer>

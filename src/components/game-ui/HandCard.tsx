@@ -3,6 +3,7 @@ import { type Card as CardType } from "../../../common/types/card";
 import { SuitIcon } from "./SuitIcon";
 import { getCardImageSrc } from "../../utils/card_image_map";
 import { useGameStore } from "../../store/useGameStore";
+import { useMobileCheck } from "../../hooks/useMobileCheck";
 import { Palette, X } from "lucide-react";
 import { useState } from "react";
 
@@ -51,6 +52,7 @@ const AccessibilityCardContent = ({
   onUseJoker,
   valueClass,
   suitClass,
+  isMobile,
 }: {
   card: CardType;
   isSelected: boolean;
@@ -59,9 +61,11 @@ const AccessibilityCardContent = ({
   onUseJoker?: (id: string) => void;
   valueClass: string;
   suitClass: string;
+  isMobile: boolean;
 }) => {
   const isJoker = card.value === "JOKER";
   const abilityInfo = card.ability ? ABILITY_DESCRIPTIONS[card.ability] : null;
+  const showMobileDetail = isMobile && isSelected && abilityInfo;
 
   return (
     <>
@@ -69,7 +73,7 @@ const AccessibilityCardContent = ({
       {isJoker && (
         <>
           <AnimatePresence>
-            {(isSelected || isHovered) && abilityInfo && (
+            {(!isMobile && (isSelected || isHovered)) && abilityInfo && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.8, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -97,9 +101,9 @@ const AccessibilityCardContent = ({
                 e.stopPropagation();
                 onUseJoker(card.id);
               }}
-              className="absolute -top-24 md:-top-28 left-1/2 -translate-x-1/2 bg-violet-600 text-white text-[9px] md:text-[10px] font-black py-2 md:py-2.5 px-4 md:px-5 rounded-full shadow-[0_0_20px_rgba(124,58,237,0.5)] z-50 whitespace-nowrap border border-violet-400"
+              className={`absolute ${isMobile ? "top-[105%]" : "-top-24 md:-top-28"} left-1/2 -translate-x-1/2 bg-violet-600 text-white text-[9px] md:text-[10px] font-black py-2 md:py-2.5 px-4 md:px-5 rounded-full shadow-[0_0_20px_rgba(124,58,237,0.5)] z-50 whitespace-nowrap border-2 ${isMobile ? "border-yellow-400 ring-1 ring-yellow-500/50" : "border-violet-400"}`}
             >
-              USAR JOKER
+              {isMobile ? "USAR" : "USAR JOKER"}
             </motion.button>
           )}
         </>
@@ -107,7 +111,9 @@ const AccessibilityCardContent = ({
 
       {/* Visual de Acessibilidade: Valor e Naipe empilhados e grandes */}
       <div className="self-start flex flex-col items-center leading-none z-10 gap-y-1 md:gap-y-2">
-        <span className={valueClass}>{isJoker ? "JK" : card.value}</span>
+        <span className={valueClass}>
+          {isJoker ? (showMobileDetail ? abilityInfo.name.substring(0, 5) : "JK") : card.value}
+        </span>
         <SuitIcon suit={card.suit.name} className={suitClass} />
       </div>
 
@@ -119,6 +125,15 @@ const AccessibilityCardContent = ({
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-20"
           draggable={false}
         />
+      )}
+
+      {/* Integrated description for mobile selection */}
+      {showMobileDetail && (
+        <div className="absolute bottom-1 left-0 right-0 px-1 text-center leading-tight z-20 pointer-events-none">
+          <div className="text-[8px] font-bold text-violet-900 leading-[1.1] uppercase">
+            {abilityInfo.desc}
+          </div>
+        </div>
       )}
     </>
   );
@@ -134,6 +149,7 @@ const JokerCardContent = ({
   imageSrc,
   onUseJoker,
   valueClass,
+  isMobile,
 }: {
   card: CardType;
   isSelected: boolean;
@@ -141,14 +157,16 @@ const JokerCardContent = ({
   imageSrc?: string;
   onUseJoker?: (id: string) => void;
   valueClass: string;
+  isMobile: boolean;
 }) => {
   const abilityInfo = card.ability ? ABILITY_DESCRIPTIONS[card.ability] : null;
+  const showMobileDetail = isMobile && isSelected && abilityInfo;
 
   return (
     <>
       {/* Joker Power Overlay */}
       <AnimatePresence>
-        {(isSelected || isHovered) && abilityInfo && (
+        {!isMobile && (isSelected || isHovered) && abilityInfo && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -171,8 +189,10 @@ const JokerCardContent = ({
 
       {/* Símbolo Topo-Esquerda */}
       <div className="self-start flex flex-col items-center leading-none z-10 gap-y-1">
-        <span className={`${valueClass} text-xs md:text-lg tracking-tighter font-black`}>
-          JOKER
+        <span
+          className={`${valueClass} ${showMobileDetail ? "text-[8px]" : "text-xs"} md:text-lg tracking-tighter font-black uppercase`}
+        >
+          {showMobileDetail ? abilityInfo.name : "JOKER"}
         </span>
       </div>
 
@@ -181,7 +201,7 @@ const JokerCardContent = ({
         <img
           src={imageSrc}
           alt="Joker"
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[60%] md:-translate-y-1/2 pointer-events-none opacity-100 max-w-10 md:max-w-14"
+          className={`absolute top-1/2 left-1/2 -translate-x-1/2 ${showMobileDetail ? "-translate-y-[85%]" : "-translate-y-[60%]"} md:-translate-y-1/2 pointer-events-none opacity-100 max-w-10 md:max-w-14`}
           draggable={false}
         />
       ) : (
@@ -192,10 +212,19 @@ const JokerCardContent = ({
       )}
 
       {/* Joker Ability Description (Título do Poder) */}
-      {abilityInfo && (
+      {!showMobileDetail && abilityInfo && (
         <div className="absolute bottom-1 md:bottom-2 left-0 right-0 px-1 text-center leading-none z-20 pointer-events-none">
           <div className="bg-violet-600 text-white text-[7px] md:text-[10px] font-black py-0.5 md:py-1 px-1 rounded-sm shadow-sm uppercase tracking-tight">
             {abilityInfo.name}
+          </div>
+        </div>
+      )}
+
+      {/* Integrated description for mobile selection */}
+      {showMobileDetail && (
+        <div className="absolute bottom-1.5 left-0 right-0 px-1 text-center leading-tight z-20 pointer-events-none">
+          <div className="text-[8px] font-bold text-violet-900 leading-[1.1] uppercase">
+            {abilityInfo.desc}
           </div>
         </div>
       )}
@@ -211,9 +240,9 @@ const JokerCardContent = ({
             e.stopPropagation();
             onUseJoker(card.id);
           }}
-          className="absolute -top-24 md:-top-28 left-1/2 -translate-x-1/2 bg-violet-600 text-white text-[9px] md:text-[10px] font-black py-2 md:py-2.5 px-4 md:px-5 rounded-full shadow-[0_0_20px_rgba(124,58,237,0.5)] z-50 whitespace-nowrap border border-violet-400"
+          className={`absolute ${isMobile ? "top-[105%]" : "-top-24 md:-top-28"} left-1/2 -translate-x-1/2 bg-violet-600 text-white text-[9px] md:text-[10px] font-black py-2 md:py-2.5 px-4 md:px-5 rounded-full shadow-[0_0_20px_rgba(124,58,237,0.5)] z-50 whitespace-nowrap border-2 ${isMobile ? "border-yellow-400 ring-1 ring-yellow-500/50" : "border-violet-400"}`}
         >
-          USAR JOKER
+          {isMobile ? "USAR PODER" : "USAR JOKER"}
         </motion.button>
       )}
     </>
@@ -294,24 +323,17 @@ export const HandCard = ({
 
   const isRed = card.color === "red";
   const isJoker = card.value === "JOKER";
-  const isAccessibilityMode = useGameStore(
-    (state) => state.isAccessibilityMode,
-  );
+  const isAccessibilityMode = useGameStore((state) => state.isAccessibilityMode);
+  const { isMobile } = useMobileCheck();
   const imageSrc = getCardImageSrc(card.value, card.suit.name);
 
   const valueClass = isAccessibilityMode
     ? `font-bold text-2xl md:text-4xl scale-y-125 origin-top ${card.value === "10" ? "tracking-tighter" : ""}`
     : "font-black md:text-2xl";
 
-  const suitClass = isAccessibilityMode
-    ? "w-6 h-6 md:w-8 md:h-8"
-    : "w-4 h-4 md:w-5 md:h-5";
+  const suitClass = isAccessibilityMode ? "w-6 h-6 md:w-8 md:h-8" : "w-4 h-4 md:w-5 md:h-5";
 
-  let textColorClass = isRed
-    ? "text-red-600"
-    : isJoker
-      ? "text-violet-700"
-      : "text-slate-900";
+  let textColorClass = isRed ? "text-red-600" : isJoker ? "text-violet-700" : "text-slate-900";
 
   if (isAccessibilityMode) {
     const contrastColors: Record<string, string> = {
@@ -341,10 +363,10 @@ export const HandCard = ({
         w-14 h-20 md:w-20 md:h-32 transform origin-bottom isolate group
         ${
           isSelected
-            ? "border-yellow-400 ring-4 ring-yellow-400/30 shadow-yellow-500/50 shadow-2xl"
+            ? "border-yellow-400 ring-4 ring-yellow-400/30 shadow-yellow-500/50 shadow-2xl z-[100]"
             : isLastDrawn
-              ? "border-blue-400 ring-2 ring-blue-400/50 shadow-blue-500/30"
-              : "border-slate-300"
+              ? "border-blue-400 ring-2 ring-blue-400/50 shadow-blue-500/30 z-10"
+              : "border-slate-300 z-0"
         }
         ${isJoker ? "bg-linear-to-br from-violet-100 to-indigo-200 border-violet-400" : "bg-white"}
         ${textColorClass}
@@ -360,8 +382,7 @@ export const HandCard = ({
           className="absolute -top-1 left-5 w-3 h-5 md:w-4 md:h-7 shadow-md z-30 rounded-b-sm border-x border-b border-black/10"
           style={{
             backgroundColor: markerColor,
-            backgroundImage:
-              "linear-gradient(to bottom, rgba(255,255,255,0.2), transparent)",
+            backgroundImage: "linear-gradient(to bottom, rgba(255,255,255,0.2), transparent)",
           }}
         >
           <div className="absolute top-0 left-0 right-0 h-1 bg-black/10" />
@@ -378,6 +399,7 @@ export const HandCard = ({
           onUseJoker={onUseJoker}
           valueClass={valueClass}
           suitClass={suitClass}
+          isMobile={isMobile}
         />
       ) : isJoker ? (
         <JokerCardContent
@@ -387,14 +409,10 @@ export const HandCard = ({
           imageSrc={imageSrc}
           onUseJoker={onUseJoker}
           valueClass={valueClass}
+          isMobile={isMobile}
         />
       ) : (
-        <NormalCardContent
-          card={card}
-          imageSrc={imageSrc}
-          valueClass={valueClass}
-          suitClass={suitClass}
-        />
+        <NormalCardContent card={card} imageSrc={imageSrc} valueClass={valueClass} suitClass={suitClass} />
       )}
 
       {/* Botão de Marcador */}

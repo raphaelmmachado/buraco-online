@@ -74,7 +74,7 @@ export const StartMenu = ({ onPlayOnline, onPlayLocal }: StartMenuProps) => {
       </div>
 
       <div className="fixed bottom-4 left-4 text-[10px] text-white/20 font-mono pointer-events-none z-50">
-        v{__APP_VERSION__} - BETA
+        v{__APP_VERSION__} - Coringas Mágicos!
       </div>
     </div>
   );

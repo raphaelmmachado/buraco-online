@@ -68,6 +68,8 @@ export const MobilePlayerHand = ({
                   ? { opacity: 0, x: -100, y: -200, scale: 0.4, rotate: -45 }
                   : { opacity: 0, x: -50, scale: 0.5 };
 
+              const isJoker = card.value === "JOKER";
+
               return (
                 <motion.div
                   key={card.id}
@@ -77,9 +79,10 @@ export const MobilePlayerHand = ({
                   animate={{
                     opacity: 1,
                     x: 0,
-                    y: isSelected ? -15 : 0,
+                    y: isSelected ? (isJoker ? -40 : -20) : 0,
                     scale: 1,
                     rotate: 0,
+                    zIndex: isSelected ? 100 : 0,
                   }}
                   transition={
                     showAnimations

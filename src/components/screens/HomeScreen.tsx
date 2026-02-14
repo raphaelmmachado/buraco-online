@@ -106,20 +106,20 @@ export const HomeScreen = ({ onBack }: { onBack: () => void }) => {
     setTimeout(() => setIsRefreshing(false), 800);
   };
 
-      // 1. Inicializa listeners e tenta conectar apenas UMA vez ao montar a tela
-      useEffect(() => {
-        initializeSocket();
-        connectSocket();
-      }, [initializeSocket, connectSocket]);
-    
-      // 2. Gerencia a busca de salas baseada no status da conexão
-      useEffect(() => {
-        if (connectionStatus === "CONNECTED") {
-            fetchRooms();
-            const interval = setInterval(fetchRooms, 5000);
-            return () => clearInterval(interval);
-        }
-      }, [connectionStatus, fetchRooms]);  // VALIDATE ACTIVE SESSION
+  // 1. Inicializa listeners e tenta conectar apenas UMA vez ao montar a tela
+  useEffect(() => {
+    initializeSocket();
+    connectSocket();
+  }, [initializeSocket, connectSocket]);
+
+  // 2. Gerencia a busca de salas baseada no status da conexão
+  useEffect(() => {
+    if (connectionStatus === "CONNECTED") {
+      fetchRooms();
+      const interval = setInterval(fetchRooms, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [connectionStatus, fetchRooms]); // VALIDATE ACTIVE SESSION
   useEffect(() => {
     if (rooms.length > 0 && activeSession) {
       const roomExists = rooms.some((r) => r.roomId === activeSession);
@@ -169,7 +169,7 @@ export const HomeScreen = ({ onBack }: { onBack: () => void }) => {
       </div>
 
       <div className="fixed bottom-4 left-4 text-[10px] text-white/20 font-mono pointer-events-none z-50">
-        v{__APP_VERSION__} - BETA
+        v{__APP_VERSION__} - Coringas Mágicos
       </div>
 
       <ConnectionBadge />

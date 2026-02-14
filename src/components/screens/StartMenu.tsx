@@ -5,9 +5,11 @@ import { Bot, Globe } from "lucide-react";
 interface StartMenuProps {
   onPlayOnline: () => void;
   onPlayLocal: () => void;
+  onCheckUpdate: () => void;
+  isUpdating?: boolean;
 }
 
-export const StartMenu = ({ onPlayOnline, onPlayLocal }: StartMenuProps) => {
+export const StartMenu = ({ onPlayOnline, onPlayLocal, onCheckUpdate, isUpdating }: StartMenuProps) => {
   const recentEvents = useGameStore((state) => state.recentEvents);
 
   return (
@@ -73,8 +75,16 @@ export const StartMenu = ({ onPlayOnline, onPlayLocal }: StartMenuProps) => {
         </button>
       </div>
 
-      <div className="fixed bottom-4 left-4 text-[10px] text-white/20 font-mono pointer-events-none z-50">
-        v{__APP_VERSION__} - Coringas Mágicos!
+      <div 
+        onClick={onCheckUpdate}
+        className="fixed bottom-4 left-4 text-[10px] text-white/20 font-mono z-50 cursor-help active:text-white/40 transition-colors pointer-events-auto flex items-center gap-2"
+      >
+        <span>v{__APP_VERSION__} - Coringas Mágicos!</span>
+        {isUpdating && (
+          <span className="text-blue-400 animate-pulse font-bold bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">
+            • Baixando novas versões...
+          </span>
+        )}
       </div>
     </div>
   );

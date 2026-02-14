@@ -128,6 +128,8 @@ export const EventBalloon = ({
       ? { duration: 0 } 
       : (!isStatic ? { duration: 0.3, delay: 2.5 } : undefined);
 
+  const isPositioned = x !== 0 || y !== 0;
+
   return (
     <AnimatePresence mode="wait">
       <motion.div
@@ -136,11 +138,11 @@ export const EventBalloon = ({
         animate={{ ...animate, transition: transition as never }}
         exit={{ ...exit, transition: (exitTransition || transition) as never }}
         style={{
-          position: isStatic ? "relative" : "fixed",
-          top: isStatic ? undefined : 0,
-          left: isStatic ? undefined : x,
+          position: isPositioned ? "fixed" : (isStatic ? "relative" : "fixed"),
+          top: isPositioned ? 0 : (isStatic ? undefined : 0),
+          left: isPositioned ? x : (isStatic ? undefined : x),
         }}
-        className={`z-50 pointer-events-none whitespace-nowrap ${isStatic ? "" : "-translate-x-1/2"} px-2 md:px-3 py-1 md:py-1.5 rounded-full shadow-lg border border-white/10 text-white ${bgColor} ${pulse ? 'animate-pulse' : ''}`}
+        className={`z-50 pointer-events-none whitespace-nowrap ${!isPositioned && isStatic ? "" : "-translate-x-1/2"} px-2 md:px-3 py-1 md:py-1.5 rounded-full shadow-lg border border-white/10 text-white ${bgColor} ${pulse ? 'animate-pulse' : ''}`}
       >
         {renderContent()}
         {/* Arrow */}

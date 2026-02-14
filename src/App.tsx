@@ -10,6 +10,7 @@ type VIEW_MODE = "HOME" | "ONLINE" | "LOCAL";
 
 function App() {
   const { checkForUpdate, needRefresh, updateServiceWorker } = usePWA();
+  const [isChecking, setIsChecking] = useState(false);
   const [view, setView] = useState<VIEW_MODE>(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.has("room")) return "ONLINE";
@@ -18,13 +19,24 @@ function App() {
 
   const handlePlayOnline = async () => {
     // Tenta atualizar antes de entrar no modo online
+    setIsChecking(true);
     const hasUpdate = await checkForUpdate();
     if (hasUpdate) {
       // Se detectou atualização, força o reload agora para garantir a última versão
       await updateServiceWorker();
     } else {
+      setIsChecking(false);
       setView("ONLINE");
     }
+  };
+
+  const handleCheckUpdate = async () => {
+    setIsChecking(true);
+    const hasUpdate = await checkForUpdate();
+    if (!hasUpdate) {
+      setIsChecking(false);
+    }
+    // Se hasUpdate for true, o PWA hook disparará needRefresh eventualmente
   };
 
   return (
@@ -52,6 +64,8 @@ function App() {
         <StartMenu
           onPlayOnline={handlePlayOnline}
           onPlayLocal={() => setView("LOCAL")}
+          onCheckUpdate={handleCheckUpdate}
+          isUpdating={isChecking || needRefresh}
         />
       )}
 

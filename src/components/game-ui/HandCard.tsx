@@ -171,8 +171,8 @@ const JokerCardContent = ({
 
       {/* Símbolo Topo-Esquerda */}
       <div className="self-start flex flex-col items-center leading-none z-10 gap-y-1">
-        <span className={`${valueClass} text-xs md:text-lg tracking-tighter`}>
-          {abilityInfo ? abilityInfo.name : "Joker"}
+        <span className={`${valueClass} text-xs md:text-lg tracking-tighter font-black`}>
+          JOKER
         </span>
       </div>
 
@@ -181,7 +181,7 @@ const JokerCardContent = ({
         <img
           src={imageSrc}
           alt="Joker"
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-100 max-w-12"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[60%] md:-translate-y-1/2 pointer-events-none opacity-100 max-w-10 md:max-w-14"
           draggable={false}
         />
       ) : (
@@ -191,12 +191,12 @@ const JokerCardContent = ({
         />
       )}
 
-      {/* Joker Ability Description */}
+      {/* Joker Ability Description (Título do Poder) */}
       {abilityInfo && (
-        <div className="absolute bottom-1 left-0 right-0 px-0.5 text-center leading-none z-20 pointer-events-none">
-          <span className="text-[7px] md:text-[9px] font-bold uppercase text-violet-900 bg-white/40 px-1 rounded-sm backdrop-blur-[1px]">
-            {abilityInfo.desc}
-          </span>
+        <div className="absolute bottom-1 md:bottom-2 left-0 right-0 px-1 text-center leading-none z-20 pointer-events-none">
+          <div className="bg-violet-600 text-white text-[7px] md:text-[10px] font-black py-0.5 md:py-1 px-1 rounded-sm shadow-sm uppercase tracking-tight">
+            {abilityInfo.name}
+          </div>
         </div>
       )}
 

@@ -255,17 +255,34 @@ export const validate_discard_pickup = (
 ): boolean => {
   if (selected_hand_cards.length < GAME_RULES.MIN_CARDS_FOR_MELD - 1) return false;
   const potential_meld = [discard_top_card, ...selected_hand_cards];
-  const validation_result = validate_sequence(potential_meld);
-
-  if (!validation_result.is_valid) return false;
+  
+  const details = get_sequence_details(potential_meld);
+  if (!details.is_valid) return false;
 
   // Se a regra permite pegar com curinga, basta ser válido.
   // Se NÃO permite (padrão), o jogo resultante deve ser LIMPO (sem 2 e sem JOKER).
+  // EXCEÇÃO: O "2" do mesmo naipe é permitido por ser limpável.
   if (rules.canPickUpDiscardWithJoker) {
     return true;
   }
 
-  return validation_result.is_clean;
+  // Se o jogo como um todo for limpo (conforme o solver), tá liberado.
+  if (details.is_clean) return true;
+
+  // Se for sujo, verificamos se a "sujeira" é apenas o 2 do mesmo naipe (limpável)
+  const target_suit = potential_meld.find((m: Card) => m.value !== "2" && m.value !== "JOKER")?.suit.name;
+  
+  const has_illegal_wildcard = potential_meld.some((c: Card) => {
+    if (c.value === "JOKER") return true;
+    if (c.value === "2") {
+        const weight = details.assigned_weights[c.id];
+        // É ilegal se for um 2 de outro naipe OU um 2 usado em posição que não seja a dele (2)
+        return is_wildcard_usage(c, weight!, target_suit!);
+    }
+    return false;
+  });
+
+  return !has_illegal_wildcard;
 };
 
 /** Valida se a adição de cartas do lixo a um jogo já existente na mesa é legal. */

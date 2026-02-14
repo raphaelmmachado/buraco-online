@@ -210,9 +210,9 @@ export const DiscardCard = ({
            items-center leading-none z-10`}
         >
           <span
-            className={`${valueClass} ${isJoker && !isAccessibilityMode ? "text-xs md:text-lg tracking-tighter" : ""}`}
+            className={`${valueClass} ${isJoker && !isAccessibilityMode ? "text-[10px] md:text-base font-black tracking-tighter" : ""}`}
           >
-            {isJoker ? (isAccessibilityMode ? "JK" : "Joker") : card.value}
+            {isJoker ? (isAccessibilityMode ? "JK" : "JOKER") : card.value}
           </span>
           {!isJoker && <SuitIcon suit={card.suit.name} className={suitClass} />}
         </div>
@@ -222,7 +222,7 @@ export const DiscardCard = ({
           <img
             src={imageSrc}
             alt={`${card.value} de ${card.suit.name}`}
-            className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none ${isAccessibilityMode ? "opacity-30" : "opacity-100"} ${isJoker ? "max-w-10 md:max-w-12" : ""}`}
+            className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[60%] md:-translate-y-1/2 pointer-events-none ${isAccessibilityMode ? "opacity-30" : "opacity-100"} ${isJoker ? "max-w-8 md:max-w-12" : ""}`}
             draggable={false}
           />
         ) : (
@@ -233,12 +233,12 @@ export const DiscardCard = ({
           </div>
         )}
 
-        {/* Joker Ability Label (Simplified for Discard) */}
+        {/* Joker Ability Label (Título do Poder) */}
         {isJoker && abilityInfo && (
-          <div className="absolute bottom-1 left-0 right-0 px-0.5 text-center leading-none z-20 pointer-events-none">
-            <span className="text-[5px] md:text-[7px] font-black uppercase tracking-tighter text-violet-700">
+          <div className="absolute bottom-1 md:bottom-2 left-0 right-0 px-1 text-center leading-none z-20 pointer-events-none">
+            <div className="bg-violet-600 text-white text-[6px] md:text-[8px] font-black py-0.5 md:py-1 px-0.5 rounded-sm shadow-sm uppercase tracking-tighter">
               {abilityInfo}
-            </span>
+            </div>
           </div>
         )}
 

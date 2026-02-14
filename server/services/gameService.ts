@@ -5,6 +5,7 @@ import { validate_sequence } from "../../common/utils/rules_logic";
 import { type ServerGameState } from "../state";
 import { type PlayerID, type TeamID, type GameMode } from "../types";
 import { type Card } from "../../common/types/card";
+
 export const get_team = (player_id: number): TeamID => {
   return (player_id % 2 !== 0 ? 1 : 2) as TeamID;
 };

@@ -370,13 +370,15 @@ export const find_card_to_add = (
       }
   }
 
-  // Filtra candidatos: Cartas do mesmo naipe ou Curingas
+  // Filtra candidatos: Cartas do mesmo naipe ou Curingas (APENAS o 2, Joker proibido em sequências para bots)
   const candidates = hand.filter(c => c.suit.name === target_suit || c.value === "2");
 
   // Prioriza cartas naturais sobre curingas
   candidates.sort((a, b) => {
-      if (a.value === "2" && b.value !== "2") return 1;
-      if (a.value !== "2" && b.value === "2") return -1;
+      const isWildA = a.value === "2";
+      const isWildB = b.value === "2";
+      if (isWildA && !isWildB) return 1;
+      if (!isWildA && isWildB) return -1;
       return 0;
   });
 
@@ -417,13 +419,23 @@ export const find_card_to_add = (
             // Nunca suja uma canastra limpa já finalizada
             if (meld.length >= 7) continue;
 
-            // Se for um curinga do mesmo naipe (limpável), o bot avalia se deve esperar.
-            if (card.value === "2" && card.suit.name === target_suit) {
-                 if (meld.length >= 6 && !is_desperate_to_close) {
-                     // Se falta só 1 para a canastra, prefere esperar a carta natural para ganhar o bônus de 200.
-                     continue;
-                 }
-                 return card;
+            const is_wildcard = card.value === "2" || card.value === "JOKER";
+
+            if (is_wildcard) {
+                // Se for um curinga do mesmo naipe (limpável), o bot avalia se deve esperar.
+                if (card.value === "2" && card.suit.name === target_suit) {
+                    if (meld.length >= 6 && !is_desperate_to_close) {
+                        // Se falta só 1 para a canastra, prefere esperar a carta natural para ganhar o bônus de 200.
+                        continue;
+                    }
+                    // Se estiver em 2v2 e não for desespero, evita sujar mesmo sendo limpável
+                    if (is_2v2 && !is_desperate_to_close && meld.length < 6) continue;
+                    
+                    return card;
+                }
+
+                // Se for JOKER ou 2 de outro naipe, NUNCA suja um jogo limpo a menos que seja desespero extremo
+                if (!is_desperate_to_close) continue;
             }
 
             // Se as cartas naturais necessárias já saíram do jogo, o bot aceita sujar (pois não tem escolha).
@@ -502,8 +514,25 @@ export const analyze_discard_pickup = (
        const meld_val = validate_sequence(meld);
        const was_clean = meld_val.is_valid && meld_val.is_clean;
        
-       if (was_clean && !validation.is_clean && meld.length >= 7) continue;
-       if (was_clean && !validation.is_clean && has_taken_dead_pile && desperation_factor === 0) continue; 
+       // NOVO: Bots não sujam jogos limpos pegando coringa do lixo, 
+       // a menos que seja para completar uma canastra suja e eles precisem muito bater.
+       if (was_clean && !validation.is_clean) {
+          const is_wildcard_pickup = top_discard.value === "2" || top_discard.value === "JOKER";
+          
+          if (is_wildcard_pickup) {
+              // REGRA DE OURO: NUNCA suja uma canastra limpa (7+), mesmo que o "2" seja do mesmo naipe.
+              if (meld.length >= 7) continue;
+
+              const is_cleanable_2 = top_discard.value === "2" && top_discard.suit.name === target_suit;
+              // Se for um "2" do mesmo naipe e NÃO for canastra, o bot pode pegar (é limpável).
+              if (is_cleanable_2) {
+                  // Prossiga (não dê continue)
+              } else {
+                  // Se for Joker ou 2 de outro naipe, só pega em desespero total.
+                  if (desperation_factor < 40) continue;
+              }
+          }
+       }
 
        // Proteção contra ficar com mão inválida após pegar o lixo todo
        if (has_taken_dead_pile && !has_clean_canastra) {
@@ -536,8 +565,19 @@ export const analyze_discard_pickup = (
               const meld_val = validate_sequence(meld);
               const was_clean = meld_val.is_valid && meld_val.is_clean;
 
-              if (was_clean && !validation.is_clean && meld.length >= 7) continue;
-              if (was_clean && !validation.is_clean && has_taken_dead_pile && desperation_factor === 0) continue;
+              // NOVO: Evita sujar jogos limpos na ponte se envolver coringas
+              if (was_clean && !validation.is_clean) {
+                  const has_wildcard = top_discard.value === "2" || top_discard.value === "JOKER" || card.value === "2" || card.value === "JOKER";
+                  
+                  if (has_wildcard) {
+                      // NUNCA suja canastra (7+)
+                      if (meld.length >= 7) continue;
+
+                      const is_cleanable_wildcard = (top_discard.value === "2" && top_discard.suit.name === target_suit) || (card.value === "2" && card.suit.name === target_suit);
+                      
+                      if (!is_cleanable_wildcard && desperation_factor < 40) continue;
+                  }
+              }
 
               if (has_taken_dead_pile && !has_clean_canastra) {
                   const is_now_canastra = validation.is_valid && (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE');
@@ -552,10 +592,10 @@ export const analyze_discard_pickup = (
 
   // 3. Tenta criar um NOVO jogo usando a carta do lixo
   // Regra base: Para pegar o lixo para um jogo novo, ele deve ser obrigatoriamente LIMPO (3 naturais).
-  // Se rules.canPickUpDiscardWithJoker for true, permite usar curinga da mão.
+  // Bots são proibidos de usar JOKER para abrir jogo do lixo.
   const suit_candidates = hand.filter((c) => 
     c.suit.name === top_discard.suit.name || 
-    ((c.value === "2" || c.value === "JOKER") && rules.canPickUpDiscardWithJoker)
+    (c.value === "2" && rules.canPickUpDiscardWithJoker)
   );
   
   if (suit_candidates.length >= 2) {

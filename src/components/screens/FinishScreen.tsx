@@ -1,5 +1,5 @@
 import { type ScoreResult } from "../../../common/utils/scoring";
-import { MELD_POINTS } from "../../../common/types/card";
+import { type GameRules, DEFAULT_RULES } from "../../../common/types/rules";
 import { StyledButton } from "../ui/StyledButton";
 import {
   RotateCcw,
@@ -33,7 +33,7 @@ interface FinishScreenProps {
   onPlayAgain: () => void;
   onLeave: () => void;
   isLeader?: boolean;
-  rules?: any; // Add rules to props
+  rules?: GameRules; // Add rules to props
 }
 
 export const FinishScreen = ({
@@ -214,7 +214,7 @@ export const FinishScreen = ({
           score={finalScore.team_1}
           details={finalScore.details_t1}
           delay={0.4}
-          rules={rules}
+          rules={rules || DEFAULT_RULES}
         />
         <TeamRoundCard
           title="OPONENTE"
@@ -223,7 +223,7 @@ export const FinishScreen = ({
           score={finalScore.team_2}
           details={finalScore.details_t2}
           delay={0.5}
-          rules={rules}
+          rules={rules || DEFAULT_RULES}
         />
       </div>
 
@@ -284,7 +284,7 @@ const TeamRoundCard = ({
   score: number;
   details: ScoreResult;
   delay: number;
-  rules: any;
+  rules: GameRules;
 }) => (
   <motion.div
     initial={{ x: teamId === 1 ? -20 : 20, opacity: 0 }}
@@ -339,7 +339,7 @@ const TeamRoundCard = ({
   </motion.div>
 );
 
-const DetailedScoreBreakdown = ({ result, rules }: { result: ScoreResult, rules: any }) => {
+const DetailedScoreBreakdown = ({ result, rules }: { result: ScoreResult, rules: GameRules }) => {
   const r = rules || {
     pointsCleanCanastra: 200,
     pointsDirtyCanastra: 100,
@@ -398,43 +398,6 @@ const DetailedScoreBreakdown = ({ result, rules }: { result: ScoreResult, rules:
           color="text-green-400"
         />
         {beatBonus > 0 && (
-  const handPenalty = result.penalty_points - deadPilePenalty;
-
-  return (
-    <div className="flex flex-col gap-6">
-      {/* GANHOS */}
-      <div className="space-y-1">
-        <div className="flex items-center gap-2 mb-3 text-green-400/50">
-          <Sparkles size={14} />
-          <span className="text-[10px] font-black uppercase tracking-[0.2em]">
-            Bonificações
-          </span>
-        </div>
-        <StatRow
-          label="Limpas"
-          count={result.details.CLEAN}
-          total={result.details.CLEAN * MELD_POINTS.CLEAN}
-          color="text-blue-400"
-        />
-        <StatRow
-          label="Sujas"
-          count={result.details.DIRTY}
-          total={result.details.DIRTY * MELD_POINTS.DIRTY}
-          color="text-orange-400"
-        />
-        <StatRow
-          label="Excelente (A a K)"
-          count={result.details.KING}
-          total={result.details.KING * MELD_POINTS.KING}
-          color="text-violet-400"
-        />
-        <StatRow
-          label="Perfeitas (A a A)"
-          count={result.details.ACE}
-          total={result.details.ACE * MELD_POINTS.ACE}
-          color="text-green-400"
-        />
-        {beatBonus > 0 && (
           <div className="flex justify-between items-center py-2 border-b border-white/5 border-dashed">
             <span className="text-sm font-black text-yellow-400/80">
               Bônus de Batida
@@ -474,7 +437,7 @@ const DetailedScoreBreakdown = ({ result, rules }: { result: ScoreResult, rules:
         {deadPilePenalty > 0 && (
           <div className="flex justify-between items-center py-2 text-red-400">
             <span className="text-sm font-black">Não pegou o Morto</span>
-            <span className="font-mono text-lg font-black">-100</span>
+            <span className="font-mono text-lg font-black">-{deadPilePenalty}</span>
           </div>
         )}
         <div className="flex justify-between items-center py-2">

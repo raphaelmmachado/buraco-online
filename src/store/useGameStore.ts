@@ -29,6 +29,7 @@ interface IncomingServerState {
   magic_joker?: {
     direction: 1 | -1;
     is_discard_frozen: boolean;
+    pending_skip: boolean;
     power_selection?: {
       player_id: number;
       target_player_id: number;
@@ -106,6 +107,7 @@ interface GameState {
   magic_joker: {
     direction: 1 | -1;
     is_discard_frozen: boolean;
+    pending_skip: boolean;
     power_selection?: {
       player_id: number;
       target_player_id: number;
@@ -224,6 +226,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   magic_joker: {
     direction: 1,
     is_discard_frozen: false,
+    pending_skip: false,
   },
   last_drawn_card_id: null,
   final_score: null,
@@ -634,7 +637,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       round_count: server_data.round_count || 1,
       win_condition: server_data.win_condition,
       rematch_votes: server_data.rematch_votes || {},
-      magic_joker: server_data.magic_joker || { direction: 1, is_discard_frozen: false },
+      magic_joker: server_data.magic_joker || { direction: 1, is_discard_frozen: false, pending_skip: false },
       last_error: null,
     });
   },

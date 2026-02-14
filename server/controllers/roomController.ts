@@ -402,6 +402,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
           magic_joker: {
             direction: 1,
             is_discard_frozen: false,
+            pending_skip: false,
           },
         };
         saveState();

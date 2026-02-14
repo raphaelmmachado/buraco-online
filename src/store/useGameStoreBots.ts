@@ -4,7 +4,7 @@
 // =============================================================================
 
 import { create } from "zustand";
-import { type Card, CARD_POINTS } from "../../common/types/card";
+import { type Card } from "../../common/types/card";
 import { distribute_cards, create_deck } from "../../common/utils/game_logic";
 import { sort_cards, organize_meld } from "../../common/utils/sort_cards";
 import {
@@ -37,6 +37,7 @@ interface GameState {
   magic_joker: {
     direction: 1 | -1;
     is_discard_frozen: boolean;
+    pending_skip: boolean;
     power_selection?: {
       player_id: number;
       target_player_id: number;
@@ -98,9 +99,12 @@ interface GameActions {
 }
 
 const get_team = (player_id: number): TeamID => (player_id % 2 !== 0 ? 1 : 2);
-const get_next_player = (current: number, mode: GameMode): PlayerID => {
+const get_next_player = (current: number, mode: GameMode, direction: 1 | -1 = 1): PlayerID => {
   if (mode === "1v1") return current === 1 ? 2 : 1;
-  return ((current % 4) + 1) as PlayerID;
+  let next = current + direction;
+  if (next > 4) next = 1;
+  if (next < 1) next = 4;
+  return next as PlayerID;
 };
 
 export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
@@ -118,6 +122,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
   magic_joker: {
     direction: 1,
     is_discard_frozen: false,
+    pending_skip: false,
   },
   last_drawn_card_id: null,
   final_score: null,
@@ -151,6 +156,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       magic_joker: {
         direction: 1,
         is_discard_frozen: false,
+        pending_skip: false,
       },
       last_drawn_card_id: null,
       final_score: null,
@@ -246,6 +252,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       magic_joker: {
         direction: 1,
         is_discard_frozen: false,
+        pending_skip: false,
       },
       last_drawn_card_id: null,
       final_score: null,
@@ -283,6 +290,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       magic_joker: {
         direction: 1,
         is_discard_frozen: false,
+        pending_skip: false,
       },
       last_drawn_card_id: null,
       final_score: null,
@@ -705,8 +713,22 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
     }
 
     if (get().status === "PLAYING") {
-      const next_player = get_next_player(current_player, mode);
-      set({ current_player: next_player, turn_phase: "DRAW" });
+      let next_player = get_next_player(current_player, mode, get().magic_joker.direction);
+      const skipActive = get().magic_joker.pending_skip;
+
+      if (skipActive) {
+        next_player = get_next_player(next_player, mode, get().magic_joker.direction);
+        get().addEvent("Vez pulada!", "info");
+      }
+
+      set({ 
+        current_player: next_player, 
+        turn_phase: "DRAW",
+        magic_joker: {
+          ...get().magic_joker,
+          pending_skip: false
+        }
+      });
     }
   },
 
@@ -725,13 +747,12 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
     const new_hand_after_joker = my_hand.filter((c) => c.id !== cardId);
 
     // Determina o Alvo (Próximo Jogador)
-    const next_player = get_next_player(current_player, mode);
+    const next_player = get_next_player(current_player, mode, get().magic_joker.direction);
     const target_hand = hands[next_player];
 
-    let infoMsg = "";
     let finalHands = { ...hands, [current_player]: new_hand_after_joker };
     let finalDirection = get().magic_joker.direction;
-    let finalIsFrozen = get().magic_joker.is_discard_frozen;
+    const finalIsFrozen = get().magic_joker.is_discard_frozen;
     let powerSelection = undefined;
 
     switch (joker.ability) {
@@ -759,7 +780,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
 
       case "SKIP_TURN": {
         get().addEvent(`PULOU o descarte!`, "info", current_player);
-        const nextP = get_next_player(current_player, mode);
+        const nextP = get_next_player(current_player, mode, get().magic_joker.direction);
         set({
           hands: finalHands,
           current_player: nextP,
@@ -769,58 +790,51 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         return;
       }
 
-      case "SWAP_PARTNER": {
-        if (mode === "2v2") {
-          const partner =
-            current_player <= 2 ? current_player + 2 : current_player - 2;
-          const partner_hand = hands[partner];
-          if (partner_hand.length > 0 && new_hand_after_joker.length > 0) {
-            const myIdx = Math.floor(
-              Math.random() * new_hand_after_joker.length,
-            );
-            const pIdx = Math.floor(Math.random() * partner_hand.length);
+      case "SAFE": {
+        const teammate = mode === "2v2" 
+          ? (current_player <= 2 ? current_player + 2 : current_player - 2) 
+          : null;
+        
+        const currentDeck = [...get().deck];
+        const currentDiscard = [...get().discard_pile];
 
-            const myCard = new_hand_after_joker[myIdx];
-            const pCard = partner_hand[pIdx];
-
-            const finalMyHand = sort_cards([
-              ...new_hand_after_joker.filter((_, i) => i !== myIdx),
-              pCard,
-            ]);
-            const finalPartnerHand = sort_cards([
-              ...partner_hand.filter((_, i) => i !== pIdx),
-              myCard,
-            ]);
-
-            finalHands = {
-              ...hands,
-              [current_player]: finalMyHand,
-              [partner]: finalPartnerHand,
-            };
-
-            get().addEvent(
-              `TROCOU carta com o parceiro!`,
-              "success",
-              current_player,
-            );
+        const giveCards = (pId: number, count: number, handsObj: Record<number, Card[]>) => {
+          const hand = [...(handsObj[pId] || [])];
+          for (let i = 0; i < count; i++) {
+            let card = currentDeck.shift();
+            if (!card && currentDiscard.length > 0) {
+              card = currentDiscard.shift(); // Pega do topo do lixo
+            }
+            if (card) hand.push(card);
           }
-        } else {
-          set({
-            last_error: "Troca com parceiro só funciona em duplas (2v2).",
-          });
-          return;
+          handsObj[pId] = sort_cards(hand);
+        };
+
+        const updatedHands = { ...hands, [current_player]: new_hand_after_joker };
+        
+        // Dá 3 cartas para quem usou
+        giveCards(current_player, 3, updatedHands);
+        
+        // Dá 3 cartas para o parceiro (se existir)
+        if (teammate) {
+          giveCards(teammate, 3, updatedHands);
         }
+
+        finalHands = updatedHands;
+        set({ deck: currentDeck, discard_pile: currentDiscard });
+        get().addEvent(`SEGURO ATIVADO!`, "success", current_player);
         break;
       }
 
       case "SKIP_NEXT": {
-        const victim = get_next_player(current_player, mode);
-        const nextOfVictim = get_next_player(victim, mode);
+        const victim = get_next_player(current_player, mode, get().magic_joker.direction);
         get().addEvent(`BLOQUEOU Jogador ${victim}!`, "info", current_player);
         set({
           hands: finalHands,
-          current_player: nextOfVictim,
-          turn_phase: "DRAW",
+          magic_joker: {
+            ...get().magic_joker,
+            pending_skip: true
+          },
           last_error: null,
         });
         return;
@@ -829,12 +843,6 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       case "REVERSE": {
         finalDirection = finalDirection === 1 ? -1 : 1;
         get().addEvent(`INVERTEU o jogo!`, "info", current_player);
-        break;
-      }
-
-      case "FREEZE_PILE": {
-        finalIsFrozen = true;
-        get().addEvent(`CONGELOU o lixo!`, "info", current_player);
         break;
       }
 
@@ -868,25 +876,8 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         break;
       }
 
-      case "GIFT_CARD": {
-        const victim = get_next_player(current_player, mode);
-        if (new_hand_after_joker.length > 0) {
-          const mySorted = [...new_hand_after_joker].sort((a, b) => (CARD_POINTS[a.value] || 0) - (CARD_POINTS[b.value] || 0));
-          const gift = mySorted.shift()!;
-          const victimHand = [...(hands[victim] || [])];
-          victimHand.push(gift);
-          finalHands = {
-            ...hands,
-            [current_player]: mySorted,
-            [victim]: sort_cards(victimHand),
-          };
-          get().addEvent(`DEU UM PRESENTE!`, "info", current_player);
-        }
-        break;
-      }
-
       case "VIEW_HAND": {
-        const victim = get_next_player(current_player, mode);
+        const victim = get_next_player(current_player, mode, get().magic_joker.direction);
         powerSelection = {
           player_id: current_player,
           target_player_id: victim,

@@ -133,6 +133,7 @@ export const start_next_round = (game: ServerGameState) => {
     game.magic_joker = {
         direction: 1,
         is_discard_frozen: false,
+        pending_skip: false,
     };
     game.turn_phase = "DRAW";
     game.current_player = 1; // Or rotate starter? For now, Player 1 starts always.
@@ -168,6 +169,7 @@ export const start_new_match = (game: ServerGameState) => {
     game.magic_joker = {
         direction: 1,
         is_discard_frozen: false,
+        pending_skip: false,
     };
     game.turn_phase = "DRAW";
     game.current_player = 1;

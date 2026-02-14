@@ -24,6 +24,7 @@ export interface ServerGameState {
   magic_joker: {
     direction: 1 | -1;
     is_discard_frozen: boolean;
+    pending_skip: boolean;
     power_selection?: {
       player_id: number;
       target_player_id: number;

@@ -31,14 +31,12 @@ const ABILITY_DESCRIPTIONS: Record<string, { name: string; desc: string }> = {
   VIEW_HAND: { name: "Visão", desc: "Veja a mão do próximo" },
   STEAL_CARD: { name: "Roubo", desc: "Pegue uma carta dele" },
   SKIP_TURN: { name: "Pulo", desc: "Pula vez sem descartar" },
-  SWAP_PARTNER: { name: "Troca", desc: "Troque com seu parceiro" },
-  FREEZE_PILE: { name: "Gelo", desc: "Congela o lixo" },
+  SAFE: { name: "Seguro", desc: "+3 cartas para seu time" },
   SHUFFLE_DISCARD: { name: "Limpeza", desc: "Lixo volta ao monte" },
   TAX_COLLECTOR: { name: "Imposto", desc: "Todos descartam 1" },
-  GIFT_CARD: { name: "Presente", desc: "Dê sua pior carta" },
   SKIP_NEXT: { name: "Bloqueio", desc: "Pula a vez do próximo" },
   REVERSE: { name: "Reverso", desc: "Inverte o sentido" },
-  SURGICAL_SWAP: { name: "Cirúrgico", desc: "Escolha o que trocar" },
+  SURGICAL_SWAP: { name: "Cirúrgico", desc: "Troque com o amigo" },
 };
 
 /**

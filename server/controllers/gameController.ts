@@ -21,7 +21,7 @@ import {
   validate_discard_pickup,
   validate_discard_add_to_meld,
 } from "../../common/utils/rules_logic";
-import { type Card, CARD_POINTS } from "../../common/types/card";
+import { type Card } from "../../common/types/card";
 import { type ServerResponse, type PlayerID } from "../types";
 import { startTurnTimer, stopTurnTimer } from "../services/timerService";
 
@@ -592,11 +592,25 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
 
       if (game.status !== "FINISHED") {
         game.turn_phase = "DRAW";
-        game.current_player = get_next_player(
+        let nextPlayer = get_next_player(
           game.current_player,
           game.mode,
           game.magic_joker.direction,
         );
+
+        // Se houver um bloqueio pendente, pula o próximo e vai para o subsequente
+        if (game.magic_joker.pending_skip) {
+          console.log(`[SKIP] Pulando a vez do Jogador ${nextPlayer} devido ao Bloqueio.`);
+          nextPlayer = get_next_player(
+            nextPlayer,
+            game.mode,
+            game.magic_joker.direction,
+          );
+          game.magic_joker.pending_skip = false;
+          io.to(roomId).emit("info_msg", "Vez pulada pelo Bloqueio!");
+        }
+
+        game.current_player = nextPlayer;
         game.last_drawn_card_id = null; // Limpa o destaque da carta comprada
         startTurnTimer(io, roomId);
 
@@ -726,6 +740,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       if (current_hand) {
         // Manual sort now randomizes suit order to allow user customization
         game.hands[player_id] = sort_cards(current_hand, true);
+        saveState();
         broadcast_game_update(io, roomId);
       }
     },
@@ -891,32 +906,38 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
           break;
         }
 
-        case "SWAP_PARTNER": {
-          if (game.mode === "2v2") {
-            const partner = player_id <= 2 ? player_id + 2 : player_id - 2;
-            const partner_hand = game.hands[partner];
-            if (
-              partner_hand &&
-              partner_hand.length > 0 &&
-              player_hand.length > 0
-            ) {
-              const myIdx = Math.floor(Math.random() * player_hand.length);
-              const pIdx = Math.floor(Math.random() * partner_hand.length);
-
-              const myCard = player_hand.splice(myIdx, 1)[0];
-              const pCard = partner_hand.splice(pIdx, 1)[0];
-
-              if (myCard && pCard) {
-                player_hand.push(pCard);
-                partner_hand.push(myCard);
-                game.hands[partner] = sort_cards(partner_hand);
-                io.to(roomId).emit(
-                  "info_msg",
-                  `[SWAP] O Jogador ${player_id} trocou uma carta com seu parceiro.`,
-                );
+        case "SAFE": {
+          const teammate = game.mode === "2v2" 
+            ? (player_id <= 2 ? player_id + 2 : player_id - 2) 
+            : null;
+          
+          const giveCards = (pId: number, count: number) => {
+            const hand = game.hands[pId];
+            if (!hand) return;
+            for (let i = 0; i < count; i++) {
+              let card = game.deck.shift();
+              if (!card && game.discard_pile.length > 0) {
+                card = game.discard_pile.shift(); // Pega do topo do lixo
               }
+              if (card) hand.push(card);
             }
+            game.hands[pId] = sort_cards(hand);
+          };
+
+          // Dá 3 cartas para quem usou
+          giveCards(player_id, 3);
+          
+          // Dá 3 cartas para o parceiro (se existir)
+          if (teammate) {
+            giveCards(teammate, 3);
           }
+
+          io.to(roomId).emit(
+            "info_msg",
+            teammate 
+              ? `[SAFE] Seguro ativado! ${player_id} e ${teammate} ganharam 3 cartas.`
+              : `[SAFE] Seguro ativado! O Jogador ${player_id} ganhou 3 cartas.`,
+          );
           break;
         }
 
@@ -928,23 +949,9 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
           );
           io.to(roomId).emit(
             "info_msg",
-            `[SKIP] O Jogador ${player_id} PULOU a vez do Jogador ${victim}!`,
+            `[SKIP] O Jogador ${player_id} ativou um BLOQUEIO contra o Jogador ${victim}!`,
           );
-          // O turno pula o próximo e vai para o subsequente
-          game.current_player = get_next_player(
-            victim,
-            game.mode,
-            game.magic_joker.direction,
-          );
-          game.turn_phase = "DRAW";
-          game.last_drawn_card_id = null;
-          startTurnTimer(io, roomId);
-
-          // Verifica se o NOVO jogador é um bot
-          const nextPData = game.players_data[game.current_player as PlayerID];
-          if (nextPData && nextPData.isBot) {
-            process_bot_turn(io, roomId);
-          }
+          game.magic_joker.pending_skip = true;
           break;
         }
 
@@ -954,15 +961,6 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
           io.to(roomId).emit(
             "info_msg",
             `[REVERSE] O Jogador ${player_id} INVERTEU o sentido do jogo!`,
-          );
-          break;
-        }
-
-        case "FREEZE_PILE": {
-          game.magic_joker.is_discard_frozen = true;
-          io.to(roomId).emit(
-            "info_msg",
-            `[ALERT] O Jogador ${player_id} CONGELOU o lixo! O próximo não pode pegar.`,
           );
           break;
         }
@@ -1002,33 +1000,6 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
               game.hands[Number(pId)] = sort_cards(hand);
             }
           });
-          break;
-        }
-
-        case "GIFT_CARD": {
-          const victim = get_next_player(
-            player_id,
-            game.mode,
-            game.magic_joker.direction,
-          );
-          if (player_hand.length > 0) {
-            // Pega a carta de menor pontuação/valor para dar de "presente"
-            player_hand.sort((a, b) => {
-              const pA = CARD_POINTS[a.value] || 0;
-              const pB = CARD_POINTS[b.value] || 0;
-              return pA - pB;
-            });
-            const gift = player_hand.shift()!;
-            const target_hand = game.hands[victim];
-            if (target_hand) {
-              target_hand.push(gift);
-              game.hands[victim] = sort_cards(target_hand);
-              io.to(roomId).emit(
-                "info_msg",
-                `[STEAL] O Jogador ${player_id} deu um "PRESENTE" para o Jogador ${victim}!`,
-              );
-            }
-          }
           break;
         }
 

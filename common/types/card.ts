@@ -12,11 +12,9 @@ export type JokerAbility =
   | "VIEW_HAND"
   | "STEAL_CARD"
   | "SKIP_TURN"
-  | "SWAP_PARTNER"
-  | "FREEZE_PILE"
+  | "SAFE"
   | "SHUFFLE_DISCARD"
   | "TAX_COLLECTOR"
-  | "GIFT_CARD"
   | "SKIP_NEXT"
   | "REVERSE"
   | "SURGICAL_SWAP";

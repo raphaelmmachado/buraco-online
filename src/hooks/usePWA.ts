@@ -19,13 +19,21 @@ export const usePWA = () => {
       onRegistered(r) {
         console.log('Service Worker registrado.');
         // Checa por atualizações a cada 10 minutos
-        r && setInterval(() => {
-          console.log('Checagem automática de atualização...');
-          r.update();
-        }, 10 * 60 * 1000);
+        if (r) {
+          setInterval(() => {
+            console.log('Checagem automática de atualização...');
+            r.update();
+          }, 10 * 60 * 1000);
+        }
       },
     });
-    setUpdateFunction(() => updateSW);
+    
+    // Usamos um pequeno delay ou guardamos a ref para evitar o warning de cascading renders
+    const timer = setTimeout(() => {
+      setUpdateFunction(() => updateSW);
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const updateServiceWorker = async () => {

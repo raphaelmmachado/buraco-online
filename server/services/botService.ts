@@ -442,18 +442,20 @@ const execute_bot_move = (io: Server, roomId: string) => {
           case "VIEW_HAND":
             if (next_player_hand_len <= 3) should_use = true; // Só usa se o próximo estiver perto de bater
             break;
-          case "REVERSE":
+          case "REVERSE": {
             // Inverte se o jogador que jogaria depois de mim tem menos cartas que o jogador que jogaria antes de mim
             const prev_player = get_next_player(game.current_player, game.mode, (-game.magic_joker.direction) as (1 | -1));
             const prev_hand_len = game.hands[prev_player]?.length || 0;
             if (next_player_hand_len < prev_hand_len) should_use = true;
             break;
-          case "TAX_COLLECTOR":
+          }
+          case "TAX_COLLECTOR": {
             const my_len = my_hand.length;
             const others = Object.values(game.hands).map(h => h.length);
             const avg = others.reduce((a, b) => a + b, 0) / others.length;
             if (my_len <= avg) should_use = true;
             break;
+          }
           case "SHUFFLE_DISCARD":
             if (game.discard_pile.length > 5) should_use = true;
             break;
@@ -475,7 +477,6 @@ const execute_bot_move = (io: Server, roomId: string) => {
 
     // A. Adicionar a Jogos Existentes (PRIORIDADE MÁXIMA)
     // O bot percorre todos os jogos na mesa e tenta pendurar o máximo de cartas possível.
-    let added_any = false;
     for (let i = 0; i < team_melds.length; i++) {
       const meld = team_melds[i];
       if (!meld) continue;
@@ -483,7 +484,6 @@ const execute_bot_move = (io: Server, roomId: string) => {
       const card_to_add = find_card_to_add(my_hand, meld, has_taken, has_clean, false, [], game.mode === "2v2");
       if (card_to_add) {
         console.log(`[BOT] Prioridade: Adicionando ${card_to_add.value} ao jogo ${i} antes de abrir novos.`);
-        added_any = true;
         game.hands[game.current_player] = my_hand.filter(
           (c) => c.id !== card_to_add.id,
         );

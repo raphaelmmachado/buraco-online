@@ -79,10 +79,10 @@ export const MobilePlayerHand = ({
                   animate={{
                     opacity: 1,
                     x: 0,
-                    y: isSelected ? (isJoker ? -40 : -20) : 0,
+                    y: isSelected ? (isJoker ? -60 : -10) : 0,
                     scale: 1,
                     rotate: 0,
-                    zIndex: isSelected ? 100 : 0,
+                    zIndex: isSelected && isJoker ? 150 + i : i,
                   }}
                   transition={
                     showAnimations

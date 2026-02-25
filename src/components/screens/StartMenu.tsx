@@ -1,19 +1,25 @@
 import { useGameStore } from "../../store/useGameStore";
 import { EventBar } from "../game-ui/EventBar";
-import { Bot, Globe, Loader2 } from "lucide-react";
+import { Bot, Globe, Loader2, Check, Sparkles } from "lucide-react";
 
 interface StartMenuProps {
   onPlayOnline: () => void;
   onPlayLocal: () => void;
   onCheckUpdate: () => void;
+  onUpdateApp: () => void;
   isUpdating?: boolean;
+  needRefresh?: boolean;
+  updateSuccess?: boolean;
 }
 
 export const StartMenu = ({
   onPlayOnline,
   onPlayLocal,
   onCheckUpdate,
+  onUpdateApp,
   isUpdating,
+  needRefresh,
+  updateSuccess,
 }: StartMenuProps) => {
   const recentEvents = useGameStore((state) => state.recentEvents);
   const connectionStatus = useGameStore((state) => state.connectionStatus);
@@ -77,7 +83,7 @@ export const StartMenu = ({
           </div>
         </button>
 
-        {/* JOGAR ONLINE (SMART BUTTON - DISCRETO) */}
+        {/* JOGAR ONLINE */}
         <button
           onClick={handleOnlineClick}
           disabled={isConnecting}
@@ -94,49 +100,49 @@ export const StartMenu = ({
                 : "bg-white/5 border-white/10 text-slate-500 grayscale"
             } ${isConnecting ? "animate-pulse" : ""}`}
           >
-            {isConnecting ? (
-              <Loader2 size={40} className="animate-spin" />
-            ) : (
-              <Globe size={40} />
-            )}
-
-            {/* Status LED (Discreto) */}
+            {isConnecting ? <Loader2 size={40} className="animate-spin" /> : <Globe size={40} />}
           </div>
 
           <div className="text-center flex flex-col items-center">
-            <h2
-              className={`text-2xl font-black uppercase mb-1 transition-colors ${
-                isConnected
-                  ? "text-blue-100"
-                  : "text-slate-400 group-hover:text-blue-300"
-              }`}
-            >
+            <h2 className={`text-2xl font-black uppercase mb-1 transition-colors ${
+                isConnected ? "text-blue-100" : "text-slate-400 group-hover:text-blue-300"
+            }`}>
               Jogar Online
             </h2>
-            <p
-              className={`text-[10px] font-mono uppercase tracking-widest transition-colors ${
+            <p className={`text-[10px] font-mono uppercase tracking-widest transition-colors ${
                 isConnected ? "text-blue-300/60" : "text-slate-600"
-              }`}
-            >
-              {isConnected
-                ? "Com outros jogadores"
-                : isConnecting
-                  ? "Buscando Servidor..."
-                  : "Servidor não encontrado"}
+            }`}>
+              {isConnected ? "Com outros jogadores" : isConnecting ? "Buscando Servidor..." : "Toque para conectar"}
             </p>
           </div>
         </button>
       </div>
 
+      {/* FOOTER DE VERSÃO */}
       <div
-        onClick={onCheckUpdate}
-        className="fixed bottom-4 left-4 text-[10px] text-white/20 font-mono z-50 cursor-help active:text-white/40 transition-colors pointer-events-auto flex items-center gap-2"
+        className="fixed bottom-4 left-4 z-50 flex items-center gap-2 font-mono text-[9px] font-bold tracking-tighter"
       >
-        <span>v{__APP_VERSION__} - Coringas Mágicos!</span>
-        {isUpdating && (
-          <span className="text-blue-400 animate-pulse font-bold bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">
-            • Baixando novas versões...
-          </span>
+        <div 
+          onClick={onCheckUpdate}
+          className="cursor-pointer opacity-20 hover:opacity-60 transition-opacity active:scale-95 flex items-center gap-1.5"
+        >
+          {isUpdating ? (
+            <Loader2 size={8} className="animate-spin text-blue-400" />
+          ) : updateSuccess ? (
+            <Check size={8} className="text-green-500" />
+          ) : null}
+          <span>v{__APP_VERSION__}</span>
+          {updateSuccess && <span className="uppercase tracking-widest text-[7px] animate-fade-in">• Atualizado</span>}
+        </div>
+
+        {needRefresh && (
+          <button
+            onClick={onUpdateApp}
+            className="flex items-center gap-1.5 bg-blue-500 text-white px-2 py-0.5 rounded-full animate-fade-in hover:bg-blue-400 active:scale-95 transition-all shadow-lg"
+          >
+            <Sparkles size={8} />
+            <span className="uppercase tracking-widest text-[7px]">Nova versão disponível! Reiniciar</span>
+          </button>
         )}
       </div>
     </div>

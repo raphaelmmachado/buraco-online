@@ -1,65 +1,46 @@
-import { useEffect, useState } from 'react';
-import { registerSW } from 'virtual:pwa-register';
+import { useRegisterSW } from 'virtual:pwa-register/react';
 
 export const usePWA = () => {
-  const [needRefresh, setNeedRefresh] = useState(false);
-  const [offlineReady, setOfflineReady] = useState(false);
-  const [updateFunction, setUpdateFunction] = useState<((reloadPage?: boolean) => Promise<void>) | null>(null);
-
-  useEffect(() => {
-    const updateSW = registerSW({
-      onNeedRefresh() {
-        console.log('Nova versão detectada!');
-        setNeedRefresh(true);
-      },
-      onOfflineReady() {
-        console.log('App pronto para uso offline.');
-        setOfflineReady(true);
-      },
-      onRegistered(r) {
-        console.log('Service Worker registrado.');
-        // Checa por atualizações a cada 10 minutos
-        if (r) {
-          setInterval(() => {
-            console.log('Checagem automática de atualização...');
-            r.update();
-          }, 10 * 60 * 1000);
-        }
-      },
-    });
-    
-    // Usamos um pequeno delay ou guardamos a ref para evitar o warning de cascading renders
-    const timer = setTimeout(() => {
-      setUpdateFunction(() => updateSW);
-    }, 0);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  const updateServiceWorker = async () => {
-    if (updateFunction) {
-      await updateFunction(true);
+  const {
+    needRefresh: [needRefresh, setNeedRefresh],
+    offlineReady: [offlineReady, setOfflineReady],
+    updateServiceWorker,
+  } = useRegisterSW({
+    onRegistered(r) {
+      console.log('PWA: Service Worker registrado. Checagem automática desativada.');
+    },
+    onNeedRefresh() {
+      console.log('PWA: Nova versão detectada e aguardando comando.');
+    },
+    onOfflineReady() {
+      console.log('PWA: App pronto para uso offline.');
     }
-  };
+  });
 
   const checkForUpdate = async () => {
     if ('serviceWorker' in navigator) {
       const registration = await navigator.serviceWorker.getRegistration();
       if (registration) {
-        console.log('Solicitando checagem de atualização ao SW...');
+        console.log('PWA: Buscando atualização manualmente...');
         await registration.update();
         
-        // Retorna true se houver uma nova versão esperando ou instalando
-        return registration.waiting !== null || registration.installing !== null;
+        if (registration.waiting) {
+            setNeedRefresh(true);
+            return true;
+        }
       }
     }
     return false;
+  };
+
+  const handleUpdate = async () => {
+    await updateServiceWorker(true);
   };
 
   return {
     needRefresh,
     offlineReady,
     checkForUpdate,
-    updateServiceWorker,
+    updateServiceWorker: handleUpdate,
   };
 };

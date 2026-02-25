@@ -3,10 +3,10 @@ import { useRegisterSW } from 'virtual:pwa-register/react';
 export const usePWA = () => {
   const {
     needRefresh: [needRefresh, setNeedRefresh],
-    offlineReady: [offlineReady, setOfflineReady],
+    offlineReady: [offlineReady],
     updateServiceWorker,
   } = useRegisterSW({
-    onRegistered(r) {
+    onRegistered() {
       console.log('PWA: Service Worker registrado. Checagem automática desativada.');
     },
     onNeedRefresh() {

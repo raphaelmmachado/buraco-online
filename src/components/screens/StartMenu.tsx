@@ -45,7 +45,7 @@ export const StartMenu = ({
       return (
         <button
           disabled
-          className={`${commonClasses} bg-green-500/10 border-green-500/20 text-green-400 opacity-50 cursor-not-allowed`}
+          className={`${commonClasses} bg-green-500/10 border-green-500/20 text-green-400 opacity-50`}
         >
           <Wifi size={12} />
           <span>Servidores encontrados</span>

@@ -2,8 +2,6 @@ import { useEffect, useState } from "react";
 import { useGameStore } from "../../store/useGameStore";
 import {
   Loader2,
-  Wifi,
-  WifiOff,
   User,
   Users,
   RefreshCw,
@@ -13,52 +11,11 @@ import {
 import { StyledButton } from "../ui/StyledButton";
 import { EventBar } from "../game-ui/EventBar";
 
-const ConnectionBadge = () => {
-  const connectionStatus = useGameStore((state) => state.connectionStatus);
-
-  switch (connectionStatus) {
-    case "CONNECTED":
-      return (
-        <div className="fixed bottom-4 right-4 md:bottom-8 md:right-8 flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full animate-fade-in z-50">
-          <Wifi size={14} className="text-green-500" />
-          <span className="text-[10px] font-black text-green-500 uppercase tracking-widest">
-            Conectado
-          </span>
-        </div>
-      );
-    case "CONNECTING":
-    case "RECONNECTING":
-      return (
-        <div className="fixed bottom-4 right-4 md:bottom-8 md:right-8 flex items-center gap-2 px-3 py-1.5 bg-yellow-500/10 border border-yellow-500/20 rounded-full animate-fade-in z-50">
-          <Loader2 size={14} className="text-yellow-500 animate-spin" />
-          <span className="text-[10px] font-black text-yellow-500 uppercase tracking-widest">
-            {connectionStatus === "CONNECTING"
-              ? "Ligando servidor..."
-              : "Reconectando..."}
-          </span>
-        </div>
-      );
-    case "DISCONNECTED":
-      return (
-        <div className="fixed bottom-4 right-4 md:bottom-8 md:right-8 flex items-center gap-2 px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-full animate-fade-in z-50">
-          <WifiOff size={14} className="text-red-500" />
-          <span className="text-[10px] font-black text-red-500 uppercase tracking-widest">
-            Desconectado
-          </span>
-        </div>
-      );
-    default:
-      return null;
-  }
-};
-
 export const HomeScreen = ({ onBack }: { onBack: () => void }) => {
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [newRoomId, setNewRoomId] = useState("");
 
   const connect = useGameStore((state) => state.connect);
-  const initializeSocket = useGameStore((state) => state.initializeSocket);
-  const connectSocket = useGameStore((state) => state.connectSocket);
   const disconnectSocket = useGameStore((state) => state.disconnectSocket);
   const rooms = useGameStore((state) => state.rooms);
   const fetchRooms = useGameStore((state) => state.fetchRooms);
@@ -106,13 +63,7 @@ export const HomeScreen = ({ onBack }: { onBack: () => void }) => {
     setTimeout(() => setIsRefreshing(false), 800);
   };
 
-  // 1. Inicializa listeners e tenta conectar apenas UMA vez ao montar a tela
-  useEffect(() => {
-    initializeSocket();
-    connectSocket();
-  }, [initializeSocket, connectSocket]);
-
-  // 2. Gerencia a busca de salas baseada no status da conexão
+  // Gerencia a busca de salas baseada no status da conexão
   useEffect(() => {
     if (connectionStatus === "CONNECTED") {
       fetchRooms();
@@ -171,8 +122,6 @@ export const HomeScreen = ({ onBack }: { onBack: () => void }) => {
       <div className="fixed bottom-4 left-4 text-[10px] text-white/20 font-mono pointer-events-none z-50">
         v{__APP_VERSION__} - Coringas Mágicos
       </div>
-
-      <ConnectionBadge />
 
       {/* Background Texture */}
       <div

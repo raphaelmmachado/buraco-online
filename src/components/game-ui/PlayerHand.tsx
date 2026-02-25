@@ -372,17 +372,12 @@ export const PlayerHand = ({
                         initial={{ opacity: 0, y: 100 }}
                         animate={{
                           opacity: 1,
-
                           x,
-
                           y: translateY,
-
                           scale,
-
                           rotate: isSuitHovered
                             ? (i - (suitCards.length - 1) / 2) * 2
                             : 0,
-
                           zIndex: isSuitHovered ? 50 + i : i,
                         }}
                         className="absolute origin-bottom pointer-events-auto"

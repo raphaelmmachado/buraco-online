@@ -1,39 +1,7 @@
 import { useGameStore, type WinCondition } from "../../store/useGameStore";
-import { Users, Bot, Loader2, Wifi, WifiOff, Settings2, Share2, Check, Eye } from "lucide-react";
+import { Users, Bot, Settings2, Share2, Check, Eye } from "lucide-react";
 import { useState } from "react";
 import { GameRulesModal } from "../game-ui/GameRulesModal";
-
-const ConnectionBadge = () => {
-    const connectionStatus = useGameStore((state) => state.connectionStatus);
-    switch(connectionStatus) {
-        case "CONNECTED":
-            return (
-                <div className="fixed bottom-4 right-4 md:bottom-8 md:right-8 flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full animate-fade-in z-50">
-                    <Wifi size={14} className="text-green-500" />
-                    <span className="text-[10px] font-black text-green-500 uppercase tracking-widest">Conectado</span>
-                </div>
-            );
-        case "CONNECTING":
-        case "RECONNECTING":
-            return (
-                <div className="fixed bottom-4 right-4 md:bottom-8 md:right-8 flex items-center gap-2 px-3 py-1.5 bg-yellow-500/10 border border-yellow-500/20 rounded-full animate-fade-in z-50">
-                    <Loader2 size={14} className="text-yellow-500 animate-spin" />
-                    <span className="text-[10px] font-black text-yellow-500 uppercase tracking-widest">
-                        {connectionStatus === "CONNECTING" ? "Conectando..." : "Reconectando..."}
-                    </span>
-                </div>
-            );
-        case "DISCONNECTED":
-            return (
-                <div className="fixed bottom-4 right-4 md:bottom-8 md:right-8 flex items-center gap-2 px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-full animate-fade-in z-50">
-                    <WifiOff size={14} className="text-red-500" />
-                    <span className="text-[10px] font-black text-red-500 uppercase tracking-widest">Desconectado</span>
-                </div>
-            );
-        default:
-            return null;
-    }
-};
 
 const TeamList = ({
     teamName,
@@ -222,7 +190,6 @@ export const LobbyScreen = () => {
 
   return (
     <div className="min-h-screen bg-[#0a1f13] flex flex-col items-center justify-center text-white p-4 md:p-6 font-sans relative overflow-hidden">
-      <ConnectionBadge />
       
       {/* Background Polish */}
       <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "40px 40px" }}></div>

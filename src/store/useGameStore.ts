@@ -197,13 +197,25 @@ type ServerResponse = { error?: string; success?: boolean };
 const socket: Socket = io(SERVER_ADDRESS, {
   autoConnect: false,
   transports: ["polling", "websocket"],
-  reconnection: true,
+  reconnection: false,
   reconnectionAttempts: Infinity,
-  reconnectionDelay: 500, // Tenta a cada meio segundo
-  reconnectionDelayMax: 2000,
-  randomizationFactor: 0,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
+  randomizationFactor: 0.5,
   timeout: 10000,
 });
+
+// Acesso direto para controle dinâmico do comportamento de reconexão
+export const updateSocketBehavior = (mode: "MENU" | "GAME") => {
+  if (mode === "GAME") {
+    socket.io.reconnection(true);
+    socket.io.opts.reconnectionDelay = 1000;
+    socket.io.opts.reconnectionDelayMax = 5000;
+  } else {
+    socket.io.reconnection(false); // Desativa busca automática no menu
+  }
+  console.log(`[SOCKET] Comportamento alterado para modo: ${mode} (Auto-reconnect: ${socket.io.reconnection()})`);
+};
 
 let listeners_setup = false;
 let is_manual_join = false;
@@ -677,7 +689,11 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       round_count: server_data.round_count || 1,
       win_condition: server_data.win_condition,
       rematch_votes: server_data.rematch_votes || {},
-      magic_joker: server_data.magic_joker || { direction: 1, is_discard_frozen: false, pending_skip: false },
+      magic_joker: server_data.magic_joker || {
+        direction: 1,
+        is_discard_frozen: false,
+        pending_skip: false,
+      },
       last_error: null,
     });
   },
@@ -774,21 +790,29 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   useJoker: (cardId: string) => {
     const { roomId } = get();
     const playerId = localStorage.getItem("baralho_player_id");
-    socket.emit("action_use_joker", { roomId, cardId, playerId }, (response: ServerResponse) => {
-      if (response && response.error) {
-        set({ last_error: response.error });
-      }
-    });
+    socket.emit(
+      "action_use_joker",
+      { roomId, cardId, playerId },
+      (response: ServerResponse) => {
+        if (response && response.error) {
+          set({ last_error: response.error });
+        }
+      },
+    );
   },
 
   power_pick_card: (cardId: string) => {
     const { roomId } = get();
     const playerId = localStorage.getItem("baralho_player_id");
-    socket.emit("action_power_pick_card", { roomId, cardId, playerId }, (response: ServerResponse) => {
-      if (response && response.error) {
-        set({ last_error: response.error });
-      }
-    });
+    socket.emit(
+      "action_power_pick_card",
+      { roomId, cardId, playerId },
+      (response: ServerResponse) => {
+        if (response && response.error) {
+          set({ last_error: response.error });
+        }
+      },
+    );
   },
 
   power_cancel: () => {

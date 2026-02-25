@@ -2,8 +2,9 @@ import "./style.css";
 import { OnlineGame } from "./components/screens/OnlineGame";
 import { LocalGame } from "./components/LocalGame";
 import { StartMenu } from "./components/screens/StartMenu";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePWA } from "./hooks/usePWA";
+import { useGameStore, updateSocketBehavior } from "./store/useGameStore";
 
 // The new router structure: 3 distinct states
 type VIEW_MODE = "HOME" | "ONLINE" | "LOCAL";
@@ -16,6 +17,26 @@ function App() {
     if (params.has("room")) return "ONLINE";
     return "HOME";
   });
+
+  const initializeSocket = useGameStore((state) => state.initializeSocket);
+  const connectSocket = useGameStore((state) => state.connectSocket);
+  const disconnectSocket = useGameStore((state) => state.disconnectSocket);
+
+  useEffect(() => {
+    initializeSocket();
+  }, [initializeSocket]);
+
+  useEffect(() => {
+    if (view === "ONLINE") {
+      updateSocketBehavior("GAME"); // Agressivo (1-5s) se estiver em jogo online
+      connectSocket();
+    } else if (view === "HOME") {
+      updateSocketBehavior("MENU"); // Manual no menu principal para evitar loops
+      connectSocket(); // Tenta conectar apenas UMA vez ao carregar o menu
+    } else {
+      disconnectSocket(); // Desligado se for jogo contra bot (LOCAL)
+    }
+  }, [view, connectSocket, disconnectSocket]);
 
   const handlePlayOnline = async () => {
     // Tenta atualizar antes de entrar no modo online

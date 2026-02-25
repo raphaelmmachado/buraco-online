@@ -5,13 +5,12 @@
     "url": "https://github.com/raphaelmmachado"
   },
   "private": true,
-  "version": "0.5.2",
+  "version": "0.5.3",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "tsc": "tsc -b",
+    "lint": "eslint . && tsc -b",
     "preview": "vite preview"
   },
   "dependencies": {

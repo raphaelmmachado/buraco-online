@@ -1,6 +1,6 @@
 import { useGameStore } from "../../store/useGameStore";
 import { EventBar } from "../game-ui/EventBar";
-import { Bot, Globe, Loader2, Wifi, RefreshCw } from "lucide-react";
+import { Bot, Globe, Loader2 } from "lucide-react";
 
 interface StartMenuProps {
   onPlayOnline: () => void;
@@ -19,67 +19,16 @@ export const StartMenu = ({
   const connectionStatus = useGameStore((state) => state.connectionStatus);
   const connectSocket = useGameStore((state) => state.connectSocket);
 
-  const isOnlineDisabled = connectionStatus !== "CONNECTED";
+  const isConnected = connectionStatus === "CONNECTED";
   const isConnecting =
     connectionStatus === "CONNECTING" || connectionStatus === "RECONNECTING";
 
-  const renderStatus = () => {
-    switch (connectionStatus) {
-      case "CONNECTED":
-        return <span className="text-green-500 font-bold">Online</span>;
-      case "CONNECTING":
-      case "RECONNECTING":
-        return <span className="text-yellow-500 font-bold">Aguarde</span>;
-      case "DISCONNECTED":
-        return <span className="text-red-500 font-bold">Offline</span>;
-      default:
-        return null;
+  const handleOnlineClick = () => {
+    if (isConnected) {
+      onPlayOnline();
+    } else if (!isConnecting) {
+      connectSocket();
     }
-  };
-
-  const renderSearchButton = () => {
-    const commonClasses =
-      "mt-4 flex items-center justify-center gap-2 py-2 px-6 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all border";
-
-    if (connectionStatus === "CONNECTED") {
-      return (
-        <button
-          disabled
-          className={`${commonClasses} bg-green-500/10 border-green-500/20 text-green-400 opacity-50`}
-        >
-          <Wifi size={12} />
-          <span>Servidores encontrados</span>
-        </button>
-      );
-    }
-
-    if (isConnecting) {
-      return (
-        <button
-          disabled
-          className={`${commonClasses} bg-yellow-500/10 border-yellow-500/20 text-yellow-400 cursor-not-allowed`}
-        >
-          <Loader2 size={12} className="animate-spin" />
-          <span>Buscando...</span>
-        </button>
-      );
-    }
-
-    return (
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          connectSocket();
-        }}
-        className={`${commonClasses} bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/20 text-blue-400 active:scale-95 group/btn`}
-      >
-        <RefreshCw
-          size={12}
-          className="group-hover/btn:rotate-180 transition-transform duration-500"
-        />
-        <span>Buscar Servidor</span>
-      </button>
-    );
   };
 
   return (
@@ -110,6 +59,7 @@ export const StartMenu = ({
           </p>
         </div>
 
+        {/* JOGAR OFFLINE */}
         <button
           onClick={onPlayLocal}
           className="group bg-black/40 hover:bg-purple-900/20 backdrop-blur-md p-8 rounded-2xl border border-white/10 hover:border-purple-500/50 transition-all hover:scale-[1.02] active:scale-95 flex flex-col items-center gap-4 shadow-2xl"
@@ -127,38 +77,55 @@ export const StartMenu = ({
           </div>
         </button>
 
-        <div
-          className={`group bg-black/40 backdrop-blur-md p-8 rounded-2xl border border-white/10 transition-all flex flex-col items-center gap-4 shadow-2xl ${
-            isOnlineDisabled
-              ? "border-blue-500/10"
-              : "hover:bg-blue-900/20 hover:border-blue-500/50 hover:scale-[1.02] cursor-pointer"
+        {/* JOGAR ONLINE (SMART BUTTON - DISCRETO) */}
+        <button
+          onClick={handleOnlineClick}
+          disabled={isConnecting}
+          className={`group bg-black/40 backdrop-blur-md p-8 rounded-2xl border transition-all flex flex-col items-center gap-4 shadow-2xl relative overflow-hidden ${
+            isConnected
+              ? "hover:bg-blue-900/20 border-white/10 hover:border-blue-500/50 hover:scale-[1.02] active:scale-95"
+              : "border-blue-500/5 opacity-60 hover:opacity-100 active:scale-95 cursor-pointer"
           }`}
-          onClick={() => !isOnlineDisabled && onPlayOnline()}
         >
           <div
-            className={`w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center border border-blue-500/20 transition-all text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.1)] ${
-              !isOnlineDisabled
-                ? "group-hover:border-blue-500 group-hover:bg-blue-500 group-hover:text-black group-hover:shadow-[0_0_30px_rgba(59,130,246,0.6)]"
-                : "opacity-50 grayscale"
-            }`}
+            className={`w-20 h-20 rounded-full flex items-center justify-center border transition-all relative ${
+              isConnected
+                ? "bg-blue-500/10 border-blue-500/20 text-blue-400 group-hover:border-blue-500 group-hover:bg-blue-500 group-hover:text-black shadow-[0_0_20px_rgba(59,130,246,0.1)] group-hover:shadow-[0_0_30px_rgba(59,130,246,0.6)]"
+                : "bg-white/5 border-white/10 text-slate-500 grayscale"
+            } ${isConnecting ? "animate-pulse" : ""}`}
           >
-            <Globe size={40} />
+            {isConnecting ? (
+              <Loader2 size={40} className="animate-spin" />
+            ) : (
+              <Globe size={40} />
+            )}
+
+            {/* Status LED (Discreto) */}
           </div>
-          <div className="text-center flex flex-col items-center gap-1">
+
+          <div className="text-center flex flex-col items-center">
             <h2
-              className={`text-2xl font-black uppercase mb-0 transition-colors ${isOnlineDisabled ? "text-slate-500" : "text-blue-100"}`}
+              className={`text-2xl font-black uppercase mb-1 transition-colors ${
+                isConnected
+                  ? "text-blue-100"
+                  : "text-slate-400 group-hover:text-blue-300"
+              }`}
             >
               Jogar Online
             </h2>
-            <p className="text-[10px] text-blue-300/60 font-mono uppercase tracking-widest mb-1">
-              Com outros jogadores
+            <p
+              className={`text-[10px] font-mono uppercase tracking-widest transition-colors ${
+                isConnected ? "text-blue-300/60" : "text-slate-600"
+              }`}
+            >
+              {isConnected
+                ? "Com outros jogadores"
+                : isConnecting
+                  ? "Buscando Servidor..."
+                  : "Servidor não encontrado"}
             </p>
-            <div className="text-[10px] uppercase tracking-[0.2em] opacity-80">
-              Status: {renderStatus()}
-            </div>
-            {renderSearchButton()}
           </div>
-        </div>
+        </button>
       </div>
 
       <div

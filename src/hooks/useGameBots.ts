@@ -44,7 +44,8 @@ export const useGameBots = () => {
             has_clean,
             store.discard_pile.length,
             store.deck.length,
-            store.rules
+            store.rules,
+            store.dead_piles.length
           );
 
           if (action) {
@@ -88,6 +89,7 @@ export const useGameBots = () => {
             all_played_cards_for_add,
             store.mode === "2v2",
             store.rules,
+            store.dead_piles.length,
           );
           if (card_to_add) {
             console.log(`🤖 Bot ${store.current_player} adicionou ao jogo ${i}.`);
@@ -104,7 +106,8 @@ export const useGameBots = () => {
           has_clean,
           is_desperate,
           store.mode === "2v2",
-          store.rules
+          store.rules,
+          store.dead_piles.length
         );
         if (new_meld) {
           console.log(`🤖 Bot ${store.current_player} baixou um novo jogo.`);
@@ -131,6 +134,7 @@ export const useGameBots = () => {
           partner_hand_size,
           store.rules,
           has_clean,
+          store.dead_piles.length,
         );
 
         if (card_to_discard) {

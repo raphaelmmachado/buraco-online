@@ -364,7 +364,8 @@ const execute_bot_move = (io: Server, roomId: string) => {
                     has_clean,
                     game.discard_pile.length,
                     game.deck.length,
-                    game.rules
+                    game.rules,
+                    game.dead_piles.length,
                   );
         if (action) {
           console.log(`[BOT] Bot pegou do lixo: ${action.type}`);
@@ -493,6 +494,7 @@ const execute_bot_move = (io: Server, roomId: string) => {
         [],
         game.mode === "2v2",
         game.rules,
+        game.dead_piles.length,
       );
       if (card_to_add) {
         console.log(
@@ -521,7 +523,8 @@ const execute_bot_move = (io: Server, roomId: string) => {
       has_clean,
       false,
       game.mode === "2v2",
-      game.rules
+      game.rules,
+      game.dead_piles.length,
     );
     if (new_meld_cards) {
       console.log(`[BOT] Baixando novo jogo.`);
@@ -555,6 +558,7 @@ const execute_bot_move = (io: Server, roomId: string) => {
       0, // partner_hand_size (opcional)
       game.rules,
       has_clean,
+      game.dead_piles.length,
     );
 
     if (!discard_card && my_hand.length > 0) {

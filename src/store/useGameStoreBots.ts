@@ -422,6 +422,16 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
 
     const team_id = get_team(current_player);
     const has_taken_dead = get().has_taken_dead_pile[team_id];
+    const dead_piles = get().dead_piles;
+    const can_take_extra =
+      has_taken_dead &&
+      get().rules.team_can_take_both_dead_piles &&
+      dead_piles.length > 0;
+
+    const is_final_beat =
+      (has_taken_dead && !can_take_extra) ||
+      (!has_taken_dead && dead_piles.length === 0);
+
     const is_clean_canasta = (v: MeldValidation) =>
       v.is_valid &&
       (v.canastra_type === "CLEAN" ||
@@ -432,11 +442,15 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       get().internal_can_beat() || is_clean_canasta(validation);
 
     if (new_hand.length === 0) {
-      if (get().rules.must_have_clean_canastra_to_beat && !will_have_clean) {
+      if (
+        get().rules.must_have_clean_canastra_to_beat &&
+        is_final_beat &&
+        !will_have_clean
+      ) {
         set({ last_error: "Proibido bater sem canastra limpa." });
         return;
       }
-      if (has_taken_dead && !will_have_clean) {
+      if (is_final_beat && has_taken_dead && !will_have_clean) {
         set({ last_error: "Proibido bater após morto sem canastra limpa." });
         return;
       }
@@ -514,6 +528,16 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         v.canastra_type === "ACE");
 
     const has_taken_dead = get().has_taken_dead_pile[team_id];
+    const dead_piles = get().dead_piles;
+    const can_take_extra =
+      has_taken_dead &&
+      get().rules.team_can_take_both_dead_piles &&
+      dead_piles.length > 0;
+
+    const is_final_beat =
+      (has_taken_dead && !can_take_extra) ||
+      (!has_taken_dead && dead_piles.length === 0);
+
     const will_have_clean = team_melds[team_id].some((meld, idx) => {
       const v =
         idx === meld_index
@@ -523,11 +547,15 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
     });
 
     if (new_hand.length === 0) {
-      if (get().rules.must_have_clean_canastra_to_beat && !will_have_clean) {
+      if (
+        get().rules.must_have_clean_canastra_to_beat &&
+        is_final_beat &&
+        !will_have_clean
+      ) {
         set({ last_error: "Proibido bater sem canastra limpa." });
         return;
       }
-      if (has_taken_dead && !will_have_clean) {
+      if (is_final_beat && has_taken_dead && !will_have_clean) {
         set({ last_error: "Proibido bater após morto sem canastra limpa." });
         return;
       }
@@ -587,6 +615,16 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         v.canastra_type === "ACE");
 
     const has_taken_dead = get().has_taken_dead_pile[team_id];
+    const dead_piles = get().dead_piles;
+    const can_take_extra =
+      has_taken_dead &&
+      get().rules.team_can_take_both_dead_piles &&
+      dead_piles.length > 0;
+
+    const is_final_beat =
+      (has_taken_dead && !can_take_extra) ||
+      (!has_taken_dead && dead_piles.length === 0);
+
     const will_have_clean = team_melds[team_id].some((meld, idx) => {
       const v =
         idx === meld_index ? validation : validate_sequence(meld, get().rules);
@@ -594,11 +632,15 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
     });
 
     if (new_hand.length === 0) {
-      if (get().rules.must_have_clean_canastra_to_beat && !will_have_clean) {
+      if (
+        get().rules.must_have_clean_canastra_to_beat &&
+        is_final_beat &&
+        !will_have_clean
+      ) {
         set({ last_error: "Proibido bater sem canastra limpa." });
         return;
       }
-      if (has_taken_dead && !will_have_clean) {
+      if (is_final_beat && has_taken_dead && !will_have_clean) {
         set({ last_error: "Proibido bater após morto sem canastra limpa." });
         return;
       }
@@ -652,6 +694,16 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
 
     const team_id = get_team(current_player);
     const has_taken_dead = get().has_taken_dead_pile[team_id];
+    const dead_piles = get().dead_piles;
+    const can_take_extra =
+      has_taken_dead &&
+      get().rules.team_can_take_both_dead_piles &&
+      dead_piles.length > 0;
+
+    const is_final_beat =
+      (has_taken_dead && !can_take_extra) ||
+      (!has_taken_dead && dead_piles.length === 0);
+
     const is_clean_canasta = (v: MeldValidation) =>
       v.is_valid &&
       (v.canastra_type === "CLEAN" ||
@@ -662,11 +714,15 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       get().internal_can_beat() || is_clean_canasta(validation);
 
     if (new_hand.length === 0) {
-      if (get().rules.must_have_clean_canastra_to_beat && !will_have_clean) {
+      if (
+        get().rules.must_have_clean_canastra_to_beat &&
+        is_final_beat &&
+        !will_have_clean
+      ) {
         set({ last_error: "Proibido bater sem canastra limpa." });
         return;
       }
-      if (has_taken_dead && !will_have_clean) {
+      if (is_final_beat && has_taken_dead && !will_have_clean) {
         set({ last_error: "Proibido bater após morto sem canastra limpa." });
         return;
       }
@@ -709,14 +765,28 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
 
     const team_id = get_team(current_player);
     const has_taken_dead = get().has_taken_dead_pile[team_id];
+    const dead_piles = get().dead_piles;
+    const can_take_extra =
+      has_taken_dead &&
+      get().rules.team_can_take_both_dead_piles &&
+      dead_piles.length > 0;
+
+    const is_final_beat =
+      (has_taken_dead && !can_take_extra) ||
+      (!has_taken_dead && dead_piles.length === 0);
+
     const has_clean = get().internal_can_beat();
 
     if (new_hand.length === 0) {
-      if (get().rules.must_have_clean_canastra_to_beat && !has_clean) {
+      if (
+        get().rules.must_have_clean_canastra_to_beat &&
+        is_final_beat &&
+        !has_clean
+      ) {
         set({ last_error: "Proibido bater sem canastra limpa." });
         return;
       }
-      if (has_taken_dead && !has_clean) {
+      if (is_final_beat && has_taken_dead && !has_clean) {
         set({ last_error: "Proibido bater após morto sem canastra limpa." });
         return;
       }

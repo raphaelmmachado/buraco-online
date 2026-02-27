@@ -5,6 +5,7 @@ import {
   get_next_player,
   handle_empty_hand,
   has_clean_canastra,
+  is_final_beat,
   get_team,
   start_next_round,
   start_new_match,
@@ -145,10 +146,16 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       }
 
       const team_id = get_team(player_id);
+      const final_beat = is_final_beat(game, player_id);
+
       const new_hand_len =
         current_hand.length - card_ids.length + (game.discard_pile.length - 1);
 
-      if (new_hand_len === 0 && game.rules.must_have_clean_canastra_to_beat) {
+      if (
+        new_hand_len === 0 &&
+        game.rules.must_have_clean_canastra_to_beat &&
+        final_beat
+      ) {
         const already_has_clean = has_clean_canastra(game, team_id);
         const this_is_clean_canasta =
           validation.is_valid &&
@@ -245,6 +252,8 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       }
 
       const team_id = get_team(player_id);
+      const final_beat = is_final_beat(game, player_id);
+
       const team_melds = game.team_melds[team_id];
       const target_meld = team_melds?.[meld_index];
       if (!target_meld) {
@@ -280,7 +289,11 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       const new_hand_len =
         current_hand.length - card_ids.length + (game.discard_pile.length - 1);
 
-      if (new_hand_len === 0 && game.rules.must_have_clean_canastra_to_beat) {
+      if (
+        new_hand_len === 0 &&
+        game.rules.must_have_clean_canastra_to_beat &&
+        final_beat
+      ) {
         const already_has_clean = team_melds?.some((meld, idx) => {
           if (idx === meld_index) return false;
           const v = validate_sequence(meld, game.rules);
@@ -386,9 +399,15 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       }
 
       const team_id = get_team(player_id);
+      const final_beat = is_final_beat(game, player_id);
+
       const new_hand_len = current_hand.length - card_ids.length;
 
-      if (new_hand_len === 0 && game.rules.must_have_clean_canastra_to_beat) {
+      if (
+        new_hand_len === 0 &&
+        game.rules.must_have_clean_canastra_to_beat &&
+        final_beat
+      ) {
         const already_has_clean = has_clean_canastra(game, team_id);
         const this_is_clean_canasta =
           validation.is_valid &&
@@ -458,6 +477,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       const current_hand = game.hands[player_id];
       const team_id = get_team(player_id);
       const team_melds = game.team_melds[team_id];
+      const final_beat = is_final_beat(game, player_id);
 
       if (game.turn_phase !== "ACTION" || !current_hand || !team_melds) {
         if (callback) callback({ error: "Não pode baixar jogo agora." });
@@ -485,7 +505,11 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       }
 
       const new_hand_len = current_hand.length - card_ids.length;
-      if (new_hand_len === 0 && game.rules.must_have_clean_canastra_to_beat) {
+      if (
+        new_hand_len === 0 &&
+        game.rules.must_have_clean_canastra_to_beat &&
+        final_beat
+      ) {
         const already_has_clean = has_clean_canastra(game, team_id);
         const this_will_be_clean =
           validation.is_valid &&
@@ -556,9 +580,15 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       if (!card_to_discard) return;
 
       const team_id = get_team(player_id);
+      const final_beat = is_final_beat(game, player_id);
+
       const new_hand_len = current_hand.length - 1;
 
-      if (new_hand_len === 0 && game.rules.must_have_clean_canastra_to_beat) {
+      if (
+        new_hand_len === 0 &&
+        game.rules.must_have_clean_canastra_to_beat &&
+        final_beat
+      ) {
         if (!has_clean_canastra(game, team_id)) {
           if (callback)
             callback({

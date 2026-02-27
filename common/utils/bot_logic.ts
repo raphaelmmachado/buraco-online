@@ -48,6 +48,7 @@ const group_by_suit = (hand: Card[]) => {
  * @param has_clean_canastra Se a equipe já tem uma canastra limpa (necessário para bater).
  * @param is_desperate_to_close Se o bot está em modo "desespero" (fim de jogo).
  * @param is_2v2 Se o jogo é em dupla.
+ * @param dead_piles_count Quantidade de mortos disponíveis.
  */
 export const find_meld_in_hand = (
   hand: Card[],
@@ -56,7 +57,8 @@ export const find_meld_in_hand = (
   has_clean_canastra: boolean = false,
   is_desperate_to_close: boolean = false,
   is_2v2: boolean = false,
-  rules: GameRules = DEFAULT_RULES
+  rules: GameRules = DEFAULT_RULES,
+  dead_piles_count: number = 0,
 ): Card[] | null => {
   const all_potential_melds: PotentialMeld[] = [];
   const suits = group_by_suit(hand);
@@ -141,7 +143,7 @@ export const find_meld_in_hand = (
   }
 
   // Avalia todos os jogos potenciais encontrados e escolhe o que tem maior pontuação estratégica
-  const bestMeld = evaluate_potential_melds(all_potential_melds, hand, team_melds, has_taken_dead_pile, has_clean_canastra, is_desperate_to_close, is_2v2, rules);
+  const bestMeld = evaluate_potential_melds(all_potential_melds, hand, team_melds, has_taken_dead_pile, has_clean_canastra, is_desperate_to_close, is_2v2, rules, dead_piles_count);
 
   return bestMeld ? bestMeld.cards : null;
 };
@@ -204,7 +206,8 @@ const evaluate_potential_melds = (
   hasCleanCanastra: boolean,
   isDesperate: boolean = false,
   is_2v2: boolean = false,
-  rules: GameRules = DEFAULT_RULES
+  rules: GameRules = DEFAULT_RULES,
+  dead_piles_count: number = 0,
 ): PotentialMeld | null => {
   let bestMeld: PotentialMeld | null = null;
   let highestScore = -Infinity;
@@ -246,10 +249,13 @@ const evaluate_potential_melds = (
     const is_creating_clean = validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE';
     const will_have_clean = hasCleanCanastra || is_creating_clean;
 
+    const can_take_extra = hasTakenDeadPile && rules.team_can_take_both_dead_piles && dead_piles_count > 0;
+    const is_final_beat_attempt = (hasTakenDeadPile && !can_take_extra) || (!hasTakenDeadPile && dead_piles_count === 0);
+
     if (remainingHand.length < 2) {
-      if (rules.must_have_clean_canastra_to_beat && !will_have_clean) {
+      if (rules.must_have_clean_canastra_to_beat && is_final_beat_attempt && !will_have_clean) {
          score -= 2000; // Penalidade extrema: Proibido bater/ficar com 1 sem canastra limpa
-      } else if (hasTakenDeadPile && !will_have_clean) {
+      } else if (is_final_beat_attempt && hasTakenDeadPile && !will_have_clean) {
          score -= 1000; // Penalidade se já pegou morto mas ainda não tem limpa
       }
     }
@@ -386,6 +392,7 @@ export const find_card_to_add = (
   all_played_cards: Card[] = [],
   is_2v2: boolean = false,
   rules: GameRules = DEFAULT_RULES,
+  dead_piles_count: number = 0,
 ): Card | null => {
   const target_suit_name = meld.find((c) => c.value !== "2")?.suit.name;
   const target_suit = target_suit_name;
@@ -450,11 +457,14 @@ export const find_card_to_add = (
       
       const will_have_clean_final = has_clean_canastra || is_now_clean_canastra_final;
 
+      const can_take_extra = has_taken_dead_pile && rules.team_can_take_both_dead_piles && dead_piles_count > 0;
+      const is_final_beat_attempt = (has_taken_dead_pile && !can_take_extra) || (!has_taken_dead_pile && dead_piles_count === 0);
+
       if (hand.length <= 2) {
-        if (rules.must_have_clean_canastra_to_beat && !will_have_clean_final) {
+        if (rules.must_have_clean_canastra_to_beat && is_final_beat_attempt && !will_have_clean_final) {
           continue; // Não pode ficar com 1 ou 0 se as regras exigem limpa e não temos uma
         }
-        if (has_taken_dead_pile && !will_have_clean_final) {
+        if (is_final_beat_attempt && has_taken_dead_pile && !will_have_clean_final) {
           continue; // Proteção clássica do morto
         }
       }
@@ -548,7 +558,8 @@ export const analyze_discard_pickup = (
   has_clean_canastra: boolean = false,
   discard_pile_size: number = 0,
   deck_size: number = 0,
-  rules: GameRules = DEFAULT_RULES
+  rules: GameRules = DEFAULT_RULES,
+  dead_piles_count: number = 0
 ): PickupAction | null => {
   
   const desperation_factor = deck_size < 10 ? (10 - deck_size) * 5 : 0;
@@ -599,9 +610,12 @@ export const analyze_discard_pickup = (
       const will_have_clean = has_clean_canastra || is_now_canastra;
       const new_hand_size = hand.length + (discard_pile_size - 1);
 
+      const can_take_extra = has_taken_dead_pile && rules.team_can_take_both_dead_piles && dead_piles_count > 0;
+      const is_final_beat_attempt = (has_taken_dead_pile && !can_take_extra) || (!has_taken_dead_pile && dead_piles_count === 0);
+
       if (new_hand_size < 2) {
-        if (rules.must_have_clean_canastra_to_beat && !will_have_clean) continue;
-        if (has_taken_dead_pile && !will_have_clean) continue;
+        if (rules.must_have_clean_canastra_to_beat && is_final_beat_attempt && !will_have_clean) continue;
+        if (is_final_beat_attempt && has_taken_dead_pile && !will_have_clean) continue;
       }
 
       return { type: "ADD_TO_MELD", meld_index: i, cards: [] };
@@ -662,9 +676,12 @@ export const analyze_discard_pickup = (
         const will_have_clean = has_clean_canastra || is_now_canastra;
         const new_hand_size = hand.length + (discard_pile_size - 1) - 1;
 
+        const can_take_extra = has_taken_dead_pile && rules.team_can_take_both_dead_piles && dead_piles_count > 0;
+        const is_final_beat_attempt = (has_taken_dead_pile && !can_take_extra) || (!has_taken_dead_pile && dead_piles_count === 0);
+
         if (new_hand_size < 2) {
-          if (rules.must_have_clean_canastra_to_beat && !will_have_clean) continue;
-          if (has_taken_dead_pile && !will_have_clean) continue;
+          if (rules.must_have_clean_canastra_to_beat && is_final_beat_attempt && !will_have_clean) continue;
+          if (is_final_beat_attempt && has_taken_dead_pile && !will_have_clean) continue;
         }
 
         return { type: "ADD_TO_MELD", meld_index: i, cards: [card] };
@@ -743,9 +760,12 @@ export const analyze_discard_pickup = (
           const will_have_clean = has_clean_canastra || is_now_canastra;
           const new_hand_size = hand.length + (discard_pile_size - 1) - 2;
 
+          const can_take_extra = has_taken_dead_pile && rules.team_can_take_both_dead_piles && dead_piles_count > 0;
+          const is_final_beat_attempt = (has_taken_dead_pile && !can_take_extra) || (!has_taken_dead_pile && dead_piles_count === 0);
+
           if (new_hand_size < 2) {
-              if (rules.must_have_clean_canastra_to_beat && !will_have_clean) continue;
-              if (has_taken_dead_pile && !will_have_clean) continue;
+              if (rules.must_have_clean_canastra_to_beat && is_final_beat_attempt && !will_have_clean) continue;
+              if (is_final_beat_attempt && has_taken_dead_pile && !will_have_clean) continue;
           }
 
           return { type: 'NEW_MELD', cards: [c1, c2] }; 
@@ -846,13 +866,17 @@ export const choose_discard = (
   partner_hand_size: number = 0,
   rules: GameRules = DEFAULT_RULES,
   has_clean_canastra: boolean = false,
+  dead_piles_count: number = 0,
 ): Card => {
   let best_card: Card | null = null;
   let min_score = Infinity;
 
+  const can_take_extra = has_taken_dead_pile && rules.team_can_take_both_dead_piles && dead_piles_count > 0;
+  const is_final_beat_attempt = (has_taken_dead_pile && !can_take_extra) || (!has_taken_dead_pile && dead_piles_count === 0);
+
   // Se o bot tem apenas 1 carta e a regra exige canastra limpa, 
   // ele NÃO PODE descartar essa carta para bater sem ter a limpa.
-  const can_discard_last = (!rules.must_have_clean_canastra_to_beat || has_clean_canastra) && (!has_taken_dead_pile || has_clean_canastra);
+  const can_discard_last = !is_final_beat_attempt || !rules.must_have_clean_canastra_to_beat || has_clean_canastra;
 
   const candidates =
     hand.length > 1

@@ -356,7 +356,7 @@ export const GameRulesModal = ({
                 <RuleToggle
                   label="Exigir Canastra Limpa para Bater"
                   ruleKey="must_have_clean_canastra_to_beat"
-                  info="Se ativado, é obrigatório ter pelo menos uma canastra limpa na mesa para poder esvaziar a mão (seja para pegar o morto ou para finalizar a partida)."
+                  info="Se ativado, é obrigatório ter pelo menos uma canastra limpa na mesa para poder realizar a batida final (encerrar a rodada). Não impede de esvaziar a mão para pegar o morto."
                   rules={localRules}
                   isHost={isHost}
                   onToggle={toggleRule}

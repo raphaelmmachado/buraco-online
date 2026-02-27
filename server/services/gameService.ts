@@ -23,6 +23,22 @@ export const get_next_player = (
   return next;
 };
 
+export const is_final_beat = (
+  game: ServerGameState,
+  player_id: PlayerID,
+): boolean => {
+  const team_id = get_team(player_id);
+  const team_idx = (team_id - 1) as 0 | 1;
+  const has_taken = game.has_taken_dead_pile[team_idx];
+
+  const can_take_extra =
+    has_taken &&
+    game.rules.team_can_take_both_dead_piles &&
+    game.dead_piles.length > 0;
+
+  return (has_taken && !can_take_extra) || (!has_taken && game.dead_piles.length === 0);
+};
+
 export const has_clean_canastra = (
   game: ServerGameState,
   team_id: TeamID,

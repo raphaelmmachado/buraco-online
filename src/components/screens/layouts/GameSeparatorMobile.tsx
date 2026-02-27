@@ -57,7 +57,7 @@ export const GameSeparatorMobile = ({
           points={myScore}
           hasTakenDeadPile={myTeamHasTaken}
           showSkull={true}
-          maxDeadPiles={game.rules.teamCanTakeBothDeadPiles ? 2 : 1}
+          maxDeadPiles={game.rules.team_can_take_both_dead_piles ? 2 : 1}
           horizontal={true}
           className="py-0 h-5"
         />
@@ -94,7 +94,7 @@ export const GameSeparatorMobile = ({
           points={oppScore}
           hasTakenDeadPile={oppTeamHasTaken}
           showSkull={true}
-          maxDeadPiles={game.rules.teamCanTakeBothDeadPiles ? 2 : 1}
+          maxDeadPiles={game.rules.team_can_take_both_dead_piles ? 2 : 1}
           horizontal={true}
           className="py-0 h-5"
         />

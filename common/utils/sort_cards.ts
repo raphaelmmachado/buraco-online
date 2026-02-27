@@ -6,6 +6,7 @@
 
 import { type Card, PRIMARY_CARD_WEIGHTS } from "../types/card";
 import { get_sequence_details } from "./rules_logic";
+import { type GameRules, DEFAULT_RULES } from "../types/rules";
 
 /**
  * @function sort_cards
@@ -74,10 +75,13 @@ export const sort_cards = (cards: Card[], randomize_suits: boolean = false): Car
  * @description Função principal e definitiva para organizar um jogo (meld) para exibição na mesa.
  *              Ela determina a sequência correta e posiciona os coringas nos "buracos".
  */
-export const organize_meld = (cards: Card[]): Card[] => {
-  if (cards.length < 3) return sort_cards(cards);
+export const organize_meld = (
+  cards: Card[],
+  rules: GameRules = DEFAULT_RULES,
+): Card[] => {
+  if (cards.length < rules.min_cards_for_meld) return sort_cards(cards);
 
-  const details = get_sequence_details(cards);
+  const details = get_sequence_details(cards, rules);
 
   if (!details.is_valid) {
     return sort_cards(cards);

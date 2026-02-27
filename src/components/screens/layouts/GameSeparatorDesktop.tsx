@@ -22,7 +22,7 @@ export const GameSeparatorDesktop = ({
           points={myScore}
           hasTakenDeadPile={myTeamHasTaken}
           showSkull={true}
-          maxDeadPiles={game.rules.teamCanTakeBothDeadPiles ? 2 : 1}
+          maxDeadPiles={game.rules.team_can_take_both_dead_piles ? 2 : 1}
           horizontal={true}
           className="bg-blue-950/40 rounded-full border border-blue-500/20 text-blue-400"
         />
@@ -62,7 +62,7 @@ export const GameSeparatorDesktop = ({
           points={oppScore}
           hasTakenDeadPile={oppTeamHasTaken}
           showSkull={true}
-          maxDeadPiles={game.rules.teamCanTakeBothDeadPiles ? 2 : 1}
+          maxDeadPiles={game.rules.team_can_take_both_dead_piles ? 2 : 1}
           horizontal={true}
           invert={true}
           className="bg-red-950/40 rounded-full border border-red-500/20 text-red-400"

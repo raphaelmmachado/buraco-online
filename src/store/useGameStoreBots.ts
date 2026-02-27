@@ -95,11 +95,16 @@ interface GameActions {
   internal_can_beat: () => boolean;
   internal_handle_empty_hand: (type: "DIRECT" | "INDIRECT") => void;
   reset_game: () => void;
+  update_rules: (rules: GameRules) => void;
   clear_info: () => void;
 }
 
 const get_team = (player_id: number): TeamID => (player_id % 2 !== 0 ? 1 : 2);
-const get_next_player = (current: number, mode: GameMode, direction: 1 | -1 = 1): PlayerID => {
+const get_next_player = (
+  current: number,
+  mode: GameMode,
+  direction: 1 | -1 = 1,
+): PlayerID => {
   if (mode === "1v1") return current === 1 ? 2 : 1;
   let next = current + direction;
   if (next > 4) next = 1;
@@ -170,6 +175,10 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
     });
   },
 
+  update_rules: (rules: GameRules) => {
+    set({ rules });
+  },
+
   addEvent: (message, type = "info", playerId) => {
     const id = Math.random().toString(36).substring(7);
     set((state) => ({
@@ -229,7 +238,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
     }
 
     const full_deck = create_deck(rules);
-    const setup = distribute_cards(full_deck, mode);
+    const setup = distribute_cards(full_deck, mode, rules);
 
     // Organiza as mãos automaticamente
     const sorted_hands: Record<number, Card[]> = {};
@@ -269,7 +278,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
   next_round: () => {
     const { mode, round_count, rules } = get();
     const full_deck = create_deck(rules);
-    const setup = distribute_cards(full_deck, mode);
+    const setup = distribute_cards(full_deck, mode, rules);
 
     // Organiza as mãos automaticamente
     const sorted_hands: Record<number, Card[]> = {};
@@ -387,7 +396,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       potential_meld.map((c) => `${c.value}${c.suit.icon}`),
     );
 
-    const validation = validate_sequence(potential_meld);
+    const validation = validate_sequence(potential_meld, get().rules);
     const is_valid_pickup = validate_discard_pickup(
       top_card,
       selected_cards,
@@ -412,6 +421,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
     const new_hand = sort_cards([...remaining_hand, ...pile_to_take]);
 
     const team_id = get_team(current_player);
+    const has_taken_dead = get().has_taken_dead_pile[team_id];
     const is_clean_canasta = (v: MeldValidation) =>
       v.is_valid &&
       (v.canastra_type === "CLEAN" ||
@@ -421,18 +431,18 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
     const will_have_clean =
       get().internal_can_beat() || is_clean_canasta(validation);
 
-    if (
-      get().has_taken_dead_pile[team_id] &&
-      new_hand.length <= 1 &&
-      !will_have_clean
-    ) {
-      set({
-        last_error: "Proibido bater sem canastra limpa.",
-      });
-      return;
+    if (new_hand.length === 0) {
+      if (get().rules.must_have_clean_canastra_to_beat && !will_have_clean) {
+        set({ last_error: "Proibido bater sem canastra limpa." });
+        return;
+      }
+      if (has_taken_dead && !will_have_clean) {
+        set({ last_error: "Proibido bater após morto sem canastra limpa." });
+        return;
+      }
     }
 
-    const organized_meld = organize_meld(potential_meld);
+    const organized_meld = organize_meld(potential_meld, get().rules);
     const final_meld =
       organized_meld.length === potential_meld.length
         ? organized_meld
@@ -503,27 +513,28 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         v.canastra_type === "KING" ||
         v.canastra_type === "ACE");
 
+    const has_taken_dead = get().has_taken_dead_pile[team_id];
     const will_have_clean = team_melds[team_id].some((meld, idx) => {
       const v =
         idx === meld_index
-          ? validate_sequence(proposed_meld)
-          : validate_sequence(meld);
+          ? validate_sequence(proposed_meld, get().rules)
+          : validate_sequence(meld, get().rules);
       return is_clean_canasta(v);
     });
 
-    if (
-      get().has_taken_dead_pile[team_id] &&
-      new_hand.length <= 1 &&
-      !will_have_clean
-    ) {
-      set({
-        last_error: "Proibido bater sem canastra limpa.",
-      });
-      return;
+    if (new_hand.length === 0) {
+      if (get().rules.must_have_clean_canastra_to_beat && !will_have_clean) {
+        set({ last_error: "Proibido bater sem canastra limpa." });
+        return;
+      }
+      if (has_taken_dead && !will_have_clean) {
+        set({ last_error: "Proibido bater após morto sem canastra limpa." });
+        return;
+      }
     }
 
     const new_melds = [...team_melds[team_id]];
-    const organized_meld = organize_meld(proposed_meld);
+    const organized_meld = organize_meld(proposed_meld, get().rules);
     new_melds[meld_index] =
       organized_meld.length === proposed_meld.length
         ? organized_meld
@@ -557,7 +568,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       `[LOCAL ADD] Player ${current_player} adding to meld ${meld_index}:`,
       proposed_meld.map((c) => `${c.value}${c.suit.icon}`),
     );
-    const validation = validate_sequence(proposed_meld);
+    const validation = validate_sequence(proposed_meld, get().rules);
     console.log(`[LOCAL ADD RESULT] Valid: ${validation.is_valid}`);
 
     if (!validation.is_valid) {
@@ -575,30 +586,36 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         v.canastra_type === "KING" ||
         v.canastra_type === "ACE");
 
+    const has_taken_dead = get().has_taken_dead_pile[team_id];
     const will_have_clean = team_melds[team_id].some((meld, idx) => {
-      const v = idx === meld_index ? validation : validate_sequence(meld);
+      const v =
+        idx === meld_index ? validation : validate_sequence(meld, get().rules);
       return is_clean_canasta(v);
     });
 
-    if (
-      get().has_taken_dead_pile[team_id] &&
-      new_hand.length <= 1 &&
-      !will_have_clean
-    ) {
-      set({
-        last_error: "Proibido bater sem canastra limpa.",
-      });
-      return;
+    if (new_hand.length === 0) {
+      if (get().rules.must_have_clean_canastra_to_beat && !will_have_clean) {
+        set({ last_error: "Proibido bater sem canastra limpa." });
+        return;
+      }
+      if (has_taken_dead && !will_have_clean) {
+        set({ last_error: "Proibido bater após morto sem canastra limpa." });
+        return;
+      }
     }
 
     const new_melds = [...team_melds[team_id]];
-    const organized_meld = organize_meld(proposed_meld);
+
+    const organized_meld = organize_meld(proposed_meld, get().rules);
     new_melds[meld_index] =
       organized_meld.length === proposed_meld.length
         ? organized_meld
         : sort_cards(proposed_meld);
 
-    if (target_meld.length < 7 && proposed_meld.length >= 7) {
+    if (
+      target_meld.length < get().rules.min_cards_for_canastra &&
+      proposed_meld.length >= get().rules.min_cards_for_canastra
+    ) {
       get().addEvent("Canastra!", "success", current_player);
     }
 
@@ -621,7 +638,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       `[LOCAL MELD] Player ${current_player} attempt with:`,
       cards.map((c) => `${c.value}${c.suit.icon}`),
     );
-    const validation = validate_sequence(cards);
+    const validation = validate_sequence(cards, get().rules);
     console.log(`[LOCAL MELD RESULT] Valid: ${validation.is_valid}`);
 
     if (!validation.is_valid) {
@@ -634,6 +651,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
     );
 
     const team_id = get_team(current_player);
+    const has_taken_dead = get().has_taken_dead_pile[team_id];
     const is_clean_canasta = (v: MeldValidation) =>
       v.is_valid &&
       (v.canastra_type === "CLEAN" ||
@@ -643,18 +661,18 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
     const will_have_clean =
       get().internal_can_beat() || is_clean_canasta(validation);
 
-    if (
-      get().has_taken_dead_pile[team_id] &&
-      new_hand.length <= 1 &&
-      !will_have_clean
-    ) {
-      set({
-        last_error: "Proibido bater sem canastra limpa.",
-      });
-      return;
+    if (new_hand.length === 0) {
+      if (get().rules.must_have_clean_canastra_to_beat && !will_have_clean) {
+        set({ last_error: "Proibido bater sem canastra limpa." });
+        return;
+      }
+      if (has_taken_dead && !will_have_clean) {
+        set({ last_error: "Proibido bater após morto sem canastra limpa." });
+        return;
+      }
     }
 
-    const organized_meld = organize_meld(cards);
+    const organized_meld = organize_meld(cards, get().rules);
     const final_meld =
       organized_meld.length === cards.length
         ? organized_meld
@@ -687,18 +705,21 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
     const card = my_hand.find((c) => c.id === card_id);
     if (!card) return;
 
-    const team_id = get_team(current_player);
     const new_hand = sort_cards(my_hand.filter((c) => c.id !== card.id));
 
-    if (
-      new_hand.length === 0 &&
-      get().has_taken_dead_pile[team_id] &&
-      !get().internal_can_beat()
-    ) {
-      set({
-        last_error: "Proibido bater sem canastra limpa.",
-      });
-      return;
+    const team_id = get_team(current_player);
+    const has_taken_dead = get().has_taken_dead_pile[team_id];
+    const has_clean = get().internal_can_beat();
+
+    if (new_hand.length === 0) {
+      if (get().rules.must_have_clean_canastra_to_beat && !has_clean) {
+        set({ last_error: "Proibido bater sem canastra limpa." });
+        return;
+      }
+      if (has_taken_dead && !has_clean) {
+        set({ last_error: "Proibido bater após morto sem canastra limpa." });
+        return;
+      }
     }
 
     set({
@@ -713,21 +734,29 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
     }
 
     if (get().status === "PLAYING") {
-      let next_player = get_next_player(current_player, mode, get().magic_joker.direction);
+      let next_player = get_next_player(
+        current_player,
+        mode,
+        get().magic_joker.direction,
+      );
       const skipActive = get().magic_joker.pending_skip;
 
       if (skipActive) {
-        next_player = get_next_player(next_player, mode, get().magic_joker.direction);
+        next_player = get_next_player(
+          next_player,
+          mode,
+          get().magic_joker.direction,
+        );
         get().addEvent("Vez pulada!", "info");
       }
 
-      set({ 
-        current_player: next_player, 
+      set({
+        current_player: next_player,
         turn_phase: "DRAW",
         magic_joker: {
           ...get().magic_joker,
-          pending_skip: false
-        }
+          pending_skip: false,
+        },
       });
     }
   },
@@ -747,7 +776,11 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
     const new_hand_after_joker = my_hand.filter((c) => c.id !== cardId);
 
     // Determina o Alvo (Próximo Jogador)
-    const next_player = get_next_player(current_player, mode, get().magic_joker.direction);
+    const next_player = get_next_player(
+      current_player,
+      mode,
+      get().magic_joker.direction,
+    );
     const target_hand = hands[next_player];
 
     let finalHands = { ...hands, [current_player]: new_hand_after_joker };
@@ -780,7 +813,11 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
 
       case "SKIP_TURN": {
         get().addEvent(`PULOU o descarte!`, "info", current_player);
-        const nextP = get_next_player(current_player, mode, get().magic_joker.direction);
+        const nextP = get_next_player(
+          current_player,
+          mode,
+          get().magic_joker.direction,
+        );
         set({
           hands: finalHands,
           current_player: nextP,
@@ -791,14 +828,21 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       }
 
       case "SAFE": {
-        const teammate = mode === "2v2" 
-          ? (current_player <= 2 ? current_player + 2 : current_player - 2) 
-          : null;
-        
+        const teammate =
+          mode === "2v2"
+            ? current_player <= 2
+              ? current_player + 2
+              : current_player - 2
+            : null;
+
         const currentDeck = [...get().deck];
         const currentDiscard = [...get().discard_pile];
 
-        const giveCards = (pId: number, count: number, handsObj: Record<number, Card[]>) => {
+        const giveCards = (
+          pId: number,
+          count: number,
+          handsObj: Record<number, Card[]>,
+        ) => {
           const hand = [...(handsObj[pId] || [])];
           for (let i = 0; i < count; i++) {
             let card = currentDeck.shift();
@@ -810,11 +854,14 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
           handsObj[pId] = sort_cards(hand);
         };
 
-        const updatedHands = { ...hands, [current_player]: new_hand_after_joker };
-        
+        const updatedHands = {
+          ...hands,
+          [current_player]: new_hand_after_joker,
+        };
+
         // Dá 3 cartas para quem usou
         giveCards(current_player, 3, updatedHands);
-        
+
         // Dá 3 cartas para o parceiro (se existir)
         if (teammate) {
           giveCards(teammate, 3, updatedHands);
@@ -827,13 +874,17 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       }
 
       case "SKIP_NEXT": {
-        const victim = get_next_player(current_player, mode, get().magic_joker.direction);
+        const victim = get_next_player(
+          current_player,
+          mode,
+          get().magic_joker.direction,
+        );
         get().addEvent(`BLOQUEOU Jogador ${victim}!`, "info", current_player);
         set({
           hands: finalHands,
           magic_joker: {
             ...get().magic_joker,
-            pending_skip: true
+            pending_skip: true,
           },
           last_error: null,
         });
@@ -859,7 +910,10 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
 
       case "TAX_COLLECTOR": {
         get().addEvent(`IMPOSTO COLETIVO!`, "warning", current_player);
-        const updatedHands = { ...hands, [current_player]: new_hand_after_joker };
+        const updatedHands = {
+          ...hands,
+          [current_player]: new_hand_after_joker,
+        };
         const newDiscard = [...get().discard_pile];
 
         Object.keys(updatedHands).forEach((pId) => {
@@ -877,7 +931,11 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       }
 
       case "VIEW_HAND": {
-        const victim = get_next_player(current_player, mode, get().magic_joker.direction);
+        const victim = get_next_player(
+          current_player,
+          mode,
+          get().magic_joker.direction,
+        );
         powerSelection = {
           player_id: current_player,
           target_player_id: victim,
@@ -885,12 +943,12 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
           stage: "PICK_MY_CARD" as const,
         };
         get().addEvent(`ESPIANDO ADVERSÁRIO!`, "info", current_player);
-        
+
         setTimeout(() => {
           const { magic_joker: mj } = get();
           if (mj.power_selection?.ability === "VIEW_HAND") {
             set({
-              magic_joker: { ...mj, power_selection: undefined }
+              magic_joker: { ...mj, power_selection: undefined },
             });
           }
         }, 3000);
@@ -899,7 +957,8 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
 
       case "SURGICAL_SWAP": {
         if (mode === "2v2") {
-          const partner = current_player <= 2 ? current_player + 2 : current_player - 2;
+          const partner =
+            current_player <= 2 ? current_player + 2 : current_player - 2;
           powerSelection = {
             player_id: current_player,
             target_player_id: partner,
@@ -945,7 +1004,11 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       set({
         magic_joker: {
           ...magic_joker,
-          power_selection: { ...selection, selected_card_id: cardId, stage: "PICK_THEIR_CARD" },
+          power_selection: {
+            ...selection,
+            selected_card_id: cardId,
+            stage: "PICK_THEIR_CARD",
+          },
         },
       });
     } else if (selection.stage === "PICK_THEIR_CARD") {
@@ -958,7 +1021,9 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       }
 
       const myHand = [...hands[current_player]];
-      const myCardIdx = myHand.findIndex((c) => c.id === selection.selected_card_id);
+      const myCardIdx = myHand.findIndex(
+        (c) => c.id === selection.selected_card_id,
+      );
 
       if (myCardIdx !== -1) {
         const newTargetHand = [...target_hand];
@@ -1007,7 +1072,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
     const { team_melds, current_player } = get();
     const team_id = get_team(current_player);
     return team_melds[team_id].some((meld) => {
-      const v = validate_sequence(meld);
+      const v = validate_sequence(meld, get().rules);
       return (
         v.is_valid &&
         (v.canastra_type === "CLEAN" ||
@@ -1030,7 +1095,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
     const has_taken = has_taken_dead_pile[team_id];
     const can_take_extra =
       has_taken &&
-      get().rules.teamCanTakeBothDeadPiles &&
+      get().rules.team_can_take_both_dead_piles &&
       dead_piles.length > 0;
 
     if (has_taken && !can_take_extra) {
@@ -1038,16 +1103,16 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       get().addEvent("Bateu!", "success", current_player);
       const t1_score = calculate_score(
         team_melds[1],
-        mode === "1v1" || team_id === 2 ? [hands[1]] : [],
+        mode === "1v1" ? [hands[1]] : [hands[1], hands[3]],
         team_id === 1,
-        !has_taken_dead_pile[1],
+        !get().has_taken_dead_pile[1],
         get().rules,
       );
       const t2_score = calculate_score(
         team_melds[2],
-        mode === "1v1" || team_id === 1 ? [hands[2]] : [],
+        mode === "1v1" ? [hands[2]] : [hands[2], hands[4]],
         team_id === 2,
-        !has_taken_dead_pile[2],
+        !get().has_taken_dead_pile[2],
         get().rules,
       );
 
@@ -1091,19 +1156,20 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         turn_phase: type === "DIRECT" ? "ACTION" : "DRAW",
       });
     } else {
-      console.log("[GAME] Fim de jogo, não há mais mortos para pegar.");
-      get().addEvent("Fim de Jogo!", "info");
+      console.log("[GAME] Fim de jogo por batida (sem mortos disponíveis).");
+      get().addEvent("Bateu!", "success", current_player);
+
       const t1_score = calculate_score(
         team_melds[1],
         mode === "1v1" ? [hands[1]] : [hands[1], hands[3]],
-        false,
+        team_id === 1,
         !get().has_taken_dead_pile[1],
         get().rules,
       );
       const t2_score = calculate_score(
         team_melds[2],
         mode === "1v1" ? [hands[2]] : [hands[2], hands[4]],
-        false,
+        team_id === 2,
         !get().has_taken_dead_pile[2],
         get().rules,
       );

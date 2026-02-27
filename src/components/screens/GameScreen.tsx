@@ -12,6 +12,8 @@ import { MeldDisplay } from "../game-ui/MeldDisplay";
 import { HandCard } from "../game-ui/HandCard";
 import { GameMenu } from "../game-ui/GameMenu";
 import { HowToPlay } from "../game-ui/HowToPlay";
+import { GameRulesModal } from "../game-ui/GameRulesModal";
+import { RoundSummaryOverlay } from "../game-ui/RoundSummaryOverlay";
 import { FinishScreen } from "./FinishScreen";
 import { type GameAdapterInterface } from "../game-ui/useLocalGameAdapter";
 import { OpponentsHandsLayer } from "../game-ui/OpponentsHandsLayer";
@@ -40,6 +42,8 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   // State
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [showRules, setShowRules] = useState(false);
+  const [showFullDetails, setShowFullDetails] = useState(false);
   const [showOpponentHands, setShowOpponentHands] = useState(true);
   const [hoveredMeld, setHoveredMeld] = useState<{
     teamId: number;
@@ -79,7 +83,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     if (game.status === "FINISHED" || game.status === "ROUND_OVER") {
       const timer = setTimeout(() => {
         setShowFinishScreen(true);
-      }, 2000);
+      }, 1000);
       return () => clearTimeout(timer);
     }
   }, [game.status]);
@@ -209,36 +213,44 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     );
   }
 
-  // --- RENDER FINISH SCREEN ---
+  // --- RENDER FINISH SCREEN OR ROUND SUMMARY ---
   if (
     showFinishScreen &&
     (game.status === "FINISHED" || game.status === "ROUND_OVER") &&
     game.final_score
   ) {
-    const isRoundOver = game.status === "ROUND_OVER";
     const totalHumanPlayers = game.players_data
       ? Object.values(game.players_data).filter((p) => !p.isBot).length
       : 0;
     const mySocketId = game.players_data?.[my_player_id]?.socketId;
     const isLeader = my_player_id === 1;
 
-    return (
-      <FinishScreen
-        finalScore={game.final_score}
-        myTeam={my_team}
-        onPlayAgain={() => game.voteNext()}
-        onLeave={isLeader ? game.closeRoom : game.leaveGame}
-        isLeader={isLeader}
-        isRoundOver={isRoundOver}
-        cumulativeScore={game.cumulative_score}
-        roundCount={game.round_count}
-        winCondition={game.win_condition}
-        rematchVotes={game.rematch_votes}
-        totalHumanPlayers={totalHumanPlayers}
-        myPlayerId={mySocketId}
-        rules={game.rules}
-      />
-    );
+    // Se o jogo ACABOU de vez (Vencedor final) OU se o jogador quis ver detalhes
+    if (game.status === "FINISHED" || showFullDetails) {
+      return (
+        <FinishScreen
+          finalScore={game.final_score}
+          myTeam={my_team}
+          onPlayAgain={() => {
+            game.voteNext();
+            setShowFullDetails(false);
+          }}
+          onLeave={isLeader ? game.closeRoom : game.leaveGame}
+          isLeader={isLeader}
+          isRoundOver={game.status === "ROUND_OVER"}
+          cumulativeScore={game.cumulative_score}
+          roundCount={game.round_count}
+          winCondition={game.win_condition}
+          rematchVotes={game.rematch_votes}
+          totalHumanPlayers={totalHumanPlayers}
+          myPlayerId={mySocketId}
+          rules={game.rules}
+        />
+      );
+    }
+
+    // Se apenas a RODADA acabou, mostramos o overlay discreto por cima da mesa
+    // Mas precisamos deixar o código seguir para renderizar o GameScreen abaixo
   }
 
   // --- HANDLERS ---
@@ -293,9 +305,12 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     }
   };
 
-  const showNewMeldAction = canAction && validSelectedCards.length >= 3;
+  const showNewMeldAction =
+    canAction && validSelectedCards.length >= game.rules.min_cards_for_meld;
   const showNewMeldPickUp =
-    canDraw && isDiscardSelected && validSelectedCards.length >= 3;
+    canDraw &&
+    isDiscardSelected &&
+    validSelectedCards.length >= game.rules.min_cards_for_meld;
 
   const handleNewMeldClick = () => {
     if (showNewMeldAction) {
@@ -352,54 +367,6 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
       }
     >
       <LayoutGroup>
-        <AnimatePresence>
-          {(game.status === "FINISHED" || game.status === "ROUND_OVER") &&
-            !showFinishScreen && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[200] flex items-center justify-center bg-black/10 pointer-events-none"
-              >
-                <motion.div
-                  initial={{ scale: 0.9, y: 30 }}
-                  animate={{ scale: 1, y: 0 }}
-                  className="text-center bg-black/60 backdrop-blur-md px-16 py-10 rounded-[3.5rem] border border-white/20 shadow-[0_0_50px_rgba(0,0,0,0.5)]"
-                >
-                  <h2 className="text-2xl md:text-5xl font-black text-white uppercase tracking-tighter drop-shadow-2xl mb-4">
-                    {game.status === "FINISHED"
-                      ? "Fim de Jogo!"
-                      : "Fim da Rodada!"}
-                  </h2>
-
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="h-px w-24 bg-white/20"></div>
-
-                    <p className="text-yellow-400 text-xl md:text-3xl font-black uppercase tracking-[0.2em] drop-shadow-lg">
-                      {(() => {
-                        const t1Beat = game.final_score?.details_t1.did_beat;
-                        const t2Beat = game.final_score?.details_t2.did_beat;
-                        if (t1Beat)
-                          return my_team === 1
-                            ? "VOCÊS BATERAM!"
-                            : "ELES BATERAM!";
-                        if (t2Beat)
-                          return my_team === 2
-                            ? "VOCÊS BATERAM!"
-                            : "ELES BATERAM!";
-                        return "AS CARTAS ACABARAM!";
-                      })()}
-                    </p>
-
-                    <p className="text-white/40 uppercase tracking-[0.3em] text-xs font-bold animate-pulse">
-                      Computando Placar Final...
-                    </p>
-                  </div>
-                </motion.div>
-              </motion.div>
-            )}
-        </AnimatePresence>
-
           <OpponentsHandsLayer
             game={game}
             visible={showOpponentHands}
@@ -517,6 +484,31 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
             <HowToPlay onClose={() => setShowHowToPlay(false)} />
           )}
 
+          {showRules && (
+            <GameRulesModal
+              rules={game.rules}
+              onRulesChange={(newRules) => game.setRules(newRules)}
+              onClose={() => setShowRules(false)}
+              isHost={false}
+            />
+          )}
+
+          {/* Round Summary Overlay (Less invasive than full screen) */}
+          {showFinishScreen && game.status === "ROUND_OVER" && game.final_score && !showFullDetails && (
+            <RoundSummaryOverlay
+              finalScore={game.final_score}
+              cumulativeScore={game.cumulative_score}
+              roundCount={game.round_count}
+              isLeader={my_player_id === 1}
+              onNextRound={() => {
+                game.voteNext();
+                setShowFullDetails(false);
+              }}
+              onLeave={my_player_id === 1 ? game.closeRoom : game.leaveGame}
+              onViewDetails={() => setShowFullDetails(true)}
+            />
+          )}
+
           {/* Menu Dropdown */}
           <div className="absolute top-4 right-4 z-100">
             <GameMenu
@@ -529,6 +521,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               showCardMarkers={game.showCardMarkers}
               toggleCardMarkers={game.toggleCardMarkers}
               onOpenHowToPlay={() => setShowHowToPlay(true)}
+              onOpenRules={() => setShowRules(true)}
               showOpponentHands={showOpponentHands}
               toggleOpponentHands={() =>
                 setShowOpponentHands(!showOpponentHands)

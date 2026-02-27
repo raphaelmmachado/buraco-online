@@ -214,6 +214,12 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
         return; 
     }
 
+    const actualGame = games[actualRoomId];
+    if (actualGame && actualGame.status !== "LOBBY") {
+        console.log(`[RULES] Bloqueado: Tentativa de alteração com jogo em andamento na sala ${actualRoomId}.`);
+        return;
+    }
+
     // Gravação direta no estado global para evitar perda de referência
     const actualGame = games[actualRoomId];
     if (actualGame) {

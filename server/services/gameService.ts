@@ -25,13 +25,13 @@ export const get_next_player = (
 
 export const has_clean_canastra = (
   game: ServerGameState,
-  team_id: TeamID
+  team_id: TeamID,
 ): boolean => {
   const melds = game.team_melds[team_id];
   if (!melds) return false;
 
   return melds.some((meld) => {
-    const val = validate_sequence(meld);
+    const val = validate_sequence(meld, game.rules);
     if (!val.is_valid) return false;
     return (
       val.canastra_type === "CLEAN" ||
@@ -39,19 +39,6 @@ export const has_clean_canastra = (
       val.canastra_type === "ACE"
     );
   });
-};
-
-export const requires_clean_to_empty_hand = (
-  game: ServerGameState,
-  team_id: TeamID
-): boolean => {
-  const team_idx = team_id - 1;
-  // Safe access for tuple [boolean, boolean]
-  const has_taken = game.has_taken_dead_pile[team_idx as 0 | 1];
-
-  if (has_taken) return true;
-  if (game.dead_piles.length > 0) return false;
-  return true;
 };
 
 export const check_championship_status = (
@@ -197,7 +184,8 @@ export const handle_empty_hand = (
   // e ainda há mortos disponíveis, o jogador pode pegar.
   const can_take_extra_dead_pile = 
     has_taken && 
-    game.rules.teamCanTakeBothDeadPiles && 
+        game.rules.team_can_take_both_dead_piles &&
+     
     game.dead_piles.length > 0;
 
   // Common variables for score calculation
@@ -219,17 +207,17 @@ export const handle_empty_hand = (
 
     const t1_score = calculate_score(
       t1_melds,
-      [t1_hand_1, t1_hand_2],
+      game.mode === "1v1" ? [t1_hand_1] : [t1_hand_1, t1_hand_2],
       team_id === 1,
       !t1_taken,
-      game.rules
+      game.rules,
     );
     const t2_score = calculate_score(
       t2_melds,
-      [t2_hand_1, t2_hand_2],
+      game.mode === "1v1" ? [t2_hand_1] : [t2_hand_1, t2_hand_2],
       team_id === 2,
       !t2_taken,
-      game.rules
+      game.rules,
     );
 
     check_championship_status(game, t1_score.total_score, t2_score.total_score, t1_score, t2_score);
@@ -245,16 +233,20 @@ export const handle_empty_hand = (
     game.turn_phase = type === "DIRECT" ? "ACTION" : "DRAW";
     console.log(`Jogador ${player_id} pegou o morto (${type})`);
   } else {
-    // Fim de jogo: Não tem morto para pegar
-    console.log(`Fim de Jogo! Sem mortos disponíveis.`);
-    calculate_game_end_score(game);
+    // Fim de jogo: Não tem morto para pegar. CONTA COMO BATIDA!
+    console.log(`Fim de Jogo! Sem mortos disponíveis. Batida efetuada por ${player_id}.`);
+    calculate_game_end_score(game, true, team_id);
   }
 };
 
 /**
- * Calcula o placar final quando o deck acaba ou o jogo termina sem batida direta.
+ * Calcula o placar final quando o deck acaba ou o jogo termina por batida.
  */
-export const calculate_game_end_score = (game: ServerGameState) => {
+export const calculate_game_end_score = (
+  game: ServerGameState,
+  did_beat: boolean = false,
+  beating_team_id: number | null = null,
+) => {
   const t1_hand_1 = game.hands[1] ?? [];
   const t1_hand_2 = game.hands[3] ?? [];
   const t2_hand_1 = game.hands[2] ?? [];
@@ -268,15 +260,15 @@ export const calculate_game_end_score = (game: ServerGameState) => {
 
   const t1_score = calculate_score(
     t1_melds,
-    [t1_hand_1, t1_hand_2],
-    false,
+    game.mode === "1v1" ? [t1_hand_1] : [t1_hand_1, t1_hand_2],
+    did_beat && beating_team_id === 1,
     !t1_taken,
     game.rules,
   );
   const t2_score = calculate_score(
     t2_melds,
-    [t2_hand_1, t2_hand_2],
-    false,
+    game.mode === "1v1" ? [t2_hand_1] : [t2_hand_1, t2_hand_2],
+    did_beat && beating_team_id === 2,
     !t2_taken,
     game.rules,
   );

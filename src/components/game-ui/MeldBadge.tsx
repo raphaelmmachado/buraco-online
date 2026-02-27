@@ -36,7 +36,7 @@ export const MeldBadge = ({ meld }: { meld: CardType[] }) => {
       break;
     default:
       color = "bg-slate-700 backdrop-blur-sm";
-      label = `${length} / 7`;
+      label = `${length} / ${rules.min_cards_for_canastra}`;
   }
 
   return (

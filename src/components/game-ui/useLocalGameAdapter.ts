@@ -77,6 +77,7 @@ export interface GameAdapterInterface {
   voteNext: () => void;
   leaveGame: () => void;
   closeRoom: () => void;
+  setRules: (rules: GameRules) => void;
   sort_hand: () => void;
   clear_error: () => void;
   clear_info: () => void;
@@ -186,6 +187,9 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       },
       closeRoom: () => {
         window.location.reload();
+      },
+      setRules: (newRules: GameRules) => {
+        local.update_rules(newRules);
       },
       sort_hand: local.sort_my_hand,
       clear_error: local.clear_error,

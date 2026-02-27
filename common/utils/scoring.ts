@@ -47,8 +47,8 @@ export const calculate_score = (
     }
 
     // 2. Se o jogo for uma canastra, soma o bônus correspondente
-    if (meld.length >= 7) {
-      const validation_result = validate_sequence(meld); // Pega o objeto completo
+    if (meld.length >= rules.min_cards_for_canastra) {
+      const validation_result = validate_sequence(meld, rules); // Pega o objeto completo
 
       if (validation_result.is_valid) {
         // Verifica o discriminador
@@ -57,10 +57,10 @@ export const calculate_score = (
         // Aplica pontos baseados nas regras customizadas
         let points = 0;
         switch (canastra_type) {
-            case "CLEAN": points = rules.pointsCleanCanastra; break;
-            case "DIRTY": points = rules.pointsDirtyCanastra; break;
-            case "KING": points = rules.pointsKingCanastra; break;
-            case "ACE": points = rules.pointsAceCanastra; break;
+            case "CLEAN": points = rules.points_clean_canastra; break;
+            case "DIRTY": points = rules.points_dirty_canastra; break;
+            case "KING": points = rules.points_king_canastra; break;
+            case "ACE": points = rules.points_ace_canastra; break;
             default: points = 0;
         }
         
@@ -72,20 +72,26 @@ export const calculate_score = (
 
   // 3. Adiciona bônus pela batida
   if (did_beat) {
-    bonus_points += rules.pointsForEnding;
+    bonus_points += rules.points_for_ending;
   }
 
   // 4. Calcula as penalidades
   // a. Cartas restantes na mão
-  for (const hand of hands_to_penalize) {
-    for (const card of hand) {
-      penalty_points += CARD_POINTS[card.value] || 0;
+  // REGRA: Só não paga as cartas da mão se o time BATEU E PEGOU O MORTO.
+  // Se bateu sem pegar o morto (ex: quando o morto acabou), ainda paga as cartas do parceiro.
+  const should_pay_hand = !did_beat || did_not_take_dead_pile;
+
+  if (should_pay_hand) {
+    for (const hand of hands_to_penalize) {
+      for (const card of hand) {
+        penalty_points += CARD_POINTS[card.value] || 0;
+      }
     }
   }
 
   // b. Morto não pego
   if (did_not_take_dead_pile) {
-    penalty_points += Math.abs(rules.penaltyDeadPileNotTaken);
+    penalty_points += Math.abs(rules.penalty_dead_pile_not_taken);
   }
 
   // 5. Calcula o placar final
@@ -117,17 +123,17 @@ export const calculate_meld_score = (
 
   let type: keyof typeof MELD_POINTS = "INSUFFICIENT";
 
-  if (meld.length >= 7) {
-    const validation = validate_sequence(meld);
+  if (meld.length >= rules.min_cards_for_canastra) {
+    const validation = validate_sequence(meld, rules);
     if (validation.is_valid) {
       type = validation.canastra_type;
       
       let points = 0;
       switch (type) {
-          case "CLEAN": points = rules.pointsCleanCanastra; break;
-          case "DIRTY": points = rules.pointsDirtyCanastra; break;
-          case "KING": points = rules.pointsKingCanastra; break;
-          case "ACE": points = rules.pointsAceCanastra; break;
+          case "CLEAN": points = rules.points_clean_canastra; break;
+          case "DIRTY": points = rules.points_dirty_canastra; break;
+          case "KING": points = rules.points_king_canastra; break;
+          case "ACE": points = rules.points_ace_canastra; break;
           default: points = 0;
       }
       score += points;

@@ -298,7 +298,7 @@ const execute_bot_move = (io: Server, roomId: string) => {
 
   // Verifica se a equipe já possui canastra limpa para saber se pode bater
   const has_clean = team_melds.some((meld) => {
-    const v = validate_sequence(meld);
+    const v = validate_sequence(meld, game.rules);
     return (
       v.is_valid &&
       (v.canastra_type === "CLEAN" ||
@@ -378,7 +378,7 @@ const execute_bot_move = (io: Server, roomId: string) => {
             const new_hand = my_hand.filter((c) => !card_ids.includes(c.id));
             new_hand.push(...rest_of_discard);
             game.hands[game.current_player] = sort_cards(new_hand);
-            team_melds.push(organize_meld(combined));
+            team_melds.push(organize_meld(combined, game.rules));
           } else if (action.type === "ADD_TO_MELD") {
             const target_meld = team_melds[action.meld_index];
             const card_ids = action.cards.map((c) => c.id);
@@ -393,7 +393,10 @@ const execute_bot_move = (io: Server, roomId: string) => {
             const new_hand = my_hand.filter((c) => !card_ids.includes(c.id));
             new_hand.push(...rest_of_discard);
             game.hands[game.current_player] = sort_cards(new_hand);
-            team_melds[action.meld_index] = organize_meld(new_meld_cards);
+            team_melds[action.meld_index] = organize_meld(
+              new_meld_cards,
+              game.rules,
+            );
           }
 
           game.turn_phase = "ACTION";
@@ -481,13 +484,24 @@ const execute_bot_move = (io: Server, roomId: string) => {
       const meld = team_melds[i];
       if (!meld) continue;
 
-      const card_to_add = find_card_to_add(my_hand, meld, has_taken, has_clean, false, [], game.mode === "2v2");
+      const card_to_add = find_card_to_add(
+        my_hand,
+        meld,
+        has_taken,
+        has_clean,
+        false,
+        [],
+        game.mode === "2v2",
+        game.rules,
+      );
       if (card_to_add) {
-        console.log(`[BOT] Prioridade: Adicionando ${card_to_add.value} ao jogo ${i} antes de abrir novos.`);
+        console.log(
+          `[BOT] Prioridade: Adicionando ${card_to_add.value} ao jogo ${i} antes de abrir novos.`,
+        );
         game.hands[game.current_player] = my_hand.filter(
           (c) => c.id !== card_to_add.id,
         );
-        team_melds[i] = organize_meld([...meld, card_to_add]);
+        team_melds[i] = organize_meld([...meld, card_to_add], game.rules);
 
         const updated_hand = game.hands[game.current_player];
         if (updated_hand && updated_hand.length === 0)
@@ -515,7 +529,7 @@ const execute_bot_move = (io: Server, roomId: string) => {
       game.hands[game.current_player] = my_hand.filter(
         (c) => !card_ids.includes(c.id),
       );
-      team_melds.push(organize_meld(new_meld_cards));
+      team_melds.push(organize_meld(new_meld_cards, game.rules));
 
       const updated_hand = game.hands[game.current_player];
       if (updated_hand && updated_hand.length === 0)
@@ -539,6 +553,8 @@ const execute_bot_move = (io: Server, roomId: string) => {
       game.deck.length,
       game.discard_pile.length,
       0, // partner_hand_size (opcional)
+      game.rules,
+      has_clean,
     );
 
     if (!discard_card && my_hand.length > 0) {

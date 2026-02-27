@@ -11,7 +11,6 @@
 import {
   type Card,
   CARD_VALUE_WEIGHTS,
-  GAME_RULES,
   MELD_POINTS,
   format_card_name,
 } from "../types/card";
@@ -53,7 +52,7 @@ export const is_wildcard_usage = (
 ): boolean => {
   if (card.value === "JOKER") return true; // Joker é sempre curinga
   if (card.value === "2") {
-    // Só é natural se o peso for 2 (sua posição real) E o naipe bater.
+    // Só é natural se o peso for 2 (suia posição real) E o naipe bater.
     return !(weight === 2 && card.suit.name === target_suit);
   }
   return false;
@@ -63,14 +62,23 @@ export const is_wildcard_usage = (
  * Função principal para analisar um conjunto de cartas e determinar se formam um jogo válido.
  * Utiliza um solver (algoritmo de busca) para testar todas as formas possíveis de encaixar os curingas.
  */
-export const get_sequence_details = (cards: Card[]): SequenceDetails => {
+export const get_sequence_details = (
+  cards: Card[],
+  rules: GameRules = DEFAULT_RULES,
+): SequenceDetails => {
   // 1. Validações básicas de quantidade
-  if (cards.length < GAME_RULES.MIN_CARDS_FOR_MELD) {
-    return { is_valid: false, error: "Um jogo deve ter no mínimo 3 cartas." };
+  if (cards.length < rules.min_cards_for_meld) {
+    return {
+      is_valid: false,
+      error: `Um jogo deve ter no mínimo ${rules.min_cards_for_meld} cartas.`,
+    };
   }
 
-  if (cards.length > GAME_RULES.MAX_LENGTH) {
-    return { is_valid: false, error: "Um jogo não pode ter mais de 14 cartas (A a A)." };
+  if (cards.length > rules.max_length) {
+    return {
+      is_valid: false,
+      error: `Um jogo não pode ter mais de ${rules.max_length} cartas (A a A).`,
+    };
   }
 
   // Verifica duplicatas e sanidade das cartas
@@ -121,7 +129,7 @@ export const get_sequence_details = (cards: Card[]): SequenceDetails => {
   const best_solution = solve_recursive(card_options, {}, 0, target_suit);
 
   if (best_solution) {
-    return build_valid_sequence(cards, best_solution, target_suit);
+    return build_valid_sequence(cards, best_solution, target_suit, rules);
   }
 
   return { is_valid: false, error: "As cartas não formam uma sequência consecutiva." };
@@ -204,7 +212,8 @@ const validate_assignment = (
 const build_valid_sequence = (
   cards: Card[],
   assigned: Record<string, number>,
-  target_suit: string
+  target_suit: string,
+  rules: GameRules = DEFAULT_RULES,
 ): ValidSequence => {
   const weights = Object.values(assigned).sort((a, b) => a - b);
   const start_weight = weights[0]!;
@@ -213,17 +222,18 @@ const build_valid_sequence = (
   let wildcard_count = 0;
   for (const card of cards) {
     const w = assigned[card.id];
-    if (w !== undefined && is_wildcard_usage(card, w, target_suit)) wildcard_count++;
+    if (w !== undefined && is_wildcard_usage(card, w, target_suit))
+      wildcard_count++;
   }
 
   const is_clean = wildcard_count === 0;
   let canastra_type: ValidSequence["canastra_type"] = "INSUFFICIENT";
 
-  // Se tem 7 ou mais cartas, é canastra
-  if (cards.length >= GAME_RULES.MIN_CARDS_FOR_CANASTRA) {
+  // Se tem 7 ou mais cartas (ou o definido em regras), é canastra
+  if (cards.length >= rules.min_cards_for_canastra) {
     if (is_clean) {
-      if (cards.length === 14) canastra_type = "ACE"; // De Ás a Ás
-      else if (cards.length === 13) canastra_type = "KING"; // De Ás a K
+      if (cards.length === rules.max_length) canastra_type = "ACE"; // De Ás a Ás (ou limite)
+      else if (cards.length === rules.max_length - 1) canastra_type = "KING"; // De Ás a K (ou limite-1)
       else canastra_type = "CLEAN";
     } else {
       canastra_type = "DIRTY";
@@ -241,28 +251,35 @@ const build_valid_sequence = (
 };
 
 /** Valida se uma combinação de cartas é válida (versão simplificada para exportação). */
-export const validate_sequence = (cards: Card[]): MeldValidation => {
-  const details = get_sequence_details(cards);
+export const validate_sequence = (
+  cards: Card[],
+  rules: GameRules = DEFAULT_RULES,
+): MeldValidation => {
+  const details = get_sequence_details(cards, rules);
   if (!details.is_valid) return { is_valid: false, error: details.error };
-  return { is_valid: true, is_clean: details.is_clean, canastra_type: details.canastra_type };
+  return {
+    is_valid: true,
+    is_clean: details.is_clean,
+    canastra_type: details.canastra_type,
+  };
 };
 
 /** Valida se o jogador pode pegar o lixo para criar um NOVO jogo. */
 export const validate_discard_pickup = (
   discard_top_card: Card,
   selected_hand_cards: Card[],
-  rules: GameRules = DEFAULT_RULES
+  rules: GameRules = DEFAULT_RULES,
 ): boolean => {
-  if (selected_hand_cards.length < GAME_RULES.MIN_CARDS_FOR_MELD - 1) return false;
+  if (selected_hand_cards.length < rules.min_cards_for_meld - 1) return false;
   const potential_meld = [discard_top_card, ...selected_hand_cards];
-  
-  const details = get_sequence_details(potential_meld);
+
+  const details = get_sequence_details(potential_meld, rules);
   if (!details.is_valid) return false;
 
   // Se a regra permite pegar com curinga, basta ser válido.
   // Se NÃO permite (padrão), o jogo resultante deve ser LIMPO (sem 2 e sem JOKER).
   // EXCEÇÃO: O "2" do mesmo naipe é permitido por ser limpável.
-  if (rules.canPickUpDiscardWithJoker) {
+  if (rules.can_pickup_discard_with_joker) {
     return true;
   }
 
@@ -290,19 +307,24 @@ export const validate_discard_add_to_meld = (
   target_meld: Card[],
   bridge_cards: Card[],
   discard_card: Card,
-  rules: GameRules = DEFAULT_RULES
+  rules: GameRules = DEFAULT_RULES,
 ): MeldValidation => {
   const proposed_meld = [...target_meld, ...bridge_cards, discard_card];
-  const details = get_sequence_details(proposed_meld);
+  const details = get_sequence_details(proposed_meld, rules);
 
   if (!details.is_valid) return { is_valid: false, error: details.error };
 
   // Se a regra permite pegar com curinga da mão, não precisamos validar a 'limpeza' da pegada
-  if (rules.canPickUpDiscardWithJoker) return { is_valid: true, canastra_type: details.canastra_type, is_clean: details.is_clean };
+  if (rules.can_pickup_discard_with_joker) return { is_valid: true, canastra_type: details.canastra_type, is_clean: details.is_clean };
 
   // REGRA ESPECIAL: "Proibido pegar lixo com curinga da mão" se o jogo original era limpo.
-  const original_details = get_sequence_details(target_meld);
-  if (original_details.is_valid && !original_details.is_clean) return { is_valid: true, canastra_type: details.canastra_type, is_clean: details.is_clean };
+  const original_details = get_sequence_details(target_meld, rules);
+  if (original_details.is_valid && !original_details.is_clean)
+    return {
+      is_valid: true,
+      canastra_type: details.canastra_type,
+      is_clean: details.is_clean,
+    };
 
   const naturals = proposed_meld.filter((c) => c.value !== "2" && c.value !== "JOKER");
   const target_suit = naturals[0]?.suit.name;

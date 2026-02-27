@@ -63,6 +63,8 @@ const PointInput = ({
   isHost,
   onChange,
   step = 50,
+  unit = "Pts",
+  disabled = false,
 }: {
   label: string;
   ruleKey: keyof GameRules;
@@ -70,12 +72,16 @@ const PointInput = ({
   isHost: boolean;
   onChange: (key: keyof GameRules, val: number) => void;
   step?: number;
+  unit?: string;
+  disabled?: boolean;
 }) => (
-  <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5 group hover:border-yellow-500/20 transition-all">
+  <div
+    className={`flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5 group hover:border-yellow-500/20 transition-all ${disabled ? "opacity-40" : ""}`}
+  >
     <span className="text-sm font-bold text-slate-200">{label}</span>
     <div className="flex items-center gap-2">
       <input
-        disabled={!isHost}
+        disabled={!isHost || disabled}
         type="number"
         value={rules[ruleKey] as number}
         onChange={(e) => onChange(ruleKey, Number(e.target.value))}
@@ -83,7 +89,7 @@ const PointInput = ({
         className="w-20 bg-black/40 border border-white/10 rounded px-2 py-1 text-right text-yellow-400 font-mono text-sm focus:outline-none focus:border-yellow-500/50 disabled:opacity-50"
       />
       <span className="text-[10px] font-black text-slate-500 uppercase">
-        Pts
+        {unit}
       </span>
     </div>
   </div>
@@ -101,16 +107,16 @@ const RulesListView = ({ rules }: { rules: GameRules }) => {
         <div className="space-y-2 pl-2">
           <div className="flex items-center gap-3 text-sm">
             <div
-              className={`p-1 rounded ${rules.canPickUpDiscardWithJoker ? "bg-green-500/20 text-green-400" : "bg-white/5 text-white/20"}`}
+              className={`p-1 rounded ${rules.can_pickup_discard_with_joker ? "bg-green-500/20 text-green-400" : "bg-white/5 text-white/20"}`}
             >
               <Check
                 size={14}
-                strokeWidth={rules.canPickUpDiscardWithJoker ? 4 : 1}
+                strokeWidth={rules.can_pickup_discard_with_joker ? 4 : 1}
               />
             </div>
             <span
               className={
-                rules.canPickUpDiscardWithJoker
+                rules.can_pickup_discard_with_joker
                   ? "text-slate-200 font-bold"
                   : "text-slate-500 line-through decoration-slate-700"
               }
@@ -120,16 +126,16 @@ const RulesListView = ({ rules }: { rules: GameRules }) => {
           </div>
           <div className="flex items-center gap-3 text-sm">
             <div
-              className={`p-1 rounded ${rules.teamCanTakeBothDeadPiles ? "bg-green-500/20 text-green-400" : "bg-white/5 text-white/20"}`}
+              className={`p-1 rounded ${rules.team_can_take_both_dead_piles ? "bg-green-500/20 text-green-400" : "bg-white/5 text-white/20"}`}
             >
               <Check
                 size={14}
-                strokeWidth={rules.teamCanTakeBothDeadPiles ? 4 : 1}
+                strokeWidth={rules.team_can_take_both_dead_piles ? 4 : 1}
               />
             </div>
             <span
               className={
-                rules.teamCanTakeBothDeadPiles
+                rules.team_can_take_both_dead_piles
                   ? "text-slate-200 font-bold"
                   : "text-slate-500 line-through decoration-slate-700"
               }
@@ -139,13 +145,13 @@ const RulesListView = ({ rules }: { rules: GameRules }) => {
           </div>
           <div className="flex items-center gap-3 text-sm">
             <div
-              className={`p-1 rounded ${rules.useMagicJokers ? "bg-violet-500/20 text-violet-400" : "bg-white/5 text-white/20"}`}
+              className={`p-1 rounded ${rules.use_magic_jokers ? "bg-violet-500/20 text-violet-400" : "bg-white/5 text-white/20"}`}
             >
-              <Check size={14} strokeWidth={rules.useMagicJokers ? 4 : 1} />
+              <Check size={14} strokeWidth={rules.use_magic_jokers ? 4 : 1} />
             </div>
             <span
               className={
-                rules.useMagicJokers
+                rules.use_magic_jokers
                   ? "text-slate-200 font-bold"
                   : "text-slate-500 line-through decoration-slate-700"
               }
@@ -156,6 +162,45 @@ const RulesListView = ({ rules }: { rules: GameRules }) => {
               </span>
             </span>
           </div>
+          <div className="flex items-center gap-3 text-sm">
+            <div
+              className={`p-1 rounded ${rules.must_have_clean_canastra_to_beat ? "bg-green-500/20 text-green-400" : "bg-white/5 text-white/20"}`}
+            >
+              <Check
+                size={14}
+                strokeWidth={rules.must_have_clean_canastra_to_beat ? 4 : 1}
+              />
+            </div>
+            <span
+              className={
+                rules.must_have_clean_canastra_to_beat
+                  ? "text-slate-200 font-bold"
+                  : "text-slate-500 line-through decoration-slate-700"
+              }
+            >
+              Exigir Canastra Limpa para Bater
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Regras Avançadas Section */}
+      <div className="flex flex-col gap-3">
+        <h3 className="text-[10px] font-black uppercase tracking-widest text-orange-500/50 mb-1 flex items-center gap-2">
+          <Dot size={20} /> Regras Avançadas
+        </h3>
+        <div className="grid grid-cols-1 gap-2 bg-black/20 rounded-2xl border border-white/5 overflow-hidden">
+          <PointRow label="Baralhos" value={rules.decks_to_use} unit="x" />
+          <PointRow label="Cartas na Mão" value={rules.cards_per_hand} />
+          <PointRow label="Cartas no Morto" value={rules.cards_in_dead_pile} />
+          <PointRow
+            label="Mínimo para Baixar"
+            value={rules.min_cards_for_meld}
+          />
+          <PointRow
+            label="Mínimo para Canastra"
+            value={rules.min_cards_for_canastra}
+          />
         </div>
       </div>
 
@@ -165,20 +210,20 @@ const RulesListView = ({ rules }: { rules: GameRules }) => {
           <Dot size={20} /> Tabela de Pontos
         </h3>
         <div className="grid grid-cols-1 gap-2 bg-black/20 rounded-2xl border border-white/5 overflow-hidden">
-          <PointRow label="Batida Final" value={rules.pointsForEnding} />
-          <PointRow label="Canastra Limpa" value={rules.pointsCleanCanastra} />
-          <PointRow label="Canastra Suja" value={rules.pointsDirtyCanastra} />
+          <PointRow label="Batida Final" value={rules.points_for_ending} />
           <PointRow
-            label="Canastra de 500 (13 cartas)"
-            value={rules.pointsKingCanastra}
+            label="Canastra Limpa"
+            value={rules.points_clean_canastra}
           />
+          <PointRow label="Canastra Suja" value={rules.points_dirty_canastra} />
+          <PointRow label="Canastra A-K" value={rules.points_king_canastra} />
           <PointRow
-            label="Canastra Real (14 cartas)"
-            value={rules.pointsAceCanastra}
+            label="Canastra Completa"
+            value={rules.points_ace_canastra}
           />
           <PointRow
             label="Morto não pego"
-            value={rules.penaltyDeadPileNotTaken}
+            value={rules.penalty_dead_pile_not_taken}
             isPenalty
           />
         </div>
@@ -191,10 +236,12 @@ const PointRow = ({
   label,
   value,
   isPenalty,
+  unit = "pts",
 }: {
   label: string;
   value: number;
   isPenalty?: boolean;
+  unit?: string;
 }) => (
   <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
     <span className="text-xs font-bold text-slate-400">{label}</span>
@@ -206,7 +253,7 @@ const PointRow = ({
         {value}
       </span>
       <span className="text-[8px] font-black text-slate-600 uppercase">
-        pts
+        {unit}
       </span>
     </div>
   </div>
@@ -263,12 +310,12 @@ export const GameRulesModal = ({
             </div>
             <div>
               <h2 className="text-xl font-black uppercase tracking-tighter text-white">
-                Regras da Mesa
+                {isHost ? "Ajustar Regras" : "Regras da Mesa"}
               </h2>
               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                 {isHost
                   ? "Ajustes salvos automaticamente"
-                  : "Consultando configurações"}
+                  : "Consultando configurações ativas"}
               </p>
             </div>
           </div>
@@ -292,7 +339,7 @@ export const GameRulesModal = ({
                 </h3>
                 <RuleToggle
                   label="Lixo com Coringa"
-                  ruleKey="canPickUpDiscardWithJoker"
+                  ruleKey="can_pickup_discard_with_joker"
                   info="Permite comprar o lixo usando um 2 ou Curinga da mão para formar um novo jogo."
                   rules={localRules}
                   isHost={isHost}
@@ -300,22 +347,29 @@ export const GameRulesModal = ({
                 />
                 <RuleToggle
                   label="Time pode pegar dois mortos"
-                  ruleKey="teamCanTakeBothDeadPiles"
+                  ruleKey="team_can_take_both_dead_piles"
                   info="Permite que a mesma equipe pegue os dois mortos do jogo (um para cada jogador)."
                   rules={localRules}
                   isHost={isHost}
                   onToggle={toggleRule}
                 />
-                <div className="relative border border-blue-500 rounded-lg animate-pulse">
-                  <RuleToggle
-                    label="Coringas Mágicos"
-                    ruleKey="useMagicJokers"
-                    info="Coringas especiais que tem poderes e também continuam servindo como coringa. É destruído ao usar o poder."
-                    rules={localRules}
-                    isHost={isHost}
-                    onToggle={toggleRule}
-                  />
-                </div>
+                <RuleToggle
+                  label="Exigir Canastra Limpa para Bater"
+                  ruleKey="must_have_clean_canastra_to_beat"
+                  info="Se ativado, é obrigatório ter pelo menos uma canastra limpa na mesa para poder esvaziar a mão (seja para pegar o morto ou para finalizar a partida)."
+                  rules={localRules}
+                  isHost={isHost}
+                  onToggle={toggleRule}
+                />
+
+                <RuleToggle
+                  label="Coringas Mágicos"
+                  ruleKey="use_magic_jokers"
+                  info="Coringas especiais que tem poderes e também continuam servindo como coringa. É destruído ao usar o poder."
+                  rules={localRules}
+                  isHost={isHost}
+                  onToggle={toggleRule}
+                />
               </div>
 
               <div className="flex flex-col gap-3">
@@ -326,45 +380,99 @@ export const GameRulesModal = ({
                 <div className="grid grid-cols-1 gap-2">
                   <PointInput
                     label="Batida Final"
-                    ruleKey="pointsForEnding"
+                    ruleKey="points_for_ending"
                     rules={localRules}
                     isHost={isHost}
                     onChange={updatePoints}
                   />
                   <PointInput
                     label="Canastra Limpa"
-                    ruleKey="pointsCleanCanastra"
+                    ruleKey="points_clean_canastra"
                     rules={localRules}
                     isHost={isHost}
                     onChange={updatePoints}
                   />
                   <PointInput
                     label="Canastra Suja"
-                    ruleKey="pointsDirtyCanastra"
+                    ruleKey="points_dirty_canastra"
                     rules={localRules}
                     isHost={isHost}
                     onChange={updatePoints}
                   />
                   <PointInput
-                    label="Canastra de 500 (13 cartas)"
-                    ruleKey="pointsKingCanastra"
+                    label="Canastra Real A-K"
+                    ruleKey="points_king_canastra"
                     rules={localRules}
                     isHost={isHost}
                     onChange={updatePoints}
                   />
                   <PointInput
-                    label="Canastra Real (14 cartas)"
-                    ruleKey="pointsAceCanastra"
+                    label="Canastra Completa A-A"
+                    ruleKey="points_ace_canastra"
                     rules={localRules}
                     isHost={isHost}
                     onChange={updatePoints}
                   />
                   <PointInput
                     label="Morto não pego"
-                    ruleKey="penaltyDeadPileNotTaken"
+                    ruleKey="penalty_dead_pile_not_taken"
                     rules={localRules}
                     isHost={isHost}
                     onChange={updatePoints}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1 flex items-center gap-2">
+                  <span className="w-1 h-1 bg-orange-500 rounded-full"></span>
+                  Regras Avançadas
+                </h3>
+                <div className="grid grid-cols-1 gap-2">
+                  <PointInput
+                    label="Quantidade de Baralhos"
+                    ruleKey="decks_to_use"
+                    rules={localRules}
+                    isHost={isHost}
+                    onChange={updatePoints}
+                    step={1}
+                    unit=""
+                  />
+                  <PointInput
+                    label="Cartas por Mão"
+                    ruleKey="cards_per_hand"
+                    rules={localRules}
+                    isHost={isHost}
+                    onChange={updatePoints}
+                    step={1}
+                    unit=""
+                  />
+                  <PointInput
+                    label="Cartas no Morto"
+                    ruleKey="cards_in_dead_pile"
+                    rules={localRules}
+                    isHost={isHost}
+                    onChange={updatePoints}
+                    step={1}
+                    unit=""
+                  />
+                  <PointInput
+                    label="Mínimo para Baixar"
+                    ruleKey="min_cards_for_meld"
+                    rules={localRules}
+                    isHost={isHost}
+                    onChange={updatePoints}
+                    step={1}
+                    unit=""
+                  />
+                  <PointInput
+                    label="Mínimo para Canastra"
+                    ruleKey="min_cards_for_canastra"
+                    rules={localRules}
+                    isHost={isHost}
+                    onChange={updatePoints}
+                    step={1}
+                    unit=""
                   />
                 </div>
               </div>

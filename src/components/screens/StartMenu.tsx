@@ -118,7 +118,7 @@ export const StartMenu = ({
         </button>
       </div>
 
-      {/* FOOTER DE VERSÃO */}
+      {/* FOOTER DE VERSÃO UNIFICADO (ULTRA DISCRETO) */}
       <div
         className="fixed bottom-4 left-4 z-50 flex items-center gap-2 font-mono text-[9px] font-bold tracking-tighter"
       >
@@ -132,16 +132,19 @@ export const StartMenu = ({
             <Check size={8} className="text-green-500" />
           ) : null}
           <span>v{__APP_VERSION__}</span>
-          {updateSuccess && <span className="uppercase tracking-widest text-[7px] animate-fade-in">• Atualizado</span>}
+          {updateSuccess && <span className="uppercase tracking-widest text-[7px] animate-fade-in pl-1">• Atualizado</span>}
         </div>
 
         {needRefresh && (
           <button
-            onClick={onUpdateApp}
-            className="flex items-center gap-1.5 bg-blue-500 text-white px-2 py-0.5 rounded-full animate-fade-in hover:bg-blue-400 active:scale-95 transition-all shadow-lg"
+            onClick={(e) => {
+              e.stopPropagation();
+              onUpdateApp();
+            }}
+            className="flex items-center gap-1.5 bg-blue-600/80 hover:bg-blue-500 text-white px-2 py-0.5 rounded-full animate-fade-in-up active:scale-95 transition-all shadow-lg border border-blue-400/30"
           >
-            <Sparkles size={8} />
-            <span className="uppercase tracking-widest text-[7px]">Nova versão disponível! Reiniciar</span>
+            <Sparkles size={8} className="animate-pulse" />
+            <span className="uppercase tracking-widest text-[7px]">Nova Versão! Reiniciar</span>
           </button>
         )}
       </div>

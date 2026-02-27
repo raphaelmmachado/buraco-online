@@ -4,7 +4,6 @@ import {
   validateTurn,
   get_next_player,
   handle_empty_hand,
-  requires_clean_to_empty_hand,
   has_clean_canastra,
   get_team,
   start_next_round,
@@ -134,7 +133,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       );
       console.log(`[PICKUP RESULT] Valid: ${is_valid_pickup}`);
 
-      const validation = validate_sequence(combined);
+      const validation = validate_sequence(combined, game.rules);
 
       if (!is_valid_pickup) {
         const error_msg = !validation.is_valid
@@ -149,22 +148,20 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       const new_hand_len =
         current_hand.length - card_ids.length + (game.discard_pile.length - 1);
 
-      if (requires_clean_to_empty_hand(game, team_id)) {
-        if (new_hand_len <= 1) {
-          const already_has_clean = has_clean_canastra(game, team_id);
-          const this_is_clean_canasta =
-            validation.is_valid &&
-            (validation.canastra_type === "CLEAN" ||
-              validation.canastra_type === "KING" ||
-              validation.canastra_type === "ACE");
+      if (new_hand_len === 0 && game.rules.must_have_clean_canastra_to_beat) {
+        const already_has_clean = has_clean_canastra(game, team_id);
+        const this_is_clean_canasta =
+          validation.is_valid &&
+          (validation.canastra_type === "CLEAN" ||
+            validation.canastra_type === "KING" ||
+            validation.canastra_type === "ACE");
 
-          if (!already_has_clean && !this_is_clean_canasta) {
-            if (callback)
-              callback({
-                error: "Proibido bater sem canastra limpa.",
-              });
-            return;
-          }
+        if (!already_has_clean && !this_is_clean_canasta) {
+          if (callback)
+            callback({
+              error: "Proibido bater sem canastra limpa.",
+            });
+          return;
         }
       }
 
@@ -189,7 +186,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       // Meld
       const current_team_melds = game.team_melds[team_id];
       if (current_team_melds) {
-        const organized = organize_meld(combined);
+        const organized = organize_meld(combined, game.rules);
         if (organized.length !== combined.length) {
           current_team_melds.push(sort_cards(combined));
         } else {
@@ -283,33 +280,30 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       const new_hand_len =
         current_hand.length - card_ids.length + (game.discard_pile.length - 1);
 
-      if (requires_clean_to_empty_hand(game, team_id)) {
-        if (new_hand_len <= 1) {
-          const already_has_clean = team_melds?.some((meld, idx) => {
-            if (idx === meld_index) return false;
-            const v = validate_sequence(meld);
-            return (
-              v.is_valid &&
-              (v.canastra_type === "CLEAN" ||
-                v.canastra_type === "KING" ||
-                v.canastra_type === "ACE")
-            );
-          });
+      if (new_hand_len === 0 && game.rules.must_have_clean_canastra_to_beat) {
+        const already_has_clean = team_melds?.some((meld, idx) => {
+          if (idx === meld_index) return false;
+          const v = validate_sequence(meld, game.rules);
+          return (
+            v.is_valid &&
+            (v.canastra_type === "CLEAN" ||
+              v.canastra_type === "KING" ||
+              v.canastra_type === "ACE")
+          );
+        });
 
-          const this_is_clean_canasta =
-            validation.is_valid &&
-            (validation.canastra_type === "CLEAN" ||
-              validation.canastra_type === "KING" ||
-              validation.canastra_type === "ACE");
+        const this_is_clean_canasta =
+          validation.is_valid &&
+          (validation.canastra_type === "CLEAN" ||
+            validation.canastra_type === "KING" ||
+            validation.canastra_type === "ACE");
 
-          if (!already_has_clean && !this_is_clean_canasta) {
-            if (callback)
-              callback({
-                error:
-                  "Impedido de ficar com apenas uma carta na mão. Proibido bater sem canastra limpa",
-              });
-            return;
-          }
+        if (!already_has_clean && !this_is_clean_canasta) {
+          if (callback)
+            callback({
+              error: "Impedido de bater sem canastra limpa.",
+            });
+          return;
         }
       }
 
@@ -330,7 +324,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       }
 
       if (team_melds) {
-        const organized = organize_meld(new_meld);
+        const organized = organize_meld(new_meld, game.rules);
         if (organized.length !== new_meld.length) {
           team_melds[meld_index] = sort_cards(new_meld);
         } else {
@@ -384,7 +378,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         return;
       }
 
-      const validation = validate_sequence(cards_to_meld);
+      const validation = validate_sequence(cards_to_meld, game.rules);
 
       if (!validation.is_valid) {
         if (callback) callback({ error: `Jogo inválido: ${validation.error}` });
@@ -394,22 +388,20 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       const team_id = get_team(player_id);
       const new_hand_len = current_hand.length - card_ids.length;
 
-      if (requires_clean_to_empty_hand(game, team_id)) {
-        if (new_hand_len <= 1) {
-          const already_has_clean = has_clean_canastra(game, team_id);
-          const this_is_clean_canasta =
-            validation.is_valid &&
-            (validation.canastra_type === "CLEAN" ||
-              validation.canastra_type === "KING" ||
-              validation.canastra_type === "ACE");
+      if (new_hand_len === 0 && game.rules.must_have_clean_canastra_to_beat) {
+        const already_has_clean = has_clean_canastra(game, team_id);
+        const this_is_clean_canasta =
+          validation.is_valid &&
+          (validation.canastra_type === "CLEAN" ||
+            validation.canastra_type === "KING" ||
+            validation.canastra_type === "ACE");
 
-          if (!already_has_clean && !this_is_clean_canasta) {
-            if (callback)
-              callback({
-                error: "Proibido bater sem canastra limpa.",
-              });
-            return;
-          }
+        if (!already_has_clean && !this_is_clean_canasta) {
+          if (callback)
+            callback({
+              error: "Proibido bater sem canastra limpa.",
+            });
+          return;
         }
       }
 
@@ -418,7 +410,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       );
       const team_melds = game.team_melds[team_id];
       if (team_melds) {
-        const organized = organize_meld(cards_to_meld);
+        const organized = organize_meld(cards_to_meld, game.rules);
         if (organized.length !== cards_to_meld.length) {
           team_melds.push(sort_cards(cards_to_meld));
         } else {
@@ -485,7 +477,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       }
 
       const new_meld = [...target_meld, ...cards_to_add];
-      const validation = validate_sequence(new_meld);
+      const validation = validate_sequence(new_meld, game.rules);
       if (!validation.is_valid) {
         if (callback)
           callback({ error: `Não pode adicionar: ${validation.error}` });
@@ -493,22 +485,20 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       }
 
       const new_hand_len = current_hand.length - card_ids.length;
-      if (requires_clean_to_empty_hand(game, team_id)) {
-        if (new_hand_len <= 1) {
-          const already_has_clean = has_clean_canastra(game, team_id);
-          const this_will_be_clean =
-            validation.is_valid &&
-            (validation.canastra_type === "CLEAN" ||
-              validation.canastra_type === "KING" ||
-              validation.canastra_type === "ACE");
+      if (new_hand_len === 0 && game.rules.must_have_clean_canastra_to_beat) {
+        const already_has_clean = has_clean_canastra(game, team_id);
+        const this_will_be_clean =
+          validation.is_valid &&
+          (validation.canastra_type === "CLEAN" ||
+            validation.canastra_type === "KING" ||
+            validation.canastra_type === "ACE");
 
-          if (!already_has_clean && !this_will_be_clean) {
-            if (callback)
-              callback({
-                error: "Proibido bater sem canastra limpa.",
-              });
-            return;
-          }
+        if (!already_has_clean && !this_will_be_clean) {
+          if (callback)
+            callback({
+              error: "Proibido bater sem canastra limpa.",
+            });
+          return;
         }
       }
 
@@ -516,7 +506,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         current_hand.filter((c) => !card_ids.includes(c.id)),
       );
 
-      const organized = organize_meld(new_meld);
+      const organized = organize_meld(new_meld, game.rules);
       if (organized.length !== new_meld.length) {
         console.error(
           `[CRITICAL] organize_meld lost cards! In: ${new_meld.length}, Out: ${organized.length}`,
@@ -568,15 +558,13 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       const team_id = get_team(player_id);
       const new_hand_len = current_hand.length - 1;
 
-      if (new_hand_len === 0) {
-        if (requires_clean_to_empty_hand(game, team_id)) {
-          if (!has_clean_canastra(game, team_id)) {
-            if (callback)
-              callback({
-                error: "Não pode bater (encerrar) sem canastra limpa.",
-              });
-            return;
-          }
+      if (new_hand_len === 0 && game.rules.must_have_clean_canastra_to_beat) {
+        if (!has_clean_canastra(game, team_id)) {
+          if (callback)
+            callback({
+              error: "Não pode bater (encerrar) sem canastra limpa.",
+            });
+          return;
         }
       }
 

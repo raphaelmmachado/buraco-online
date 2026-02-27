@@ -6,7 +6,6 @@
 import {
   type Card,
   type JokerAbility,
-  GAME_RULES,
   SUITS,
   VALUES,
   JOKER_SUIT,
@@ -47,10 +46,10 @@ const shuffle = (array: Card[]): Card[] => {
  * @returns {Card[]} - Um array com todas as cartas.
  */
 export const create_deck = (rules: GameRules = DEFAULT_RULES): Card[] => {
-  console.log(`[GAME] Criando baralho com ${GAME_RULES.DECKS_TO_USE} decks.`);
+  console.log(`[GAME] Criando baralho com ${rules.decks_to_use} decks.`);
   const deck: Card[] = [];
 
-  for (let i = 0; i < GAME_RULES.DECKS_TO_USE; i++) {
+  for (let i = 0; i < rules.decks_to_use; i++) {
     // Cartas Normais
     for (const suit of SUITS) {
       for (const value of VALUES) {
@@ -66,7 +65,7 @@ export const create_deck = (rules: GameRules = DEFAULT_RULES): Card[] => {
     }
 
     // Magic Jokers (2 por deck) - Apenas se ativado nas regras
-    if (rules.useMagicJokers) {
+    if (rules.use_magic_jokers) {
       for (let j = 0; j < 2; j++) {
         const randomAbility =
           ALL_JOKER_ABILITIES[
@@ -95,6 +94,7 @@ export const create_deck = (rules: GameRules = DEFAULT_RULES): Card[] => {
 export const distribute_cards = (
   shuffled_deck: Card[],
   mode: "1v1" | "2v2",
+  rules: GameRules = DEFAULT_RULES,
 ): InitialDistribution => {
   const temp_deck = [...shuffled_deck];
   const hands: Record<number, Card[]> = {};
@@ -106,14 +106,14 @@ export const distribute_cards = (
 
   // 1. Distribui as cartas para cada jogador.
   for (let i = 1; i <= num_players; i++) {
-    const new_hand = temp_deck.splice(0, GAME_RULES.CARDS_PER_HAND);
+    const new_hand = temp_deck.splice(0, rules.cards_per_hand);
     hands[i] = new_hand;
     console.log(`[GAME] Jogador ${i} recebeu ${new_hand.length} cartas.`);
   }
 
   // 2. Separa os dois montes de "morto".
-  const dead_pile_1 = temp_deck.splice(0, GAME_RULES.CARDS_IN_DEAD_PILE);
-  const dead_pile_2 = temp_deck.splice(0, GAME_RULES.CARDS_IN_DEAD_PILE);
+  const dead_pile_1 = temp_deck.splice(0, rules.cards_in_dead_pile);
+  const dead_pile_2 = temp_deck.splice(0, rules.cards_in_dead_pile);
   console.log(`[GAME] Criados 2 mortos com ${dead_pile_1.length} cartas cada.`);
 
   console.log(`[GAME] Cartas restantes no monte: ${temp_deck.length}.`);

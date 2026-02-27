@@ -6,7 +6,6 @@ import {
   get_next_player,
   get_team,
   has_clean_canastra,
-  requires_clean_to_empty_hand,
   handle_empty_hand,
   check_championship_status,
 } from "./gameService";
@@ -112,7 +111,7 @@ const handleTurnTimeout = (io: Server, roomId: string) => {
 
     // Verifica se esse descarte faria bater sem limpa
     const new_hand_len = current_hand.length - 1;
-    if (new_hand_len === 0 && requires_clean_to_empty_hand(game, team_id)) {
+    if (new_hand_len === 0 && game.rules.must_have_clean_canastra_to_beat) {
       if (!has_clean_canastra(game, team_id)) {
         // Ops, vai tentar bater sem limpa.
         // Se tiver mais de 1 carta, tenta outra.

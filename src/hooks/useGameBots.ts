@@ -87,6 +87,7 @@ export const useGameBots = () => {
             is_desperate,
             all_played_cards_for_add,
             store.mode === "2v2",
+            store.rules,
           );
           if (card_to_add) {
             console.log(`🤖 Bot ${store.current_player} adicionou ao jogo ${i}.`);
@@ -125,9 +126,11 @@ export const useGameBots = () => {
           opponent_melds,
           store.discard_pile.length > 0 ? store.discard_pile[0] : null,
           has_taken,
-          store.deck.length, 
+          store.deck.length,
           store.discard_pile.length,
-          partner_hand_size
+          partner_hand_size,
+          store.rules,
+          has_clean,
         );
 
         if (card_to_discard) {

@@ -5,6 +5,8 @@ import { MeldCard } from "./MeldCard";
 import { MeldBadge } from "./MeldBadge";
 import type { Card } from "../../../common/types/card";
 import type { ScreenDirection } from "../../utils/animation_utils";
+import { useGameStore } from "../../store/useGameStore";
+import { useGameStoreBots } from "../../store/useGameStoreBots";
 
 interface MeldDisplayProps {
   meld: Card[];
@@ -28,8 +30,16 @@ export const MeldDisplay = memo(
     interactive = false,
     enterFrom = "bottom",
   }: MeldDisplayProps) => {
+    const isLocal = !useGameStore.getState().roomId;
+    const onlineRules = useGameStore((s) => s.rules);
+    const localRules = useGameStoreBots((s) => s.rules);
+    const rules = isLocal ? localRules : onlineRules;
+
     // Memoize the expensive organization logic
-    const organizedCards = useMemo(() => organize_meld(meld), [meld]);
+    const organizedCards = useMemo(
+      () => organize_meld(meld, rules),
+      [meld, rules],
+    );
 
     return (
       <AnimatePresence>

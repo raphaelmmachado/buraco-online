@@ -341,26 +341,26 @@ const TeamRoundCard = ({
 
 const DetailedScoreBreakdown = ({ result, rules }: { result: ScoreResult, rules: GameRules }) => {
   const r = rules || {
-    pointsCleanCanastra: 200,
-    pointsDirtyCanastra: 100,
-    pointsKingCanastra: 500,
-    pointsAceCanastra: 1000,
-    penaltyDeadPileNotTaken: -100
+    points_clean_canastra: 200,
+    points_dirty_canastra: 100,
+    points_king_canastra: 500,
+    points_ace_canastra: 1000,
+    penalty_dead_pile_not_taken: -100
   };
 
   // Calculamos o bônus de canastras usando as regras
   const canastraPointsTotal =
-    result.details.CLEAN * r.pointsCleanCanastra +
-    result.details.DIRTY * r.pointsDirtyCanastra +
-    result.details.KING * r.pointsKingCanastra +
-    result.details.ACE * r.pointsAceCanastra;
+    result.details.CLEAN * r.points_clean_canastra +
+    result.details.DIRTY * r.points_dirty_canastra +
+    result.details.KING * r.points_king_canastra +
+    result.details.ACE * r.points_ace_canastra;
   
   const beatBonus = result.did_beat
     ? result.bonus_points - canastraPointsTotal
     : 0;
 
   // Penalidades
-  const deadPilePenalty = !result.has_taken_dead_pile ? Math.abs(r.penaltyDeadPileNotTaken) : 0;
+  const deadPilePenalty = !result.has_taken_dead_pile ? Math.abs(r.penalty_dead_pile_not_taken) : 0;
   const handPenalty = result.penalty_points - deadPilePenalty;
 
   return (
@@ -376,25 +376,25 @@ const DetailedScoreBreakdown = ({ result, rules }: { result: ScoreResult, rules:
         <StatRow
           label="Limpas"
           count={result.details.CLEAN}
-          total={result.details.CLEAN * r.pointsCleanCanastra}
+          total={result.details.CLEAN * r.points_clean_canastra}
           color="text-blue-400"
         />
         <StatRow
           label="Sujas"
           count={result.details.DIRTY}
-          total={result.details.DIRTY * r.pointsDirtyCanastra}
+          total={result.details.DIRTY * r.points_dirty_canastra}
           color="text-orange-400"
         />
         <StatRow
           label="Excelente (A a K)"
           count={result.details.KING}
-          total={result.details.KING * r.pointsKingCanastra}
+          total={result.details.KING * r.points_king_canastra}
           color="text-violet-400"
         />
         <StatRow
           label="Perfeitas (A a A)"
           count={result.details.ACE}
-          total={result.details.ACE * r.pointsAceCanastra}
+          total={result.details.ACE * r.points_ace_canastra}
           color="text-green-400"
         />
         {beatBonus > 0 && (

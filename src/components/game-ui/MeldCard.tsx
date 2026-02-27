@@ -116,14 +116,19 @@ export const MeldCard = ({
       >
         {isJoker && !isAccessibilityMode ? (
           "JOKER".split("").map((char, i) => (
-            <span key={i} className="text-[8px] md:text-[10px] font-black leading-[0.8]">
+            <span
+              key={i}
+              className="text-[8px] md:text-[10px] font-black leading-[0.8]"
+            >
               {char}
             </span>
           ))
         ) : (
           <>
             <span className={valueClass}>{isJoker ? "JK" : card.value}</span>
-            {!isJoker && <SuitIcon suit={card.suit.name} className={suitClass} />}
+            {!isJoker && (
+              <SuitIcon suit={card.suit.name} className={suitClass} />
+            )}
           </>
         )}
       </div>
@@ -133,13 +138,12 @@ export const MeldCard = ({
         <img
           src={imageSrc}
           alt="Card illustration"
-          className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none ${isAccessibilityMode ? "opacity-20" : "opacity-100"} ${isJoker ? "max-w-8 md:max-w-10" : "max-w-6 md:max-w-8 opacity-10"}`}
+          className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none  ${isJoker ? "max-w-8 md:max-w-10" : "max-w-6 md:max-w-8 opacity-10"}`}
           draggable={false}
         />
       ) : (
         <div
-          className={`${isAccessibilityMode ? "opacity-100" : "opacity-10"}
-           absolute top-3 left-3 inset-0 flex items-center justify-center pointer-events-none`}
+          className={`opacity-10 absolute top-3 left-3 inset-0 flex items-center justify-center pointer-events-none`}
         >
           <SuitIcon suit={card.suit.name} className="w-5 h-5 md:w-7 md:h-7" />
         </div>

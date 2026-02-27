@@ -18,8 +18,27 @@ const GameScreen = lazy(() =>
 export const LocalGame = ({ onBack }: { onBack?: () => void }) => {
   const store = useGameStoreBots();
   const gameAdapter = useLocalGameAdapter();
-  const [rules, setRules] = useState({ ...DEFAULT_RULES });
+
+  // Inicializa regras do localStorage ou usa o padrão (Apenas Local)
+  const [rules, setRulesState] = useState<typeof DEFAULT_RULES>(() => {
+    const saved = localStorage.getItem("baralho_local_rules");
+    if (saved) {
+      try {
+        return { ...DEFAULT_RULES, ...JSON.parse(saved) };
+      } catch (e) {
+        console.error("Erro ao carregar regras locais:", e);
+      }
+    }
+    return { ...DEFAULT_RULES };
+  });
+
   const [showRulesModal, setShowRulesModal] = useState(false);
+
+  // Wrapper para salvar localmente e atualizar o estado
+  const setRules = (newRules: typeof DEFAULT_RULES) => {
+    setRulesState(newRules);
+    localStorage.setItem("baralho_local_rules", JSON.stringify(newRules));
+  };
 
   // Initialize Bots Logic
   useGameBots();
@@ -48,13 +67,6 @@ export const LocalGame = ({ onBack }: { onBack?: () => void }) => {
           </div>
 
           <div className="flex flex-col gap-3 relative">
-            <div
-              className="animate-pulse text-[8px] flex gap-x-3
-             uppercase tracking-widest absolute top-1 right-1 bg-blue-500 font-bold px-1 rounded-2xl"
-            >
-              novidade
-            </div>
-
             <button
               onClick={() => setShowRulesModal(true)}
               className="w-full bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 py-4 rounded-xl font-bold text-sm uppercase tracking-widest transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
@@ -103,6 +115,10 @@ export const LocalGame = ({ onBack }: { onBack?: () => void }) => {
     closeRoom: () => {
       store.reset_game();
       if (onBack) onBack();
+    },
+    setRules: (newRules: typeof rules) => {
+      setRules(newRules);
+      store.update_rules(newRules);
     },
   };
 

@@ -441,13 +441,13 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
     const will_have_clean =
       get().internal_can_beat() || is_clean_canasta(validation);
 
-    if (new_hand.length === 0) {
+    if (new_hand.length === 0 || new_hand.length === 1) {
       if (
         get().rules.must_have_clean_canastra_to_beat &&
         is_final_beat &&
         !will_have_clean
       ) {
-        set({ last_error: "Proibido bater sem canastra limpa." });
+        set({ last_error: "Proibido bater ou ficar com 1 carta sem canastra limpa." });
         return;
       }
       if (is_final_beat && has_taken_dead && !will_have_clean) {
@@ -546,13 +546,13 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       return is_clean_canasta(v);
     });
 
-    if (new_hand.length === 0) {
+    if (new_hand.length === 0 || new_hand.length === 1) {
       if (
         get().rules.must_have_clean_canastra_to_beat &&
         is_final_beat &&
         !will_have_clean
       ) {
-        set({ last_error: "Proibido bater sem canastra limpa." });
+        set({ last_error: "Proibido bater ou ficar com 1 carta sem canastra limpa." });
         return;
       }
       if (is_final_beat && has_taken_dead && !will_have_clean) {
@@ -631,13 +631,13 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       return is_clean_canasta(v);
     });
 
-    if (new_hand.length === 0) {
+    if (new_hand.length === 0 || new_hand.length === 1) {
       if (
         get().rules.must_have_clean_canastra_to_beat &&
         is_final_beat &&
         !will_have_clean
       ) {
-        set({ last_error: "Proibido bater sem canastra limpa." });
+        set({ last_error: "Proibido bater ou ficar com 1 carta sem canastra limpa." });
         return;
       }
       if (is_final_beat && has_taken_dead && !will_have_clean) {
@@ -713,13 +713,13 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
     const will_have_clean =
       get().internal_can_beat() || is_clean_canasta(validation);
 
-    if (new_hand.length === 0) {
+    if (new_hand.length === 0 || new_hand.length === 1) {
       if (
         get().rules.must_have_clean_canastra_to_beat &&
         is_final_beat &&
         !will_have_clean
       ) {
-        set({ last_error: "Proibido bater sem canastra limpa." });
+        set({ last_error: "Proibido bater ou ficar com 1 carta sem canastra limpa." });
         return;
       }
       if (is_final_beat && has_taken_dead && !will_have_clean) {

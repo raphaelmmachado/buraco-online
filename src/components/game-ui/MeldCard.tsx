@@ -114,11 +114,12 @@ export const MeldCard = ({
       <div
         className={`self-start flex flex-col ${isAccessibilityMode ? "gap-y-0.5 md:gap-y-2" : isJoker ? "leading-[0.8]" : ""} items-center z-10 ${isJoker ? "p-0.5" : ""}`}
       >
-        {isJoker && !isAccessibilityMode ? (
+        {isJoker ? (
           "JOKER".split("").map((char, i) => (
             <span
               key={i}
-              className="text-[8px] md:text-[10px] font-black leading-[0.8]"
+              className={`text-[10px] md:text-sm font-black
+                 ${isAccessibilityMode ? "leading-2.5 md:leading-2" : "leading-2.5 md:leading-3.5"}`}
             >
               {char}
             </span>

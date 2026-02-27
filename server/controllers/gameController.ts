@@ -152,7 +152,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         current_hand.length - card_ids.length + (game.discard_pile.length - 1);
 
       if (
-        new_hand_len === 0 &&
+        (new_hand_len === 0 || new_hand_len === 1) &&
         game.rules.must_have_clean_canastra_to_beat &&
         final_beat
       ) {
@@ -166,7 +166,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         if (!already_has_clean && !this_is_clean_canasta) {
           if (callback)
             callback({
-              error: "Proibido bater sem canastra limpa.",
+              error: "Proibido bater ou ficar com 1 carta sem canastra limpa.",
             });
           return;
         }
@@ -290,7 +290,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         current_hand.length - card_ids.length + (game.discard_pile.length - 1);
 
       if (
-        new_hand_len === 0 &&
+        (new_hand_len === 0 || new_hand_len === 1) &&
         game.rules.must_have_clean_canastra_to_beat &&
         final_beat
       ) {
@@ -314,7 +314,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         if (!already_has_clean && !this_is_clean_canasta) {
           if (callback)
             callback({
-              error: "Impedido de bater sem canastra limpa.",
+              error: "Proibido bater ou ficar com 1 carta sem canastra limpa.",
             });
           return;
         }
@@ -404,7 +404,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       const new_hand_len = current_hand.length - card_ids.length;
 
       if (
-        new_hand_len === 0 &&
+        (new_hand_len === 0 || new_hand_len === 1) &&
         game.rules.must_have_clean_canastra_to_beat &&
         final_beat
       ) {
@@ -506,7 +506,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
 
       const new_hand_len = current_hand.length - card_ids.length;
       if (
-        new_hand_len === 0 &&
+        (new_hand_len === 0 || new_hand_len === 1) &&
         game.rules.must_have_clean_canastra_to_beat &&
         final_beat
       ) {
@@ -520,7 +520,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         if (!already_has_clean && !this_will_be_clean) {
           if (callback)
             callback({
-              error: "Proibido bater sem canastra limpa.",
+              error: "Proibido bater ou ficar com 1 carta sem canastra limpa.",
             });
           return;
         }

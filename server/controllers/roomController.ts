@@ -599,11 +599,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
         return;
     }
 
-    if (game.status !== "LOBBY") {
-        start_new_match(game);
-    } else {
-        game.status = "PLAYING";
-    }
+    start_new_match(game);
 
     if (winCondition) {
         game.win_condition = winCondition;

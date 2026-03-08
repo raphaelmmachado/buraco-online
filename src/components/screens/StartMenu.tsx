@@ -132,7 +132,7 @@ export const StartMenu = ({
             <Check size={8} className="text-green-500" />
           ) : null}
           <span>v{__APP_VERSION__}</span>
-          {updateSuccess && <span className="uppercase tracking-widest text-[7px] animate-fade-in pl-1">• Atualizado</span>}
+          {updateSuccess && <span className="uppercase tracking-widest text-sm animate-fade-in pl-1">• Atualizado</span>}
         </div>
 
         {needRefresh && (

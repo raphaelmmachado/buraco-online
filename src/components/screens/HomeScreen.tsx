@@ -119,8 +119,8 @@ export const HomeScreen = ({ onBack }: { onBack: () => void }) => {
         ))}
       </div>
 
-      <div className="fixed bottom-4 left-4 text-[10px] text-white/20 font-mono pointer-events-none z-50">
-        v{__APP_VERSION__} - Coringas Mágicos
+      <div className="fixed bottom-4 left-4 text-sm text-white/20 font-mono pointer-events-none z-50">
+        v{__APP_VERSION__}
       </div>
 
       {/* Background Texture */}

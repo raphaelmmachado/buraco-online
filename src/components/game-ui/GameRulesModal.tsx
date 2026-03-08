@@ -1,5 +1,5 @@
-import { X, Settings2, Info, Check, Dot } from "lucide-react";
-import { type GameRules } from "../../../common/types/rules";
+import { X, Settings2, Info, Check, Dot, RotateCcw } from "lucide-react";
+import { type GameRules, DEFAULT_RULES } from "../../../common/types/rules";
 import { StyledButton } from "../ui/StyledButton";
 import { useState } from "react";
 
@@ -297,6 +297,12 @@ export const GameRulesModal = ({
     onRulesChange(newRules); // Emit to server
   };
 
+  const handleResetToDefault = () => {
+    if (!isHost) return;
+    setLocalRules(DEFAULT_RULES);
+    onRulesChange(DEFAULT_RULES);
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 bg-black/80 backdrop-blur-sm animate-fade-in">
       <div className="bg-[#141414] w-full max-w-md rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden animate-scale-in">
@@ -319,12 +325,23 @@ export const GameRulesModal = ({
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-white/5 rounded-full text-slate-400 hover:text-white transition-all"
-          >
-            <X size={24} />
-          </button>
+          <div className="flex items-center gap-2">
+            {isHost && (
+              <button
+                onClick={handleResetToDefault}
+                className="p-2 hover:bg-yellow-500/10 rounded-full text-yellow-600/70 hover:text-yellow-500 transition-all flex items-center gap-2"
+                title="Resetar para o Padrão"
+              >
+                <RotateCcw size={20} />
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white/5 rounded-full text-slate-400 hover:text-white transition-all"
+            >
+              <X size={24} />
+            </button>
+          </div>
         </div>
 
         {/* Content */}

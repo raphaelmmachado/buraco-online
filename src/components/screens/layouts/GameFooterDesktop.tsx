@@ -15,6 +15,7 @@ export const GameFooterDesktop = ({
   onDeckClick,
   onDiscardClick,
   toggleSelect,
+  focusedCardId,
   my_player_id,
 }: GameLayoutProps & { my_player_id: number }) => {
   return (
@@ -43,6 +44,7 @@ export const GameFooterDesktop = ({
         showCardMarkers={game.showCardMarkers}
         cardMarkers={game.cardMarkers}
         setCardMarker={game.setCardMarker}
+        focusedCardId={focusedCardId}
       />
 
       {/* RIGHT: DISCARD PILE */}

@@ -46,4 +46,6 @@ export interface GameLayoutProps {
   
   // Aliases commonly used in layouts
   onCardClick: (id: string) => void;
+  // Keyboard access
+  focusedCardId?: string | null;
 }

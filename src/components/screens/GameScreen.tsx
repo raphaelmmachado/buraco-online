@@ -30,6 +30,7 @@ import { ConnectionOverlay } from "./ConnectionOverlay";
 import { EventBalloon } from "../game-ui/EventBalloon";
 import Portal from "../ui/Portal";
 import { TimerBalloon } from "../game-ui/TimerBalloon";
+import { useKeyboardControls } from "../../hooks/useKeyboardControls";
 
 // Layout Components
 import { GameSeparatorMobile } from "./layouts/GameSeparatorMobile";
@@ -202,56 +203,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     };
   }, [game.players_data, opponentHeight]);
 
-  // GUARD: Wait for player identification to prevent "Ghost Mode"
-  // Moved after hooks to strictly follow React Rules of Hooks
-  if (game.my_player_number === null) {
-    return (
-      <LoadingScreen
-        message="Sincronizando..."
-        subMessage="Recuperando estado da partida..."
-      />
-    );
-  }
-
-  // --- RENDER FINISH SCREEN OR ROUND SUMMARY ---
-  if (
-    showFinishScreen &&
-    (game.status === "FINISHED" || game.status === "ROUND_OVER") &&
-    game.final_score
-  ) {
-    const totalHumanPlayers = game.players_data
-      ? Object.values(game.players_data).filter((p) => !p.isBot).length
-      : 0;
-    const mySocketId = game.players_data?.[my_player_id]?.socketId;
-    const isLeader = my_player_id === 1;
-
-    // Se o jogo ACABOU de vez (Vencedor final) OU se o jogador quis ver detalhes
-    if (game.status === "FINISHED" || showFullDetails) {
-      return (
-        <FinishScreen
-          finalScore={game.final_score}
-          myTeam={my_team}
-          onPlayAgain={() => {
-            game.voteNext();
-            setShowFullDetails(false);
-          }}
-          onLeave={isLeader ? game.closeRoom : game.leaveGame}
-          isLeader={isLeader}
-          isRoundOver={game.status === "ROUND_OVER"}
-          cumulativeScore={game.cumulative_score}
-          roundCount={game.round_count}
-          winCondition={game.win_condition}
-          rematchVotes={game.rematch_votes}
-          totalHumanPlayers={totalHumanPlayers}
-          myPlayerId={mySocketId}
-          rules={game.rules}
-        />
-      );
-    }
-
-    // Se apenas a RODADA acabou, mostramos o overlay discreto por cima da mesa
-    // Mas precisamos deixar o código seguir para renderizar o GameScreen abaixo
-  }
+  // Early returns moved below hooks to satisfy React Rules of Hooks
 
   // --- HANDLERS ---
   const toggleSelect = (id: string) => {
@@ -328,6 +280,72 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     setSelectedCards([]);
   };
 
+  const { focusedCardId } = useKeyboardControls({
+    myHand,
+    topDiscardCard,
+    selectedCards: validSelectedCards,
+    isMyTurn,
+    canDraw,
+    canAction,
+    isDiscardSelected,
+    onToggleSelect: toggleSelect,
+    onDeckClick: handleDeckClick,
+    onDiscardClick: handleDiscardClick,
+    onNewMeldClick: handleNewMeldClick,
+    onMeldClick: handleMeldClick,
+    myTeam: my_team,
+  });
+
+  // GUARD: Wait for player identification to prevent "Ghost Mode"
+  if (game.my_player_number === null) {
+    return (
+      <LoadingScreen
+        message="Sincronizando..."
+        subMessage="Recuperando estado da partida..."
+      />
+    );
+  }
+
+  // --- RENDER FINISH SCREEN OR ROUND SUMMARY ---
+  if (
+    showFinishScreen &&
+    (game.status === "FINISHED" || game.status === "ROUND_OVER") &&
+    game.final_score
+  ) {
+    const totalHumanPlayers = game.players_data
+      ? Object.values(game.players_data).filter((p) => !p.isBot).length
+      : 0;
+    const mySocketId = game.players_data?.[my_player_id]?.socketId;
+    const isLeader = my_player_id === 1;
+
+    // Se o jogo ACABOU de vez (Vencedor final) OU se o jogador quis ver detalhes
+    if (game.status === "FINISHED" || showFullDetails) {
+      return (
+        <FinishScreen
+          finalScore={game.final_score}
+          myTeam={my_team}
+          onPlayAgain={() => {
+            game.voteNext();
+            setShowFullDetails(false);
+          }}
+          onLeave={isLeader ? game.closeRoom : game.leaveGame}
+          isLeader={isLeader}
+          isRoundOver={game.status === "ROUND_OVER"}
+          cumulativeScore={game.cumulative_score}
+          roundCount={game.round_count}
+          winCondition={game.win_condition}
+          rematchVotes={game.rematch_votes}
+          totalHumanPlayers={totalHumanPlayers}
+          myPlayerId={mySocketId}
+          rules={game.rules}
+        />
+      );
+    }
+
+    // Se apenas a RODADA acabou, mostramos o overlay discreto por cima da mesa
+    // Mas precisamos deixar o código seguir para renderizar o GameScreen abaixo
+  }
+
   // Prepare Props Object
 
   const layoutProps: GameLayoutProps = {
@@ -360,6 +378,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     discardOriginDirection,
     activePlayerDirection,
     playerRefs,
+    focusedCardId,
   };
 
   return (
@@ -691,9 +710,9 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
             <div className="absolute inset-0 top-auto h-32 md:h-full bg-linear-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md -z-10 pointer-events-none" />
 
             {isMobile ? (
-              <GameFooterMobile {...layoutProps} my_player_id={my_player_id} />
+              <GameFooterMobile {...layoutProps} my_player_id={my_player_id} focusedCardId={focusedCardId} />
             ) : (
-              <GameFooterDesktop {...layoutProps} my_player_id={my_player_id} />
+              <GameFooterDesktop {...layoutProps} my_player_id={my_player_id} focusedCardId={focusedCardId} />
             )}
 
             {/* ERROR TOAST (Standardized with EventBalloon) */}

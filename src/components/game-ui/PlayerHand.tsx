@@ -16,6 +16,7 @@ interface PlayerHandProps {
   showCardMarkers?: boolean;
   cardMarkers: Record<string, string>;
   setCardMarker: (cardId: string, color: string | null) => void;
+  focusedCardId?: string | null;
 }
 
 // --- CONFIGURAÇÃO FÁCIL DE EDITAR ---
@@ -73,6 +74,7 @@ export const PlayerHand = ({
   showCardMarkers = false,
   cardMarkers,
   setCardMarker,
+  focusedCardId,
 }: PlayerHandProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(1000);
@@ -186,7 +188,7 @@ export const PlayerHand = ({
         <AnimatePresence mode="popLayout">
           {cards.map((card, i) => {
             const isSelected = selectedCardIds.includes(card.id);
-            const isHovered = hoveredIndex === i;
+            const isHovered = hoveredIndex === i || card.id === focusedCardId;
             const x = i * currentSpacing;
             const rotation = startAngle + i * angleStep;
             const archY = getArchOffset(i, totalCards);
@@ -284,8 +286,9 @@ export const PlayerHand = ({
     const groupGap = safeUsableWidth / (activeSuits.length + 1);
 
     // Encontra o índice do naipe focado para calcular os afastamentos
-
-    const hoveredSuitIndex = activeSuits.indexOf(hoveredSuit || "");
+    const focusCardSuit = focusedCardId ? cards.find(c => c.id === focusedCardId)?.suit.name : null;
+    const activeHoverSuit = hoveredSuit || focusCardSuit;
+    const hoveredSuitIndex = activeSuits.indexOf(activeHoverSuit || "");
 
     const PUSH_DISTANCE = 180; // Distância que os outros naipes se afastam (px)
 
@@ -296,7 +299,7 @@ export const PlayerHand = ({
 
           if (!suitCards) return null;
 
-          const isSuitHovered = hoveredSuit === suit;
+          const isSuitHovered = activeHoverSuit === suit;
 
           const baseX = (suitIdx + 1) * groupGap - safeUsableWidth / 2;
 
@@ -304,7 +307,7 @@ export const PlayerHand = ({
 
           let xOffset = 0;
 
-          if (hoveredSuit) {
+          if (activeHoverSuit) {
             if (suitIdx < hoveredSuitIndex) xOffset = -PUSH_DISTANCE;
             else if (suitIdx > hoveredSuitIndex) xOffset = PUSH_DISTANCE;
           }
@@ -333,9 +336,8 @@ export const PlayerHand = ({
                     const isSelected = selectedCardIds.includes(card.id);
 
                     // Ajuste de ID para evitar conflito com índice normal
-
                     const isCardHovered =
-                      hoveredIndex === (suitIdx + 1) * 1000 + i;
+                      hoveredIndex === (suitIdx + 1) * 1000 + i || card.id === focusedCardId;
 
                     // Se o naipe está em hover, espalhamos as cartas. Se não, ficam empilhadas.
 

@@ -231,7 +231,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
   start_game: (config, customRules) => {
     let mode = get().mode;
     let winCondition: WinCondition = { type: "POINTS", value: 3000 };
-    const rules = customRules || DEFAULT_RULES;
+    const rules = customRules || get().rules;
 
     if (typeof config === "string") {
       mode = config as GameMode;

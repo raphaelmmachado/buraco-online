@@ -6,6 +6,7 @@ export const GameFooterMobile = ({
   game,
   selectedCards,
   toggleSelect,
+  focusedCardId,
   my_player_id
 }: GameLayoutProps & { my_player_id: number }) => {
   return (
@@ -20,6 +21,7 @@ export const GameFooterMobile = ({
       showCardMarkers={game.showCardMarkers}
       cardMarkers={game.cardMarkers}
       setCardMarker={game.setCardMarker}
+      focusedCardId={focusedCardId}
     />
   );
 };

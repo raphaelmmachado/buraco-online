@@ -15,6 +15,7 @@ interface MobilePlayerHandProps {
   showCardMarkers?: boolean;
   cardMarkers: Record<string, string>;
   setCardMarker: (cardId: string, color: string | null) => void;
+  focusedCardId?: string | null;
 }
 
 export const MobilePlayerHand = ({
@@ -28,6 +29,7 @@ export const MobilePlayerHand = ({
   showCardMarkers = false,
   cardMarkers,
   setCardMarker,
+  focusedCardId,
 }: MobilePlayerHandProps) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const showAnimations = useGameStore((s) => s.showAnimations);
@@ -90,6 +92,8 @@ export const MobilePlayerHand = ({
                   : { opacity: 0, x: -50, scale: 0.5 };
 
               const isJoker = card.value === "JOKER";
+              const isKeyboardFocused = card.id === focusedCardId;
+              const targetY = isSelected ? (isJoker ? -60 : -10) : (isKeyboardFocused ? -10 : 0);
 
               return (
                 <motion.div
@@ -100,10 +104,10 @@ export const MobilePlayerHand = ({
                   animate={{
                     opacity: 1,
                     x: 0,
-                    y: isSelected ? (isJoker ? -60 : -10) : 0,
+                    y: targetY,
                     scale: 1,
                     rotate: 0,
-                    zIndex: isSelected && isJoker ? 150 + i : i,
+                    zIndex: (isSelected && isJoker) || isKeyboardFocused ? 150 + i : i,
                   }}
                   transition={
                     showAnimations
@@ -122,6 +126,7 @@ export const MobilePlayerHand = ({
                     card={card}
                     isSelected={isSelected}
                     isLastDrawn={isLastDrawn}
+                    isKeyboardFocused={card.id === focusedCardId}
                     onClick={() => onCardClick(card.id)}
                     onUseJoker={onUseJoker}
                     className="w-16 h-24 shadow-md p-1"

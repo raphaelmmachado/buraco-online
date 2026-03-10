@@ -125,22 +125,22 @@ export const HowToPlay = ({ onClose }: HowToPlayProps) => {
                 Sequências de {rules.min_cards_for_meld}+ cartas do mesmo naipe.
                 A ordem é:
               </p>
-              <span className="font-mono uppercase tracking-widest mt-2 block p-2 bg-black/20 rounded notranslate" translate="no">
+              <span className="font-mono uppercase tracking-widest mt-2 block p-2 bg-black/20 rounded">
                 {"A-2-3-4-5-6-7-8-9-10-J-Q-K-A"}
               </span>
             </InfoItem>
             <InfoItem title="Cartas">
               <p>
-                <span className="font-bold notranslate" translate="no">A:</span> Ás
+                <span className="font-bold">A:</span> Ás
               </p>
               <p>
-                <span className="font-bold notranslate" translate="no">J:</span> Valete{" "}
+                <span className="font-bold">J:</span> Valete{" "}
               </p>
               <p>
-                <span className="font-bold notranslate" translate="no">Q:</span> Dama
+                <span className="font-bold">Q:</span> Dama
               </p>
               <p>
-                <span className="font-bold notranslate" translate="no">K:</span> Rei
+                <span className="font-bold">K:</span> Rei
               </p>
             </InfoItem>
             <InfoItem title="Naipes">

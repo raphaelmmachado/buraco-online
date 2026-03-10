@@ -83,6 +83,7 @@ interface GameActions {
   power_pick_card: (cardId: string) => void;
   power_cancel: () => void;
   clear_error: () => void;
+  set_error: (msg: string) => void;
   toggleAnimations: () => void;
   toggleSortButton: () => void;
   toggleCardMarkers: () => void;
@@ -143,6 +144,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
   cardsPlayedThisTurn: 0,
 
   clear_error: () => set({ last_error: null }),
+  set_error: (msg: string) => set({ last_error: msg }),
   clear_info: () => set({ last_info: null }),
 
   reset_game: () => {

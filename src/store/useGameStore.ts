@@ -154,6 +154,7 @@ interface GameActions {
   rejoinGame: () => void;
   fetchRooms: () => void;
   clear_error: () => void;
+  set_error: (msg: string) => void;
   clear_info: () => void;
 
   draw_card: () => void;
@@ -264,6 +265,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   rematch_votes: {},
 
   clear_error: () => set({ last_error: null }),
+  set_error: (msg: string) => set({ last_error: msg }),
   clear_info: () => set({ last_info: null }),
 
   addEvent: (message, type = "info", playerId) => {

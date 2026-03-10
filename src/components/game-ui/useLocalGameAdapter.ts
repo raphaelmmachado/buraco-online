@@ -80,6 +80,7 @@ export interface GameAdapterInterface {
   setRules: (rules: GameRules) => void;
   sort_hand: () => void;
   clear_error: () => void;
+  set_error: (msg: string) => void;
   clear_info: () => void;
   toggleAnimations: () => void;
   toggleSortButton: () => void;
@@ -193,6 +194,7 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       },
       sort_hand: local.sort_my_hand,
       clear_error: local.clear_error,
+      set_error: local.set_error,
       clear_info: local.clear_info,
       toggleAnimations: local.toggleAnimations,
       toggleSortButton: local.toggleSortButton,

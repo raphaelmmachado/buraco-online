@@ -210,8 +210,7 @@ export const DiscardCard = ({
            items-center leading-none z-10`}
         >
           <span
-            className={`${valueClass} ${isJoker && !isAccessibilityMode ? "text-[10px] md:text-base font-black tracking-tighter" : ""} notranslate`}
-            translate="no"
+            className={`${valueClass} ${isJoker && !isAccessibilityMode ? "text-[10px] md:text-base font-black tracking-tighter" : ""}`}
           >
             {isJoker ? (isAccessibilityMode ? "JK" : "JOKER") : card.value}
           </span>
@@ -248,7 +247,7 @@ export const DiscardCard = ({
             className={`${isAccessibilityMode ? "gap-y-1 md:gap-y-2" : "gap-y-0"} 
             self-end flex flex-col items-center leading-none rotate-180 z-10`}
           >
-            <span className={`${valueClass} notranslate`} translate="no">{card.value}</span>
+            <span className={`${valueClass}`}>{card.value}</span>
             <SuitIcon suit={card.suit.name} className={suitClass} />
           </div>
         )}

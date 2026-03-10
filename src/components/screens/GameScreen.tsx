@@ -284,9 +284,13 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   const handleDiscardClick = () => {
     if (canDraw && topDiscardCard) {
       toggleSelect(topDiscardCard.id);
-    } else if (canAction && validSelectedCards.length === 1) {
-      game.discard_card(validSelectedCards[0]);
-      setSelectedCards([]);
+    } else if (canAction) {
+      if (validSelectedCards.length === 1) {
+        game.discard_card(validSelectedCards[0]);
+        setSelectedCards([]);
+      } else {
+        game.set_error("Selecione exatamente 1 carta para descartar.");
+      }
     }
   };
 

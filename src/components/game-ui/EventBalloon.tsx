@@ -70,8 +70,7 @@ export const EventBalloon = ({
             {cards.map((card, idx) => (
               <span 
                 key={idx} 
-                className="bg-white text-gray-900 px-1 md:px-1.5 py-0.5 md:py-0.5 rounded shadow-sm border border-gray-200 flex items-center justify-center min-w-[18px] md:min-w-[22px] text-[8px] md:text-[10px] leading-none font-black notranslate"
-                translate="no"
+                className="bg-white text-gray-900 px-1 md:px-1.5 py-0.5 md:py-0.5 rounded shadow-sm border border-gray-200 flex items-center justify-center min-w-[18px] md:min-w-[22px] text-[8px] md:text-[10px] leading-none font-black"
               >
                 {card}
               </span>

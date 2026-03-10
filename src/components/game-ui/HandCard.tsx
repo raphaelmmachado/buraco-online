@@ -111,7 +111,7 @@ const AccessibilityCardContent = ({
 
       {/* Visual de Acessibilidade: Valor e Naipe empilhados e grandes */}
       <div className="self-start flex flex-col items-center leading-none z-10 gap-y-1 md:gap-y-2">
-        <span className={`${valueClass} notranslate`} translate="no">
+        <span className={`${valueClass}`}>
           {isJoker ? (showMobileDetail ? abilityInfo.name.substring(0, 5) : "JK") : card.value}
         </span>
         <SuitIcon suit={card.suit.name} className={suitClass} />
@@ -190,8 +190,7 @@ const JokerCardContent = ({
       {/* Símbolo Topo-Esquerda */}
       <div className="self-start flex flex-col items-center leading-none z-10 gap-y-1">
         <span
-          className={`${valueClass} ${showMobileDetail ? "text-[8px]" : "text-xs"} md:text-lg tracking-tighter font-black uppercase notranslate`}
-          translate="no"
+          className={`${valueClass} ${showMobileDetail ? "text-[8px]" : "text-xs"} md:text-lg tracking-tighter font-black uppercase`}
         >
           {showMobileDetail ? abilityInfo.name : "JOKER"}
         </span>
@@ -268,7 +267,7 @@ const NormalCardContent = ({
     <>
       {/* Símbolo Topo-Esquerda */}
       <div className="self-start flex flex-col items-center leading-none z-10 gap-y-1">
-        <span className={`${valueClass} notranslate`} translate="no">{card.value}</span>
+        <span className={`${valueClass}`}>{card.value}</span>
         <SuitIcon suit={card.suit.name} className={suitClass} />
       </div>
 
@@ -289,7 +288,7 @@ const NormalCardContent = ({
 
       {/* Símbolo Inferior-Direita (Invertido) */}
       <div className="self-end flex flex-col items-center leading-none rotate-180 z-10">
-        <span className={`${valueClass} notranslate`} translate="no">{card.value}</span>
+        <span className={`${valueClass}`}>{card.value}</span>
         <SuitIcon suit={card.suit.name} className={suitClass} />
       </div>
     </>

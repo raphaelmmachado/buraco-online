@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { type Card as CardType } from "../../../common/types/card";
 import { HandCard } from "./HandCard";
@@ -41,12 +41,33 @@ export const MobilePlayerHand = ({
     setPrevCount(cards.length);
   }
 
+  // Track pointer for scroll vs click
+  const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
+
+  const handlePointerDownCapture = (e: React.PointerEvent) => {
+    pointerDownPos.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleClickCapture = (e: React.MouseEvent) => {
+    if (pointerDownPos.current) {
+      const dx = Math.abs(e.clientX - pointerDownPos.current.x);
+      const dy = Math.abs(e.clientY - pointerDownPos.current.y);
+      if (dx > 10 || dy > 10) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+      pointerDownPos.current = null;
+    }
+  };
+
   return (
     <div className="flex-1 w-full h-full relative flex flex-col justify-end pointer-events-auto overflow-visible">
       {/* Scrollable Container - Added pt-32 to allow Joker UI to appear within h-64 */}
       <div
         ref={scrollContainerRef}
         className="w-full overflow-x-auto flex items-end pb-4 pt-16 snap-x snap-mandatory scrollbar-hide"
+        onPointerDownCapture={handlePointerDownCapture}
+        onClickCapture={handleClickCapture}
         style={{
           paddingRight: "50%", // Space for the last card to be centered or visible
           paddingLeft: "20px",

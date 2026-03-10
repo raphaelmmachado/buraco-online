@@ -118,16 +118,15 @@ export const MeldCard = ({
           "JOKER".split("").map((char, i) => (
             <span
               key={i}
-              className={`text-[10px] md:text-sm font-black notranslate
+              className={`text-[10px] md:text-sm font-black
                  ${isAccessibilityMode ? "leading-2.5 md:leading-2" : "leading-2.5 md:leading-3.5"}`}
-              translate="no"
             >
               {char}
             </span>
           ))
         ) : (
           <>
-            <span className={`${valueClass} notranslate`} translate="no">{isJoker ? "JK" : card.value}</span>
+            <span className={`${valueClass}`}>{isJoker ? "JK" : card.value}</span>
             {!isJoker && (
               <SuitIcon suit={card.suit.name} className={suitClass} />
             )}

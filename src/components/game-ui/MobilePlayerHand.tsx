@@ -126,7 +126,6 @@ export const MobilePlayerHand = ({
                     card={card}
                     isSelected={isSelected}
                     isLastDrawn={isLastDrawn}
-                    isKeyboardFocused={card.id === focusedCardId}
                     onClick={() => onCardClick(card.id)}
                     onUseJoker={onUseJoker}
                     className="w-16 h-24 shadow-md p-1"

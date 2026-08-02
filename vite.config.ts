@@ -21,15 +21,14 @@ export default defineConfig({
     VitePWA({
       registerType: "prompt",
       includeAssets: [
-        "favicon.ico",
-        "apple-touch-icon.png",
-        "mask-icon.svg",
+        "icon48.png",
         "icon192.png",
         "icon512.png",
       ],
       injectRegister: "auto",
       workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,mp3,webp}"],
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,mp3,webp,woff,woff2,ttf,eot,json,wav}"],
+        navigateFallback: "index.html",
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

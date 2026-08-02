@@ -144,7 +144,7 @@ export const StartMenu = ({
             className="flex items-center gap-1.5 bg-blue-600/80 hover:bg-blue-500 text-white px-2 py-0.5 rounded-full animate-fade-in-up active:scale-95 transition-all shadow-lg border border-blue-400/30"
           >
             <Sparkles size={8} className="animate-pulse" />
-            <span className="uppercase tracking-widest text-[7px]">Nova Versão! Reiniciar</span>
+            <span className="uppercase tracking-widest text-[7px]">Nova Versão! Clique para Atualizar</span>
           </button>
         )}
       </div>

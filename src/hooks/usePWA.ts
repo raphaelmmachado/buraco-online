@@ -6,14 +6,26 @@ export const usePWA = () => {
     offlineReady: [offlineReady],
     updateServiceWorker,
   } = useRegisterSW({
-    onRegistered() {
-      console.log('PWA: Service Worker registrado. Checagem automática desativada.');
+    onRegistered(r) {
+      console.log('PWA: Service Worker registrado. Checando atualizações na inicialização...');
+      if (r) {
+        // Checa se há atualização disponível quando o app é aberto (sem instalar automaticamente)
+        r.update().catch((e) => console.log('PWA: erro na verificação inicial:', e));
+
+        // Checa por atualizações sempre que o jogador volta ao aplicativo ou abre a tela
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible' && navigator.onLine) {
+            console.log('PWA: App focado/aberto. Checando se há novas versões...');
+            r.update().catch((e) => console.log('PWA: erro na verificação ao focar:', e));
+          }
+        });
+      }
     },
     onNeedRefresh() {
-      console.log('PWA: Nova versão detectada e aguardando comando.');
+      console.log('PWA: Nova versão detectada e aguardando clique do usuário.');
     },
     onOfflineReady() {
-      console.log('PWA: App pronto para uso offline.');
+      console.log('PWA: App salvo no dispositivo! Pronto para uso offline.');
     }
   });
 

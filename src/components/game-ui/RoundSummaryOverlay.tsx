@@ -102,9 +102,9 @@ export const RoundSummaryOverlay = ({
                 className="flex-1 h-14 text-sm font-black tracking-[0.2em]"
             >
                 {isLeader ? (
-                <div className="flex items-center justify-center gap-2">
+                <button className="flex items-center justify-center gap-2">
                     PRÓXIMA RODADA <ArrowRight size={18} />
-                </div>
+                </button>
                 ) : (
                 "AGUARDANDO LÍDER..."
                 )}

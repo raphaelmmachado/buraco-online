@@ -41,6 +41,10 @@ import { type GameLayoutProps } from "./types/GameLayoutProps";
 export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   // State
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
+  const [prevTurnContext, setPrevTurnContext] = useState({
+    player: game.current_player,
+    phase: game.turn_phase,
+  });
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [showOpponentHands, setShowOpponentHands] = useState(true);
@@ -66,30 +70,53 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   const canDraw = isMyTurn && game.turn_phase === "DRAW";
   const canAction = isMyTurn && game.turn_phase === "ACTION";
 
-  const myHand = useMemo(() => (game.hands[my_player_id] as Card[]) || [], [game.hands, my_player_id]);
+  // Ensure selected cards are cleared during render when starting a new turn in DRAW phase
+  // (per React's official recommendation: https://react.dev/learn/you-might-not-need-an-effect)
+  if (
+    game.current_player !== prevTurnContext.player ||
+    game.turn_phase !== prevTurnContext.phase
+  ) {
+    setPrevTurnContext({
+      player: game.current_player,
+      phase: game.turn_phase,
+    });
+    if (canDraw) {
+      setSelectedCards([]);
+    }
+  }
+
+  const myHand = useMemo(
+    () => (game.hands[my_player_id] as Card[]) || [],
+    [game.hands, my_player_id],
+  );
   const topDiscardCard = game.discard_pile?.[0];
 
   // Derived state: only cards that are actually in hand or top of discard are considered "selected"
   const validSelectedCards = useMemo(() => {
-    const myHandIds = new Set(myHand.map(c => c.id));
-    return selectedCards.filter(id => 
-      myHandIds.has(id) || (topDiscardCard && id === topDiscardCard.id)
+    const myHandIds = new Set(myHand.map((c) => c.id));
+    return selectedCards.filter(
+      (id) => myHandIds.has(id) || (topDiscardCard && id === topDiscardCard.id),
     );
   }, [selectedCards, myHand, topDiscardCard]);
 
-  // Effect to delay finish screen
+  // Effect to delay finish screen transition
   useEffect(() => {
     if (game.status === "FINISHED" || game.status === "ROUND_OVER") {
       const timer = setTimeout(() => {
         setShowFinishScreen(true);
-      }, 1000);
+      }, 1500);
+      return () => clearTimeout(timer);
+    } else {
+      const timer = setTimeout(() => {
+        setShowFinishScreen(false);
+      }, 0);
       return () => clearTimeout(timer);
     }
   }, [game.status]);
 
   // Combined Effect to auto-clear toasts and cancel power
   useEffect(() => {
-    const timers: (ReturnType<typeof setTimeout>)[] = [];
+    const timers: ReturnType<typeof setTimeout>[] = [];
 
     if (game.last_error) {
       timers.push(setTimeout(() => game.clear_error(), 4000));
@@ -99,13 +126,21 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
       timers.push(setTimeout(() => game.clear_info?.(), 2000));
     }
 
-    if (game.magic_joker.power_selection?.ability === "VIEW_HAND" && 
-        game.magic_joker.power_selection.player_id === my_player_id) {
+    if (
+      game.magic_joker.power_selection?.ability === "VIEW_HAND" &&
+      game.magic_joker.power_selection.player_id === my_player_id
+    ) {
       timers.push(setTimeout(() => game.power_cancel(), 5000));
     }
 
     return () => timers.forEach(clearTimeout);
-  }, [game.last_error, game.last_info, game.magic_joker.power_selection, my_player_id, game]);
+  }, [
+    game.last_error,
+    game.last_info,
+    game.magic_joker.power_selection,
+    my_player_id,
+    game,
+  ]);
 
   // Safe calculation even if game data is incomplete initially
   const isGameOver = game.status === "FINISHED" || game.status === "ROUND_OVER";
@@ -213,13 +248,14 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
 
     setSelectedCards((prev) => {
       // Lazy cleanup: filter out invalid IDs from previous state while toggling
-      const myHandIds = new Set(myHand.map(c => c.id));
-      const filteredPrev = prev.filter(pId => 
-        myHandIds.has(pId) || (topDiscardCard && pId === topDiscardCard.id)
+      const myHandIds = new Set(myHand.map((c) => c.id));
+      const filteredPrev = prev.filter(
+        (pId) =>
+          myHandIds.has(pId) || (topDiscardCard && pId === topDiscardCard.id),
       );
-      
-      return filteredPrev.includes(id) 
-        ? filteredPrev.filter((c) => c !== id) 
+
+      return filteredPrev.includes(id)
+        ? filteredPrev.filter((c) => c !== id)
         : [...filteredPrev, id];
     });
   };
@@ -382,65 +418,65 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
       }
     >
       <LayoutGroup>
-          <OpponentsHandsLayer
-            game={game}
-            visible={showOpponentHands}
-            onCardClick={toggleSelect}
-          />
+        <OpponentsHandsLayer
+          game={game}
+          visible={showOpponentHands}
+          onCardClick={toggleSelect}
+        />
 
-          {/* == VISION POWER MODAL OVERLAY == */}
-          <AnimatePresence>
-            {game.magic_joker.power_selection?.ability === "VIEW_HAND" &&
-              game.magic_joker.power_selection.player_id === my_player_id && (
-                <Portal>
+        {/* == VISION POWER MODAL OVERLAY == */}
+        <AnimatePresence>
+          {game.magic_joker.power_selection?.ability === "VIEW_HAND" &&
+            game.magic_joker.power_selection.player_id === my_player_id && (
+              <Portal>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-none"
+                >
                   <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-none"
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.9, opacity: 0 }}
+                    transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                    className="bg-slate-900/95 p-6 md:p-8 rounded-[2rem] border-4 border-violet-500/50 shadow-[0_0_80px_rgba(139,92,246,0.3)] flex flex-col items-center gap-6"
                   >
-                    <motion.div 
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0.9, opacity: 0 }}
-                      transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                      className="bg-slate-900/95 p-6 md:p-8 rounded-[2rem] border-4 border-violet-500/50 shadow-[0_0_80px_rgba(139,92,246,0.3)] flex flex-col items-center gap-6"
-                    >
-                      <div className="flex items-center gap-3 bg-violet-600 px-6 py-2 rounded-full shadow-lg">
-                        <span className="text-white font-black uppercase tracking-widest text-xs md:text-sm">
-                          Espiando Adversário
-                        </span>
-                      </div>
+                    <div className="flex items-center gap-3 bg-violet-600 px-6 py-2 rounded-full shadow-lg">
+                      <span className="text-white font-black uppercase tracking-widest text-xs md:text-sm">
+                        Espiando Adversário
+                      </span>
+                    </div>
 
-                      <div className="flex flex-wrap justify-center gap-2 md:gap-3 max-w-[85vw] md:max-w-2xl">
-                        {(
-                          game.hands[
-                            game.magic_joker.power_selection.target_player_id
-                          ] as Card[]
-                        ).map((card) => (
-                          <div
-                            key={card.id}
-                            className="w-16 h-24 md:w-24 md:h-36 shadow-xl"
-                          >
-                            <HandCard
-                              card={card}
-                              isSelected={false}
-                              className="w-full h-full border border-white/10 rounded-lg"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                      
-                      <div className="text-violet-400 text-[10px] font-bold uppercase tracking-widest animate-pulse">
-                        Saindo em alguns segundos...
-                      </div>
-                    </motion.div>
+                    <div className="flex flex-wrap justify-center gap-2 md:gap-3 max-w-[85vw] md:max-w-2xl">
+                      {(
+                        game.hands[
+                          game.magic_joker.power_selection.target_player_id
+                        ] as Card[]
+                      ).map((card) => (
+                        <div
+                          key={card.id}
+                          className="w-16 h-24 md:w-24 md:h-36 shadow-xl"
+                        >
+                          <HandCard
+                            card={card}
+                            isSelected={false}
+                            className="w-full h-full border border-white/10 rounded-lg"
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="text-violet-400 text-[10px] font-bold uppercase tracking-widest animate-pulse">
+                      Saindo em alguns segundos...
+                    </div>
                   </motion.div>
-                </Portal>
-              )}
-          </AnimatePresence>
+                </motion.div>
+              </Portal>
+            )}
+        </AnimatePresence>
 
-          <main
+        <main
           id="game-screen"
           className="h-screen w-screen bg-[#0f2e1a] text-white overflow-hidden flex flex-col select-none relative font-sans"
         >
@@ -465,8 +501,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
 
                 let customColor: string | undefined = undefined;
                 if (playerEvent.type === "warning") customColor = "warning";
-                if (playerEvent.type === "success")
-                  customColor = "success";
+                if (playerEvent.type === "success") customColor = "success";
 
                 return (
                   <EventBalloon
@@ -554,7 +589,8 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                     <span className="text-white font-black uppercase tracking-widest text-xs md:text-sm">
                       {game.magic_joker.power_selection.ability === "VIEW_HAND"
                         ? "Espiando a mão do adversário..."
-                        : game.magic_joker.power_selection.stage === "PICK_MY_CARD"
+                        : game.magic_joker.power_selection.stage ===
+                            "PICK_MY_CARD"
                           ? "Escolha uma carta da sua mão para dar"
                           : "Agora escolha uma carta do seu parceiro para pegar"}
                     </span>
@@ -686,9 +722,17 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
             <div className="absolute inset-0 top-auto h-32 md:h-full bg-linear-to-t from-black/95 via-black/80 to-transparent backdrop-blur-md -z-10 pointer-events-none" />
 
             {isMobile ? (
-              <GameFooterMobile {...layoutProps} my_player_id={my_player_id} focusedCardId={focusedCardId} />
+              <GameFooterMobile
+                {...layoutProps}
+                my_player_id={my_player_id}
+                focusedCardId={focusedCardId}
+              />
             ) : (
-              <GameFooterDesktop {...layoutProps} my_player_id={my_player_id} focusedCardId={focusedCardId} />
+              <GameFooterDesktop
+                {...layoutProps}
+                my_player_id={my_player_id}
+                focusedCardId={focusedCardId}
+              />
             )}
 
             {/* ERROR TOAST (Standardized with EventBalloon) */}
@@ -698,10 +742,10 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                 className="absolute -top-20 left-1/2 -translate-x-1/2 z-100 pointer-events-auto"
               >
                 <div className="relative">
-                  <EventBalloon 
-                    message={`[ALERT] ${game.last_error}`} 
-                    x={0} 
-                    y={0} 
+                  <EventBalloon
+                    message={`[ALERT] ${game.last_error}`}
+                    x={0}
+                    y={0}
                     isStatic={true}
                     customColor="error"
                   />
@@ -722,10 +766,10 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                 className="absolute -top-20 left-1/2 -translate-x-1/2 z-100 pointer-events-auto"
               >
                 <div className="relative">
-                  <EventBalloon 
-                    message={game.last_info} 
-                    x={0} 
-                    y={0} 
+                  <EventBalloon
+                    message={game.last_info}
+                    x={0}
+                    y={0}
                     isStatic={true}
                     customColor="info"
                   />

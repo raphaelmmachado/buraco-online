@@ -659,11 +659,20 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       if (get().deck_count === 0) {
         lastInfo = "Morto foi para a mesa";
       } else {
-        const pId = get().current_player;
-        const pData = get().players_data[pId] || server_data.players_data?.[pId];
-        const pName = pData?.userName || (pId === get().my_player_number && get().my_player_name ? get().my_player_name : null) || (pId ? `Jogador ${pId}` : "Algum jogador");
-        lastInfo = `${pName} pegou o morto`;
+        get().addEvent("Pegou morto", "info", get().current_player);
       }
+    }
+
+    // Detectar coleta do lixo no multiplayer
+    if (
+      current_status === "PLAYING" &&
+      new_status === "PLAYING" &&
+      get().discard_pile.length > 0 &&
+      server_data.discard_pile.length === 0 &&
+      server_data.deck_count === get().deck_count
+    ) {
+      const count = get().discard_pile.length;
+      get().addEvent(`Pegou ${count} ${count === 1 ? "carta" : "cartas"} do lixo`, "info", get().current_player);
     }
 
     set({

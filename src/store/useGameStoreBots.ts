@@ -483,7 +483,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
 
     const new_melds = [...team_melds[team_id], final_meld];
 
-    get().addEvent("Pegou o lixo", "info", current_player);
+    get().addEvent(`Pegou ${discard_pile.length} ${discard_pile.length === 1 ? "carta" : "cartas"} do lixo`, "info", current_player);
 
     set({
       hands: { ...hands, [current_player]: new_hand },
@@ -584,7 +584,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         ? organized_meld
         : sort_cards(proposed_meld);
 
-    get().addEvent("Pegou o lixo", "info", current_player);
+    get().addEvent(`Pegou ${discard_pile.length} ${discard_pile.length === 1 ? "carta" : "cartas"} do lixo`, "info", current_player);
 
     set({
       hands: { ...hands, [current_player]: new_hand },
@@ -1243,16 +1243,13 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
 
     if (dead_piles.length > 0) {
       console.log(`[GAME] Jogador ${current_player} pegou o morto.`);
-      get().addEvent("Pegou o morto!", "info", current_player);
+      get().addEvent("Pegou morto", "info", current_player);
       const [my_dead_pile, ...remaining_piles] = dead_piles;
-      const pNames: Record<number, string> = { 1: "Você", 2: "Bot 1", 3: "Bot 2", 4: "Bot 3" };
-      const pName = pNames[current_player] || `Jogador ${current_player}`;
       set({
         hands: { ...hands, [current_player]: sort_cards(my_dead_pile) },
         dead_piles: remaining_piles,
         has_taken_dead_pile: { ...has_taken_dead_pile, [team_id]: true },
         turn_phase: type === "DIRECT" ? "ACTION" : "DRAW",
-        last_info: `${pName} pegou o morto`,
       });
     } else {
       console.log("[GAME] Fim de jogo por batida (sem mortos disponíveis).");

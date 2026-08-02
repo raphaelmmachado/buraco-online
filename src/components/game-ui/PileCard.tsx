@@ -11,11 +11,14 @@ export const PileCard = ({
   active = false,
   quantity,
   dead_piles,
+  draw_phase = false,
 }: PileCardProps) => {
   const displayQuantity = quantity === 0 && dead_piles > 0 ? 11 : quantity;
 
   if (displayQuantity === 0) {
-    return <EmptyPile onClick={onClick} />;
+    return (
+      <EmptyPile onClick={onClick} active={active} draw_phase={draw_phase} />
+    );
   }
 
   // Lógica para determinar quantas "camadas" mostrar atrás
@@ -32,9 +35,7 @@ export const PileCard = ({
 
   return (
     // Wrapper relativo para conter as cartas posicionadas de forma absoluta
-    <div
-      className="relative group w-14 h-20 md:w-20 md:h-32 flex items-center justify-center"
-    >
+    <div className="relative group w-14 h-20 md:w-20 md:h-32 flex items-center justify-center">
       {/* Camadas extras para dar volume (Monte) */}
       {showL4 && (
         <div
@@ -119,18 +120,28 @@ const PileQuantity = ({ quantity }: { quantity: number }) => {
 
 const EmptyPile = ({
   onClick,
+  active = false,
 }: {
   onClick?: () => void;
+  active?: boolean;
+  draw_phase?: boolean;
 }) => {
   return (
     <div
-      onClick={onClick}
-      className="w-14 h-20 md:w-20 md:h-32
-        text-xs tracking-wider md:text-base border-2 border-dashed border-white/10 rounded-md
-        flex items-center justify-center font-black text-white/10 select-none
-      "
+      onClick={active ? onClick : undefined}
+      className={`
+        w-14 h-20 md:w-20 md:h-32 rounded-md
+        flex flex-col items-center justify-center font-black select-none transition-all duration-200
+        ${
+          active
+            ? "border-2 border-dashed border-slate-300/70 bg-white/5 text-slate-300 cursor-pointer hover:border-white hover:text-white hover:bg-white/10"
+            : "border-2 border-dashed border-white/10 text-white/10"
+        }
+      `}
     >
-      MONTE
+      <span className="text-xs tracking-wider md:text-sm uppercase">
+        {active ? "FIM?" : "MONTE"}
+      </span>
     </div>
   );
 };

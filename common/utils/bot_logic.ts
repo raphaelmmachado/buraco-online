@@ -281,12 +281,20 @@ const evaluate_potential_melds = (
 
     // CRITÉRIO 5: Impacto na conectividade da mão
     // Penaliza se baixar o jogo destruir muitas possibilidades de outras sequências na mão.
+    // Porém, se a mão é grande (ex: pegou o lixo e está com muitas cartas), desovar as cartas na mesa tem prioridade!
     const remainingConnectedness = analyze_hand_for_potential_sequences(remainingHand);
     const connectednessChange = initialConnectedness - remainingConnectedness;
-    score -= connectednessChange * 2;
+    const connectednessWeight = currentHand.length >= 9 ? 0.5 : 2.0;
+    score -= connectednessChange * connectednessWeight;
 
-    // CRITÉRIO 6: Lógica de "Gap" (Lacuna) na mesa
-    // EVITA abrir um novo jogo que esteja muito perto de um jogo que já existe (ex: abrir 4-5-6 se já tem 8-9-10).
+    if (currentHand.length >= 9) {
+      score += cards.length * 5; // Incentiva desovar sequências quando a mão está com muitas cartas
+    }
+
+    // CRITÉRIO 6: Lógica de "Gap" (Lacuna) na mesa e Proteção contra "Matar a Canastra"
+    // EVITA abrir um novo jogo que esteja muito perto ou sobreposto a um jogo INCOMPLETO (< 7 cartas).
+    // Se o jogo da mesa ainda não é canastra (ex: tem 4-5-6 e abrimos outro 4-5-6 ou 8-9-10),
+    // fragmentamos os pares do baralho e matamos a possibilidade de chegar a 7 cartas.
     const meldSuit = cards.find((c) => c.value !== "2")?.suit.name;
     if (meldSuit) {
       for (const existingMeld of team_melds) {
@@ -306,26 +314,32 @@ const evaluate_potential_melds = (
           else if (e2 < s1) gap = s1 - e2;
           else gap = 0; // Sobreposição ou adjacente
 
-          const is_existing_uncleanable =
-            existingMeld.length >= rules.min_cards_for_canastra &&
-            !existingMeldDetails.is_clean &&
-            existingMeld.some(
-              (c) => c.value === "2" && c.suit.name !== existingMeldSuit,
-            );
+          const is_existing_canastra = existingMeld.length >= rules.min_cards_for_canastra;
+          const is_end_of_game = is_final_beat_attempt || isDesperate;
 
-          // Se a lacuna for pequena (<= 4 cartas), penalizamos para forçar a união dos jogos em vez de fragmentar.
-          if (gap <= 4 && !is_existing_uncleanable) {
+          // Se existe uma lacuna pequena (1 a 4 cartas de distância) entre o jogo da mesa e o novo jogo (ex: mesa tem A a 8 e mão tem 10-J-Q),
+          // o bot NUNCA deve abrir esse novo jogo separadamente, pois arruína a chance de conectá-los (ou de emendar tudo no jogo da mesa).
+          // Ele deve segurar as cartas na mão aguardando a carta ponte, A NÃO SER que esteja no final da partida!
+          if (gap > 0 && gap <= 4 && !is_end_of_game) {
+            const penalty = 500 / gap;
+            score -= penalty;
+            console.log(
+              `[BOT LOGIC] Penalty applied for starting nearby sequence (${gap} cards away from existing meld in ${meldSuit}). Holding cards to connect them later!`,
+            );
+          } else if (is_existing_canastra && gap === 0) {
+            // Se o jogo da mesa JÁ É uma canastra (>= 7 cartas) E as cartas da mão são totalmente REPETIDAS/SOBREPOSTAS (gap === 0, ex: 4-5-6),
+            // elas nunca poderiam ser emendadas no topo/base do jogo da mesa. Abaixar esse jogo repetido é limpo, seguro e ganha pontos!
+            console.log(
+              `[BOT LOGIC] Penalty SKIPPED for duplicate meld (gap 0): Existing meld is already a completed Canastra (${existingMeld.length} cards). Adding duplicate meld is safe.`,
+            );
+            score += 60;
+          } else if (!is_existing_canastra && gap <= 4) {
+            // Se o jogo existente na mesa é INCOMPLETO (< 7 cartas), abrir jogos repetidos ou próximos (gap <= 4) fragmentaria o baralho e mataria a canastra!
             const penalty = gap === 0 ? 600 : 500 / gap;
             score -= penalty;
             console.log(
-              `[BOT LOGIC] Penalty applied for split/overlapping meld (Gap: ${gap}, Suit: ${meldSuit}, Penalty: ${penalty})`,
+              `[BOT LOGIC] Penalty applied to avoid killing potential canastra (Gap: ${gap}, Suit: ${meldSuit}, Penalty: ${penalty})`,
             );
-          } else if (is_existing_uncleanable) {
-            // Se o jogo existente já é sujo e impossível de limpar, abrir um novo limpo é uma boa estratégia.
-            console.log(
-              `[BOT LOGIC] Penalty SKIPPED for split meld: Existing canasta is uncleanable. Creating a new clean one is a good strategy.`,
-            );
-            score += 100;
           }
         }
       }
@@ -393,6 +407,8 @@ export const find_card_to_add = (
   is_2v2: boolean = false,
   rules: GameRules = DEFAULT_RULES,
   dead_piles_count: number = 0,
+  opponent_melds: Card[][] = [],
+  discard_pile_size: number = 0,
 ): Card | null => {
   const target_suit_name = meld.find((c) => c.value !== "2")?.suit.name;
   const target_suit = target_suit_name;
@@ -402,36 +418,22 @@ export const find_card_to_add = (
   const is_currently_clean =
     current_validation.is_valid && current_validation.is_clean;
 
-  // Se o jogo na mesa é uma canastra suja que nunca poderá ser limpa (curinga de outro naipe),
-  // o bot evita gastar cartas nela se puder usá-las para algo melhor.
-  if (meld.length >= rules.min_cards_for_canastra && !is_currently_clean) {
-    const wildcard = meld.find(
-      (c) => c.value === "2" && c.suit.name !== target_suit,
-    );
-    if (wildcard) {
-      console.log(
-        `[BOT LOGIC] REJECTED adding to meld: It's a dirty canastra with an off-suit joker, making it uncleanable.`,
-      );
-      return null;
-    }
-  }
-
   // Filtra candidatos: Cartas do mesmo naipe ou Curingas (APENAS o 2, Joker proibido em sequências para bots)
-  const candidates = hand.filter(c => c.suit.name === target_suit || c.value === "2");
+  const candidates = hand.filter((c) => c.suit.name === target_suit || c.value === "2");
 
   // Prioriza cartas naturais sobre curingas
   candidates.sort((a, b) => {
-      const isWildA = a.value === "2";
-      const isWildB = b.value === "2";
-      if (isWildA && !isWildB) return 1;
-      if (!isWildA && isWildB) return -1;
-      return 0;
+    const isWildA = a.value === "2";
+    const isWildB = b.value === "2";
+    if (isWildA && !isWildB) return 1;
+    if (!isWildA && isWildB) return -1;
+    return 0;
   });
 
   for (const card of candidates) {
     // REGRA DE OURO: Bots não usam curingas de naipe diferente (para facilitar limpeza posterior)
     if (card.value === "2" && card.suit.name !== target_suit) {
-        continue;
+      continue;
     }
 
     const attempt = [...meld, card];
@@ -449,16 +451,18 @@ export const find_card_to_add = (
       }
 
       // Proteção contra ficar "preso" com 1 carta sem ter canastra limpa
-      const is_now_clean_canastra_final = 
+      const is_now_clean_canastra_final =
         validation.is_clean &&
         (validation.canastra_type === "CLEAN" ||
           validation.canastra_type === "KING" ||
           validation.canastra_type === "ACE");
-      
+
       const will_have_clean_final = has_clean_canastra || is_now_clean_canastra_final;
 
-      const can_take_extra = has_taken_dead_pile && rules.team_can_take_both_dead_piles && dead_piles_count > 0;
-      const is_final_beat_attempt = (has_taken_dead_pile && !can_take_extra) || (!has_taken_dead_pile && dead_piles_count === 0);
+      const can_take_extra =
+        has_taken_dead_pile && rules.team_can_take_both_dead_piles && dead_piles_count > 0;
+      const is_final_beat_attempt =
+        (has_taken_dead_pile && !can_take_extra) || (!has_taken_dead_pile && dead_piles_count === 0);
 
       if (hand.length <= 2) {
         if (rules.must_have_clean_canastra_to_beat && is_final_beat_attempt && !will_have_clean_final) {
@@ -469,6 +473,32 @@ export const find_card_to_add = (
         }
       }
 
+      // INTELIGÊNCIA DE PRESERVAÇÃO DE DESCARTE SEGURO (Evitar dar o lixo ao oponente):
+      // Se o lixo é valioso (ex: 8+ cartas ou lixo grande 12+), não é fim de jogo e a carta não fecha uma canastra:
+      if (!is_desperate_to_close && discard_pile_size >= 8 && opponent_melds.length > 0) {
+        const is_completing_any_canastra = meld.length === rules.min_cards_for_canastra - 1;
+        if (!is_completing_any_canastra && hand.length > 2 && card.value !== "2" && card.value !== "JOKER") {
+          const card_risk = calculate_discard_risk(card, opponent_melds, rules);
+          // Se esta carta é 100% segura para descartar e ter garantia de não dar o lixo ao oponente (risco < 40):
+          if (card_risk < 40) {
+            const other_candidates = hand.filter(c => c.id !== card.id && c.value !== "2" && c.value !== "JOKER");
+            const min_other_risk = other_candidates.length > 0
+              ? Math.min(...other_candidates.map(c => calculate_discard_risk(c, opponent_melds, rules)))
+              : 100;
+
+            // Se descartar qualquer outra carta da mão teria alto risco de entregar o lixo ao adversário,
+            // vale mais a pena segurar esta carta neutra com garantia de descarte do que usá-la no jogo da mesa!
+            const risk_threshold = discard_pile_size >= 12 ? 40 : 60; // No lixo grande (>= 12), cautela máxima!
+            if (min_other_risk >= risk_threshold) {
+              console.log(
+                `[BOT LOGIC] Preservando ${card.value} do naipe ${card.suit.name} para o descarte seguro! Todos os outros descartes na mão têm alto risco (${min_other_risk}) de entregar um lixo grande (${discard_pile_size} cartas).`
+              );
+              continue;
+            }
+          }
+        }
+      }
+
       // LÓGICA DE PROTEÇÃO DE LIMPEZA
       // Se o jogo é limpo e a carta vai sujá-lo...
       if (is_currently_clean && !validation.is_clean) {
@@ -476,6 +506,14 @@ export const find_card_to_add = (
         if (meld.length >= rules.min_cards_for_canastra) continue;
 
         const is_wildcard = card.value === "2" || card.value === "JOKER";
+
+        // Se estamos adicionando uma carta NATURAL (ex: o 7 num jogo 2,3,4,5),
+        // o jogo só passou a ser avaliado como sujo porque um "2" do mesmo naipe na mesa
+        // deslocou-se para cobrir a lacuna (posição 6). Como essa jogada expande o jogo e é limpável,
+        // nós SEMPRE permitimos adicionar a carta natural!
+        if (!is_wildcard) {
+          return card;
+        }
 
         if (is_wildcard) {
           // Se for um curinga do mesmo naipe (limpável), o bot avalia se deve esperar.
@@ -562,7 +600,8 @@ export const analyze_discard_pickup = (
   dead_piles_count: number = 0
 ): PickupAction | null => {
   
-  const desperation_factor = deck_size < 10 ? (10 - deck_size) * 5 : 0;
+  const desperation_factor = deck_size <= 4 ? (5 - deck_size) * 40 : 0; // Fim de jogo quando faltam 4 ou menos cartas
+  const is_large_discard = discard_pile_size >= 12; // Lixo grande se tem 12 cartas ou mais
   
   // 1. Tenta adicionar a carta do lixo diretamente em um jogo da mesa
   for (let i = 0; i < team_melds.length; i++) {
@@ -579,14 +618,14 @@ export const analyze_discard_pickup = (
       const meld_val = validate_sequence(meld, rules);
       const was_clean = meld_val.is_valid && meld_val.is_clean;
 
-      // NOVO: Bots não sujam jogos limpos pegando coringa do lixo,
-      // a menos que seja para completar uma canastra suja e eles precisem muito bater.
+      // Bots não sujam jogos limpos pegando coringa do lixo,
+      // A NÃO SER QUE SEJA PARA PEGAR UM GRANDE BOLO DE LIXO (12+ cartas), em qualquer momento do jogo!
       if (was_clean && !validation.is_clean) {
         const is_wildcard_pickup =
           top_discard.value === "2" || top_discard.value === "JOKER";
 
-        if (is_wildcard_pickup) {
-          // REGRA DE OURO: NUNCA suja uma canastra limpa (min_cards_for_canastra+), mesmo que o "2" seja do mesmo naipe.
+        if (is_wildcard_pickup && !is_large_discard) {
+          // REGRA DE OURO: Com lixo pequeno (< 12), NUNCA suja uma canastra limpa (min_cards_for_canastra+).
           if (meld.length >= rules.min_cards_for_canastra) continue;
 
           const is_cleanable_2 =
@@ -595,7 +634,7 @@ export const analyze_discard_pickup = (
           if (is_cleanable_2) {
             // Prossiga (não dê continue)
           } else {
-            // Se for Joker ou 2 de outro naipe, só pega em desespero total.
+            // Se for Joker ou 2 de outro naipe, só pega em desespero final.
             if (desperation_factor < 40) continue;
           }
         }
@@ -647,7 +686,8 @@ export const analyze_discard_pickup = (
         const meld_val = validate_sequence(meld, rules);
         const was_clean = meld_val.is_valid && meld_val.is_clean;
 
-        // NOVO: Evita sujar jogos limpos na ponte se envolver coringas
+        // Evita sujar jogos limpos na ponte se envolver coringas,
+        // EXCETO se for para pegar um grande bolo de lixo (12+ cartas), em qualquer momento do jogo!
         if (was_clean && !validation.is_clean) {
           const has_wildcard =
             top_discard.value === "2" ||
@@ -655,8 +695,8 @@ export const analyze_discard_pickup = (
             card.value === "2" ||
             card.value === "JOKER";
 
-          if (has_wildcard) {
-            // NUNCA suja canastra (min_cards_for_canastra+)
+          if (has_wildcard && !is_large_discard) {
+            // NUNCA suja canastra com lixo pequeno (min_cards_for_canastra+)
             if (meld.length >= rules.min_cards_for_canastra) continue;
 
             const is_cleanable_wildcard =
@@ -754,7 +794,8 @@ export const analyze_discard_pickup = (
             }
           }
 
-          if (is_split_risk) continue;
+          // Se o lixo tem 12 ou mais cartas (is_large_discard), vale a pena pegar o lixo mesmo que assim gere jogos do mesmo naipe próximos!
+          if (is_split_risk && !is_large_discard) continue;
 
           const is_now_canastra = validation.is_valid && (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE');
           const will_have_clean = has_clean_canastra || is_now_canastra;
@@ -778,11 +819,11 @@ export const analyze_discard_pickup = (
 };
 
 /** Calcula o risco de descartar uma carta específica (baseado no que o oponente tem na mesa). */
-const calculate_discard_risk = (
+function calculate_discard_risk(
   card: Card,
   opponent_melds: Card[][],
   rules: GameRules = DEFAULT_RULES,
-): number => {
+): number {
   let max_risk = 0;
   if (card.value === "2") return 95; // Descartar curinga é quase sempre um erro grave
 
@@ -828,31 +869,60 @@ const calculate_discard_risk = (
     }
   }
   return max_risk;
-};
+}
 
-/** Calcula o quanto o bot precisa dessa carta para os seus próprios planos futuros. */
-const calculate_hand_utility = (card: Card, hand: Card[], has_taken_dead_pile: boolean): number => {
-    if (card.value === "2") return 100;
+/** Calcula o quanto o bot precisa dessa carta para os seus próprios planos futuros e para os jogos da mesa. */
+const calculate_hand_utility = (
+  card: Card,
+  hand: Card[],
+  has_taken_dead_pile: boolean,
+  team_melds: Card[][] = [],
+): number => {
+  if (card.value === "2") return 100;
 
-    const my_suit_cards = hand.filter(c => c.suit.name === card.suit.name && c.id !== card.id);
-    if (my_suit_cards.length === 0) return 0; 
+  let score = 0;
+  const my_val = RANK_MAP[card.value] || 0;
 
-    let score = 0;
-    const my_val = RANK_MAP[card.value] || 0;
+  // 1. Avaliação em relação aos jogos da própria equipe já baixadas na mesa
+  for (const meld of team_melds) {
+    const meld_suit = meld.find((c) => c.value !== "2" && c.value !== "JOKER")?.suit.name;
+    if (meld_suit === card.suit.name) {
+      let min_val = 15;
+      let max_val = 0;
+      for (const mc of meld) {
+        if (mc.value === "2" || mc.value === "JOKER") continue;
+        const r = RANK_MAP[mc.value] || 0;
+        if (r < min_val) min_val = r;
+        if (r > max_val) max_val = r;
+      }
+      if (max_val > 0) {
+        const dist_down = Math.abs(my_val - min_val);
+        const dist_up = Math.abs(my_val - max_val);
+        const min_dist = Math.min(dist_down, dist_up);
 
-    for (const other of my_suit_cards) {
-        const other_val = RANK_MAP[other.value];
-        if (!other_val) continue;
-
-        const diff = Math.abs(my_val - other_val);
-        if (diff === 1) score += 50; 
-        else if (diff === 2) score += 25; 
-        else if (diff === 0) score += 15; 
+        if (min_dist <= 1) score += 90; // Encaixa diretamente no jogo
+        else if (min_dist === 2) score += 65; // A 1 carta de distância (pode usar coringa na mesa para conectar!)
+        else if (min_dist === 3) score += 35; // A 2 cartas de distância
+        else score += 15;
+      }
     }
+  }
 
-    if (!has_taken_dead_pile && score > 30) score += 10; 
+  // 2. Avaliação em relação aos pares na própria mão
+  const my_suit_cards = hand.filter((c) => c.suit.name === card.suit.name && c.id !== card.id);
+  for (const other of my_suit_cards) {
+    const other_val = RANK_MAP[other.value];
+    if (!other_val) continue;
 
-    return Math.min(score, 100);
+    const diff = Math.abs(my_val - other_val);
+    if (diff === 1) score += 50;
+    else if (diff === 2) score += 25;
+    else if (diff === 0) score += 15;
+  }
+
+  if (!has_taken_dead_pile && score > 30) score += 10;
+
+  return Math.min(score, 100);
 };
 
 /** Escolhe a melhor carta da mão para descartar. */
@@ -867,16 +937,20 @@ export const choose_discard = (
   rules: GameRules = DEFAULT_RULES,
   has_clean_canastra: boolean = false,
   dead_piles_count: number = 0,
+  team_melds: Card[][] = [],
 ): Card => {
   let best_card: Card | null = null;
   let min_score = Infinity;
 
-  const can_take_extra = has_taken_dead_pile && rules.team_can_take_both_dead_piles && dead_piles_count > 0;
-  const is_final_beat_attempt = (has_taken_dead_pile && !can_take_extra) || (!has_taken_dead_pile && dead_piles_count === 0);
+  const can_take_extra =
+    has_taken_dead_pile && rules.team_can_take_both_dead_piles && dead_piles_count > 0;
+  const is_final_beat_attempt =
+    (has_taken_dead_pile && !can_take_extra) || (!has_taken_dead_pile && dead_piles_count === 0);
 
-  // Se o bot tem apenas 1 carta e a regra exige canastra limpa, 
+  // Se o bot tem apenas 1 carta e a regra exige canastra limpa,
   // ele NÃO PODE descartar essa carta para bater sem ter a limpa.
-  const can_discard_last = !is_final_beat_attempt || !rules.must_have_clean_canastra_to_beat || has_clean_canastra;
+  const can_discard_last =
+    !is_final_beat_attempt || !rules.must_have_clean_canastra_to_beat || has_clean_canastra;
 
   const candidates =
     hand.length > 1
@@ -890,11 +964,13 @@ export const choose_discard = (
   // deveria impedir que ele chegasse nesse estado.
   const pool = candidates.length > 0 ? candidates : hand;
 
-  const desperation_factor = deck_size < 10 ? (10 - deck_size) * 5 : 0;
-  const risk_multiplier = discard_pile_size > 10 ? 4.0 : 1.0;
+  const desperation_factor = deck_size <= 4 ? (5 - deck_size) * 40 : 0; // Fim de jogo quando faltam 4 ou menos cartas
+  const is_large_discard = discard_pile_size >= 12; // Lixo é grande se tem 12 cartas ou mais
+  // Se o lixo tem bastante cartas, joga com muita cautela ao descartar!
+  const risk_multiplier = is_large_discard ? 8.0 : discard_pile_size >= 8 ? 3.5 : 1.0;
 
   pool.forEach((card: Card) => {
-    const utility = calculate_hand_utility(card, hand, has_taken_dead_pile);
+    const utility = calculate_hand_utility(card, hand, has_taken_dead_pile, team_melds);
     const risk = calculate_discard_risk(card, opponent_melds, rules);
       
       let penalty = 0;

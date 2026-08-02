@@ -69,7 +69,8 @@ export const useGameBots = () => {
       else if (store.turn_phase === "ACTION") {
         const has_taken = store.has_taken_dead_pile[team_id];
         const has_clean = store.internal_can_beat();
-        const is_desperate = store.deck.length < 10; // Modo desespero se o monte estiver acabando.
+        const is_desperate = store.deck.length <= 4; // Fim de jogo quando faltam 4 ou menos cartas no monte.
+        const opponent_melds = team_id === 1 ? store.team_melds[2] : store.team_melds[1];
 
         // A. PRIORIDADE: Tenta adicionar cartas a jogos que já estão na mesa.
         const all_played_cards_for_add = [
@@ -90,6 +91,8 @@ export const useGameBots = () => {
             store.mode === "2v2",
             store.rules,
             store.dead_piles.length,
+            opponent_melds,
+            store.discard_pile.length,
           );
           if (card_to_add) {
             console.log(`🤖 Bot ${store.current_player} adicionou ao jogo ${i}.`);
@@ -116,7 +119,6 @@ export const useGameBots = () => {
         }
 
         // C. Se não tem mais o que fazer, DESCARTA uma carta para encerrar o turno.
-        const opponent_melds = team_id === 1 ? store.team_melds[2] : store.team_melds[1];
         
         // Identifica o parceiro para fins de estratégia (ex: não dar carta que ele precisa).
         let partner_id = 0;
@@ -135,6 +137,7 @@ export const useGameBots = () => {
           store.rules,
           has_clean,
           store.dead_piles.length,
+          team_melds,
         );
 
         if (card_to_discard) {

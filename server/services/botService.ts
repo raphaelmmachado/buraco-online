@@ -479,6 +479,10 @@ const execute_bot_move = (io: Server, roomId: string) => {
       }
     }
 
+    const is_desperate = game.deck.length <= 4; // Fim de jogo quando faltam 4 ou menos cartas no monte.
+    const opponent_team = team_id === 1 ? 2 : 1;
+    const opponent_melds = game.team_melds[opponent_team] || [];
+
     // A. Adicionar a Jogos Existentes (PRIORIDADE MÁXIMA)
     // O bot percorre todos os jogos na mesa e tenta pendurar o máximo de cartas possível.
     for (let i = 0; i < team_melds.length; i++) {
@@ -490,11 +494,13 @@ const execute_bot_move = (io: Server, roomId: string) => {
         meld,
         has_taken,
         has_clean,
-        false,
+        is_desperate,
         [],
         game.mode === "2v2",
         game.rules,
         game.dead_piles.length,
+        opponent_melds,
+        game.discard_pile.length,
       );
       if (card_to_add) {
         console.log(
@@ -521,7 +527,7 @@ const execute_bot_move = (io: Server, roomId: string) => {
       team_melds,
       has_taken,
       has_clean,
-      false,
+      is_desperate,
       game.mode === "2v2",
       game.rules,
       game.dead_piles.length,
@@ -544,8 +550,6 @@ const execute_bot_move = (io: Server, roomId: string) => {
     }
 
     // C. Descarte (Finaliza o turno)
-    const opponent_team = team_id === 1 ? 2 : 1;
-    const opponent_melds = game.team_melds[opponent_team] || [];
     const my_team_has_taken = game.has_taken_dead_pile[my_team_idx as 0 | 1];
 
     let discard_card: Card = choose_discard(
@@ -559,6 +563,7 @@ const execute_bot_move = (io: Server, roomId: string) => {
       game.rules,
       has_clean,
       game.dead_piles.length,
+      team_melds,
     );
 
     if (!discard_card && my_hand.length > 0) {

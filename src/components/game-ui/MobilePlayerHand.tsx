@@ -85,7 +85,8 @@ export const MobilePlayerHand = ({
 
               // Se foi a última comprada, vem do Deck (Cima Esquerda aprox).
               // Se for deal inicial, vem da esquerda lateral.
-              const initialPos = !showAnimations
+              const isHidden = typeof document !== "undefined" && document.hidden;
+              const initialPos = !showAnimations || isHidden
                 ? false
                 : isLastDrawn
                   ? { opacity: 0, x: -100, y: -200, scale: 0.4, rotate: -45 }

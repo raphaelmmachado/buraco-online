@@ -206,7 +206,8 @@ export const PlayerHand = ({
               scale = HAND_CONFIG.interaction.hoverScale;
             }
 
-            const initialPos = !showAnimations
+            const isHidden = typeof document !== "undefined" && document.hidden;
+            const initialPos = !showAnimations || isHidden
               ? false
               : card.id === lastDrawnCardId
                 ? { opacity: 0, x: -600, y: 0, scale: 0.6, rotate: -20 }

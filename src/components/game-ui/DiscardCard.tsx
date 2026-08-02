@@ -54,6 +54,8 @@ export const DiscardCard = ({
   const isAccessibilityMode = useGameStore(
     (state) => state.isAccessibilityMode,
   );
+  const showAnimations = useGameStore((state) => state.showAnimations);
+
   if (!card) {
     return (
       <div
@@ -81,12 +83,13 @@ export const DiscardCard = ({
   // Se a carta vem de "mim" (bottom), usamos layoutId para transição mágica da mão.
   // Se vem de outros, usamos animação explícita de entrada.
   // MAS sempre mantemos layoutId para permitir que a carta "voe" para a mão de quem pegar o lixo.
+  const isHidden = typeof document !== "undefined" && document.hidden;
   const isFromMe = originDirection === "bottom";
 
   const animationProps = {
-    layoutId: card.id,
-    ...(isFromMe
-      ? {}
+    layoutId: showAnimations ? card.id : undefined,
+    ...(isFromMe || isHidden || !showAnimations
+      ? { initial: false, animate: { x: 0, y: 0, opacity: 1, scale: 1, rotate: 0 } }
       : {
           initial: {
             ...getAnimationOrigin(originDirection, 800),

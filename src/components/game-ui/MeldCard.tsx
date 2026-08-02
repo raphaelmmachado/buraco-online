@@ -37,12 +37,27 @@ export const MeldCard = ({
   const isAccessibilityMode = useGameStore(
     (state) => state.isAccessibilityMode,
   );
+  const showAnimations = useGameStore((state) => state.showAnimations);
 
   const imageSrc = getCardImageSrc(card.value, card.suit.name);
-
   const isFromMe = enterFrom === "bottom";
+  const isHidden = typeof document !== "undefined" && document.hidden;
 
   const animationProps = useMemo(() => {
+    if (!showAnimations || isHidden) {
+      return {
+        initial: false,
+        animate: {
+          x: 0,
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          rotate: 0,
+        },
+        transition: { duration: 0 },
+      };
+    }
+
     return isFromMe
       ? { layoutId: card.id }
       : {
@@ -60,7 +75,7 @@ export const MeldCard = ({
             rotate: 0,
           },
         };
-  }, [isFromMe, card.id, enterFrom]);
+  }, [isFromMe, card.id, enterFrom, showAnimations, isHidden]);
 
   // Accessibility Styles
   const valueClass = isAccessibilityMode

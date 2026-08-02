@@ -403,6 +403,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
           final_score: null,
           cumulative_score: { team_1: 0, team_2: 0 },
           round_count: 1,
+          round_history: [],
           rules: { ...DEFAULT_RULES },
           magic_joker: {
             direction: 1,

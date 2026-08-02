@@ -1,6 +1,9 @@
-import { type ScoreResult } from "../../../common/utils/scoring";
+import {
+  type ScoreResult,
+  type RoundHistoryItem,
+} from "../../../common/utils/scoring";
 import { type GameRules, DEFAULT_RULES } from "../../../common/types/rules";
-import { StyledButton } from "../ui/StyledButton";
+import { useState } from "react";
 import {
   RotateCcw,
   LogOut,
@@ -11,9 +14,13 @@ import {
   Hash,
   Crown,
   TrendingUp,
+  History,
+  ChevronDown,
+  ChevronUp,
+  Award,
 } from "lucide-react";
 import { type WinCondition } from "../../store/useGameStore";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface FinishScreenProps {
   finalScore: {
@@ -24,6 +31,7 @@ interface FinishScreenProps {
   };
   cumulativeScore?: { team_1: number; team_2: number };
   roundCount?: number;
+  roundHistory?: RoundHistoryItem[];
   winCondition?: WinCondition;
   isRoundOver?: boolean;
   myTeam: number;
@@ -33,7 +41,7 @@ interface FinishScreenProps {
   onPlayAgain: () => void;
   onLeave: () => void;
   isLeader?: boolean;
-  rules?: GameRules; // Add rules to props
+  rules?: GameRules;
 }
 
 export const FinishScreen = ({
@@ -43,6 +51,7 @@ export const FinishScreen = ({
   onLeave,
   cumulativeScore,
   roundCount = 1,
+  roundHistory = [],
   winCondition,
   isRoundOver = false,
   myPlayerId,
@@ -193,7 +202,7 @@ export const FinishScreen = ({
             className={`text-2xl md:text-4xl font-black uppercase tracking-tight ${amIWinner ? "text-yellow-400" : isDraw ? "text-white/60" : "text-red-400"}`}
           >
             {isDraw
-              ? "Partida Empatada"
+              ? "Placar Empatado"
               : isRoundOver
                 ? amIWinner
                   ? "Liderança de Vocês!"
@@ -206,62 +215,98 @@ export const FinishScreen = ({
       </motion.div>
 
       {/* 2. DETALHAMENTO DA RODADA (CARDS) */}
-      <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
-        <TeamRoundCard
-          title="SEU TIME"
-          teamId={1}
-          isMyTeam={myTeam === 1}
-          score={finalScore.team_1}
-          details={finalScore.details_t1}
-          delay={0.4}
-          rules={rules || DEFAULT_RULES}
-        />
-        <TeamRoundCard
-          title="OPONENTE"
-          teamId={2}
-          isMyTeam={myTeam === 2}
-          score={finalScore.team_2}
-          details={finalScore.details_t2}
-          delay={0.5}
-          rules={rules || DEFAULT_RULES}
-        />
+      <div className="w-full max-w-6xl flex flex-col items-center mb-12">
+        <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 mb-6 backdrop-blur-md">
+          <Award size={14} className="text-yellow-400" />
+          <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.25em] text-white/80">
+            {isRoundOver
+              ? `Resumo Desta Rodada (Rodada ${roundCount})`
+              : `Resumo da Última Rodada (Rodada ${roundCount})`}
+          </span>
+        </div>
+
+        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-8">
+          <TeamRoundCard
+            title="SEU TIME"
+            teamId={1}
+            isMyTeam={myTeam === 1}
+            score={finalScore.team_1}
+            details={finalScore.details_t1}
+            delay={0.4}
+            rules={rules || DEFAULT_RULES}
+          />
+          <TeamRoundCard
+            title="OPONENTE"
+            teamId={2}
+            isMyTeam={myTeam === 2}
+            score={finalScore.team_2}
+            details={finalScore.details_t2}
+            delay={0.5}
+            rules={rules || DEFAULT_RULES}
+          />
+        </div>
       </div>
 
-      {/* 3. AÇÕES FIXAS NO RODAPÉ */}
+      {/* 2.5 HISTÓRICO DE TODAS AS RODADAS NO FINAL DA PÁGINA */}
+      <RoundHistorySection
+        roundHistory={roundHistory}
+        myTeam={myTeam}
+        rules={rules || DEFAULT_RULES}
+        isRoundOver={isRoundOver}
+        currentRoundNumber={roundCount}
+      />
+
+      {/* 3. AÇÕES NO RODAPÉ COM DESIGN PREMIUM HARMÔNICO AO JOGO */}
       <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.6 }}
-        className="flex flex-col md:flex-row gap-4 w-full max-w-xl mt-auto pb-8"
+        className="flex flex-col md:flex-row gap-6 w-full max-w-2xl mt-auto pb-12 items-center"
       >
-        <StyledButton
+        <motion.button
+          whileHover={iVoted ? {} : { scale: 1.03, y: -2 }}
+          whileTap={iVoted ? {} : { scale: 0.97 }}
           onClick={onPlayAgain}
-          variant={iVoted ? "secondary" : "primary"}
-          size="lg"
-          fullWidth
           disabled={!!iVoted && isOnline}
-          icon={isRoundOver ? <Trophy size={20} /> : <RotateCcw size={20} />}
-          className={iVoted ? "opacity-50" : ""}
+          className={`relative flex items-center justify-center gap-3 px-8 py-5 rounded-2xl font-black text-base md:text-lg uppercase tracking-[0.15em] shadow-2xl transition-all duration-300 overflow-hidden w-full flex-1 ${
+            iVoted
+              ? "bg-white/10 border border-white/20 text-white/40 cursor-not-allowed shadow-none"
+              : isRoundOver
+                ? "bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-black font-black shadow-[0_0_35px_rgba(16,185,129,0.4)] border border-emerald-300/50 hover:shadow-[0_0_50px_rgba(16,185,129,0.7)] hover:border-emerald-200"
+                : "bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-black font-black shadow-[0_0_40px_rgba(245,158,11,0.5)] border border-amber-200/60 hover:shadow-[0_0_60px_rgba(245,158,11,0.8)] hover:border-amber-100"
+          }`}
         >
-          {isOnline
-            ? iVoted
-              ? `Aguardando... (${votesCount}/${totalHumanPlayers})`
+          {/* Subtle shine overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-30 animate-pulse pointer-events-none" />
+          {isRoundOver ? (
+            <Trophy size={22} className="shrink-0 drop-shadow-md" />
+          ) : (
+            <RotateCcw size={22} className="shrink-0 drop-shadow-md" />
+          )}
+          <span className="relative z-10 drop-shadow-sm">
+            {isOnline
+              ? iVoted
+                ? `Aguardando... (${votesCount}/${totalHumanPlayers})`
+                : isRoundOver
+                  ? "Próxima Rodada"
+                  : "Jogar Novamente"
               : isRoundOver
                 ? "Próxima Rodada"
-                : "Jogar Novamente"
-            : isRoundOver
-              ? "Próxima Rodada"
-              : "Jogar Novamente"}
-        </StyledButton>
-        <StyledButton
+                : "Jogar Novamente"}
+          </span>
+        </motion.button>
+
+        <motion.button
+          whileHover={{ scale: 1.02, y: -2 }}
+          whileTap={{ scale: 0.98 }}
           onClick={onLeave}
-          variant="secondary"
-          size="lg"
-          fullWidth
-          icon={<LogOut size={20} />}
+          className="relative flex items-center justify-center gap-3 px-8 py-5 rounded-2xl font-black text-sm md:text-base uppercase tracking-widest bg-gradient-to-b from-red-950/60 via-[#1a080a]/80 to-black/90 border border-red-500/40 text-red-300 shadow-[0_0_25px_rgba(239,68,68,0.2)] backdrop-blur-xl hover:border-red-500/80 hover:text-red-100 hover:shadow-[0_0_40px_rgba(239,68,68,0.5)] hover:bg-red-950/80 transition-all duration-300 w-full md:w-auto md:min-w-[220px]"
         >
-          {isLeader ? "Encerrar" : "Sair"}
-        </StyledButton>
+          <LogOut size={20} className="text-red-400 shrink-0" />
+          <span className="relative z-10">
+            {isLeader ? "Encerrar Partida" : "Sair da Sala"}
+          </span>
+        </motion.button>
       </motion.div>
     </motion.div>
   );
@@ -339,13 +384,19 @@ const TeamRoundCard = ({
   </motion.div>
 );
 
-const DetailedScoreBreakdown = ({ result, rules }: { result: ScoreResult, rules: GameRules }) => {
+const DetailedScoreBreakdown = ({
+  result,
+  rules,
+}: {
+  result: ScoreResult;
+  rules: GameRules;
+}) => {
   const r = rules || {
     points_clean_canastra: 200,
     points_dirty_canastra: 100,
     points_king_canastra: 500,
     points_ace_canastra: 1000,
-    penalty_dead_pile_not_taken: -100
+    penalty_dead_pile_not_taken: -100,
   };
 
   // Calculamos o bônus de canastras usando as regras
@@ -354,13 +405,15 @@ const DetailedScoreBreakdown = ({ result, rules }: { result: ScoreResult, rules:
     result.details.DIRTY * r.points_dirty_canastra +
     result.details.KING * r.points_king_canastra +
     result.details.ACE * r.points_ace_canastra;
-  
+
   const beatBonus = result.did_beat
     ? result.bonus_points - canastraPointsTotal
     : 0;
 
   // Penalidades
-  const deadPilePenalty = !result.has_taken_dead_pile ? Math.abs(r.penalty_dead_pile_not_taken) : 0;
+  const deadPilePenalty = !result.has_taken_dead_pile
+    ? Math.abs(r.penalty_dead_pile_not_taken)
+    : 0;
   const handPenalty = result.penalty_points - deadPilePenalty;
 
   return (
@@ -437,7 +490,9 @@ const DetailedScoreBreakdown = ({ result, rules }: { result: ScoreResult, rules:
         {deadPilePenalty > 0 && (
           <div className="flex justify-between items-center py-2 text-red-400">
             <span className="text-sm font-black">Não pegou o Morto</span>
-            <span className="font-mono text-lg font-black">-{deadPilePenalty}</span>
+            <span className="font-mono text-lg font-black">
+              -{deadPilePenalty}
+            </span>
           </div>
         )}
         <div className="flex justify-between items-center py-2">
@@ -445,7 +500,7 @@ const DetailedScoreBreakdown = ({ result, rules }: { result: ScoreResult, rules:
             Cartas na Mão
           </span>
           <span className="font-mono text-lg font-black text-red-400/60">
-            -{handPenalty}
+            {handPenalty > 0 ? `-${handPenalty}` : "0"}
           </span>
         </div>
 
@@ -454,7 +509,7 @@ const DetailedScoreBreakdown = ({ result, rules }: { result: ScoreResult, rules:
             Total Perdas
           </span>
           <span className="text-2xl font-black text-red-500">
-            -{result.penalty_points}
+            {result.penalty_points > 0 ? `-${result.penalty_points}` : "0"}
           </span>
         </div>
       </div>
@@ -491,3 +546,205 @@ const Badge = ({ label, color }: { label: string; color: string }) => (
     {label}
   </span>
 );
+
+const RoundHistorySection = ({
+  roundHistory,
+  myTeam,
+  rules,
+  isRoundOver,
+  currentRoundNumber = 1,
+}: {
+  roundHistory: RoundHistoryItem[];
+  myTeam: number;
+  rules: GameRules;
+  isRoundOver: boolean;
+  currentRoundNumber?: number;
+}) => {
+  // Remove a rodada atual que já está sendo exibida em destaque no Section 2 acima e evita duplicidades no array
+  const previousRounds = roundHistory
+    .filter(
+      (item, index, self) =>
+        item.round_number < currentRoundNumber &&
+        index === self.findIndex((r) => r.round_number === item.round_number),
+    )
+    .sort((a, b) => a.round_number - b.round_number);
+
+  // Se a partida encerrou ou estamos em rodadas adiantadas, armazena estado de expansão
+  const [expandedRounds, setExpandedRounds] = useState<number[]>(() =>
+    !isRoundOver ? previousRounds.map((r) => r.round_number) : [],
+  );
+
+  if (!previousRounds || previousRounds.length === 0) return null;
+
+  const toggleRound = (roundNum: number) => {
+    setExpandedRounds((prev) =>
+      prev.includes(roundNum)
+        ? prev.filter((n) => n !== roundNum)
+        : [...prev, roundNum],
+    );
+  };
+
+  const isAllExpanded = expandedRounds.length === previousRounds.length;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.5 }}
+      className="w-full max-w-6xl mb-16 flex flex-col items-center"
+    >
+      {/* Header do Histórico com Estética Cassino/Mesa */}
+      <div className="flex items-center gap-4 mb-6 w-full justify-center px-4">
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-emerald-500/30 to-emerald-500/50" />
+        <div className="flex items-center gap-3 px-6 py-2 rounded-full bg-emerald-950/70 border border-emerald-400/40 backdrop-blur-2xl shadow-[0_0_25px_rgba(16,185,129,0.25)]">
+          <History size={18} className="text-emerald-400 animate-pulse" />
+          <span className="text-xs md:text-sm font-black uppercase tracking-[0.25em] text-emerald-100">
+            Histórico de Rodadas Anteriores
+          </span>
+        </div>
+        <div className="h-px flex-1 bg-gradient-to-l from-transparent via-emerald-500/30 to-emerald-500/50" />
+      </div>
+
+      {previousRounds.length > 1 && (
+        <div className="w-full flex justify-end mb-4 px-2">
+          <button
+            onClick={() =>
+              setExpandedRounds(
+                isAllExpanded ? [] : previousRounds.map((r) => r.round_number),
+              )
+            }
+            className="text-xs font-bold uppercase tracking-[0.15em] text-emerald-300 hover:text-emerald-100 transition-all bg-emerald-900/30 hover:bg-emerald-800/50 px-4 py-2 rounded-xl border border-emerald-500/30 shadow-md flex items-center gap-2 cursor-pointer"
+          >
+            {isAllExpanded ? (
+              <ChevronUp size={14} />
+            ) : (
+              <ChevronDown size={14} />
+            )}
+            {isAllExpanded
+              ? "Recolher Todas as Rodadas"
+              : "Expandir Detalhes de Todas"}
+          </button>
+        </div>
+      )}
+
+      <div className="w-full space-y-5">
+        {previousRounds.map((item) => {
+          const isExpanded = expandedRounds.includes(item.round_number);
+          const t1Won = item.team_1_score > item.team_2_score;
+          const t2Won = item.team_2_score > item.team_1_score;
+
+          return (
+            <div
+              key={item.round_number}
+              className="bg-gradient-to-br from-[#081e13]/90 via-[#05140b]/95 to-black border border-white/10 hover:border-emerald-500/50 rounded-[2rem] overflow-hidden backdrop-blur-2xl shadow-2xl transition-all duration-300"
+            >
+              {/* Cabeçalho da Rodada (Clicável para expandir/recolher) */}
+              <button
+                onClick={() => toggleRound(item.round_number)}
+                className="w-full px-6 md:px-8 py-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 cursor-pointer hover:bg-white/5 transition-colors text-left group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/40 flex items-center justify-center font-black text-emerald-300 text-lg md:text-xl shadow-inner group-hover:scale-105 transition-transform">
+                    #{item.round_number}
+                  </div>
+                  <div>
+                    <h4 className="text-base md:text-lg font-black text-white/95 uppercase tracking-wider flex items-center gap-2">
+                      Rodada {item.round_number}
+                    </h4>
+                    <span className="text-xs md:text-sm font-semibold text-white/50 tracking-wide">
+                      {t1Won
+                        ? "Vantagem do Seu Time nesta rodada"
+                        : t2Won
+                          ? "Vantagem do Oponente nesta rodada"
+                          : "Empate no placar da rodada"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto border-t md:border-t-0 border-white/5 pt-3 md:pt-0">
+                  <div className="flex items-center gap-4 bg-black/50 px-5 py-2.5 rounded-2xl border border-white/10 shadow-inner font-mono">
+                    <div className="flex flex-col items-end">
+                      <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">
+                        Nós
+                      </span>
+                      <span
+                        className={`font-black text-lg md:text-2xl leading-none ${
+                          myTeam === 1
+                            ? "text-blue-400 drop-shadow-[0_0_10px_rgba(59,130,246,0.3)]"
+                            : "text-white/60"
+                        }`}
+                      >
+                        {item.team_1_score > 0 ? "+" : ""}
+                        {item.team_1_score}
+                      </span>
+                    </div>
+                    <span className="text-white/20 text-xs font-bold self-center">
+                      vs
+                    </span>
+                    <div className="flex flex-col items-start">
+                      <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">
+                        Eles
+                      </span>
+                      <span
+                        className={`font-black text-lg md:text-2xl leading-none ${
+                          myTeam === 2
+                            ? "text-red-400 drop-shadow-[0_0_10px_rgba(239,68,68,0.3)]"
+                            : "text-white/60"
+                        }`}
+                      >
+                        {item.team_2_score > 0 ? "+" : ""}
+                        {item.team_2_score}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/60 group-hover:text-white group-hover:bg-white/10 transition-all">
+                    {isExpanded ? (
+                      <ChevronUp size={22} />
+                    ) : (
+                      <ChevronDown size={22} />
+                    )}
+                  </div>
+                </div>
+              </button>
+
+              {/* Corpo Detalhado da Rodada */}
+              <AnimatePresence>
+                {isExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="overflow-hidden border-t border-white/10 bg-black/40 p-6 md:p-8"
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <TeamRoundCard
+                        title="SEU TIME"
+                        teamId={1}
+                        isMyTeam={myTeam === 1}
+                        score={item.team_1_score}
+                        details={item.details_t1}
+                        delay={0}
+                        rules={rules}
+                      />
+                      <TeamRoundCard
+                        title="OPONENTE"
+                        teamId={2}
+                        isMyTeam={myTeam === 2}
+                        score={item.team_2_score}
+                        details={item.details_t2}
+                        delay={0}
+                        rules={rules}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        })}
+      </div>
+    </motion.div>
+  );
+};

@@ -13,7 +13,6 @@ import { HandCard } from "../game-ui/HandCard";
 import { GameMenu } from "../game-ui/GameMenu";
 import { HowToPlay } from "../game-ui/HowToPlay";
 import { GameRulesModal } from "../game-ui/GameRulesModal";
-import { RoundSummaryOverlay } from "../game-ui/RoundSummaryOverlay";
 import { FinishScreen } from "./FinishScreen";
 import { type GameAdapterInterface } from "../game-ui/useLocalGameAdapter";
 import { OpponentsHandsLayer } from "../game-ui/OpponentsHandsLayer";
@@ -44,7 +43,6 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [showRules, setShowRules] = useState(false);
-  const [showFullDetails, setShowFullDetails] = useState(false);
   const [showOpponentHands, setShowOpponentHands] = useState(true);
   const [hoveredMeld, setHoveredMeld] = useState<{
     teamId: number;
@@ -318,32 +316,26 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     const mySocketId = game.players_data?.[my_player_id]?.socketId;
     const isLeader = my_player_id === 1;
 
-    // Se o jogo ACABOU de vez (Vencedor final) OU se o jogador quis ver detalhes
-    if (game.status === "FINISHED" || showFullDetails) {
-      return (
-        <FinishScreen
-          finalScore={game.final_score}
-          myTeam={my_team}
-          onPlayAgain={() => {
-            game.voteNext();
-            setShowFullDetails(false);
-          }}
-          onLeave={isLeader ? game.closeRoom : game.leaveGame}
-          isLeader={isLeader}
-          isRoundOver={game.status === "ROUND_OVER"}
-          cumulativeScore={game.cumulative_score}
-          roundCount={game.round_count}
-          winCondition={game.win_condition}
-          rematchVotes={game.rematch_votes}
-          totalHumanPlayers={totalHumanPlayers}
-          myPlayerId={mySocketId}
-          rules={game.rules}
-        />
-      );
-    }
-
-    // Se apenas a RODADA acabou, mostramos o overlay discreto por cima da mesa
-    // Mas precisamos deixar o código seguir para renderizar o GameScreen abaixo
+    return (
+      <FinishScreen
+        finalScore={game.final_score}
+        myTeam={my_team}
+        onPlayAgain={() => {
+          game.voteNext();
+        }}
+        onLeave={isLeader ? game.closeRoom : game.leaveGame}
+        isLeader={isLeader}
+        isRoundOver={game.status === "ROUND_OVER"}
+        cumulativeScore={game.cumulative_score}
+        roundCount={game.round_count}
+        roundHistory={game.round_history || []}
+        winCondition={game.win_condition}
+        rematchVotes={game.rematch_votes}
+        totalHumanPlayers={totalHumanPlayers}
+        myPlayerId={mySocketId}
+        rules={game.rules}
+      />
+    );
   }
 
   // Prepare Props Object
@@ -513,22 +505,6 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               onRulesChange={(newRules) => game.setRules(newRules)}
               onClose={() => setShowRules(false)}
               isHost={false}
-            />
-          )}
-
-          {/* Round Summary Overlay (Less invasive than full screen) */}
-          {showFinishScreen && game.status === "ROUND_OVER" && game.final_score && !showFullDetails && (
-            <RoundSummaryOverlay
-              finalScore={game.final_score}
-              cumulativeScore={game.cumulative_score}
-              roundCount={game.round_count}
-              isLeader={my_player_id === 1}
-              onNextRound={() => {
-                game.voteNext();
-                setShowFullDetails(false);
-              }}
-              onLeave={my_player_id === 1 ? game.closeRoom : game.leaveGame}
-              onViewDetails={() => setShowFullDetails(true)}
             />
           )}
 

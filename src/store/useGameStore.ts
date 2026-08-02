@@ -3,7 +3,7 @@ import { io, Socket } from "socket.io-client";
 import type { Card } from "../../common/types/card";
 import { SERVER_ADDRESS } from "../../common/const/server-address";
 
-import { type ScoreResult } from "../../common/utils/scoring";
+import { type ScoreResult, type RoundHistoryItem } from "../../common/utils/scoring";
 import { type GameRules, DEFAULT_RULES } from "../../common/types/rules";
 
 export type WinCondition =
@@ -55,6 +55,7 @@ interface IncomingServerState {
   } | null;
   cumulative_score?: { team_1: number; team_2: number };
   round_count?: number;
+  round_history?: RoundHistoryItem[];
   win_condition?: WinCondition;
   rematch_votes?: Record<string, boolean>;
 }
@@ -142,6 +143,7 @@ interface GameState {
   } | null;
   cumulative_score: { team_1: number; team_2: number };
   round_count: number;
+  round_history: RoundHistoryItem[];
   win_condition?: WinCondition;
   rematch_votes: Record<string, boolean>;
 }
@@ -262,6 +264,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   final_score: null,
   cumulative_score: { team_1: 0, team_2: 0 },
   round_count: 1,
+  round_history: [],
   rematch_votes: {},
 
   clear_error: () => set({ last_error: null }),
@@ -390,6 +393,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       dead_piles_count: 0,
       players_data: {},
       final_score: null,
+      round_history: [],
       last_error: null,
       recentEvents: [],
     });
@@ -451,6 +455,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
           dead_piles_count: 0,
           players_data: {},
           final_score: null,
+          round_history: [],
           last_error: null,
           recentEvents: [],
         });
@@ -471,6 +476,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
           dead_piles_count: 0,
           players_data: {},
           final_score: null,
+          round_history: [],
           last_error: null,
           recentEvents: [],
         });
@@ -689,6 +695,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         team_2: 0,
       },
       round_count: server_data.round_count || 1,
+      round_history: server_data.round_history || [],
       win_condition: server_data.win_condition,
       rematch_votes: server_data.rematch_votes || {},
       magic_joker: server_data.magic_joker || {

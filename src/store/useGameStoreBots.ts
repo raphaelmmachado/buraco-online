@@ -14,7 +14,7 @@ import {
   validate_discard_pickup,
 } from "../../common/utils/rules_logic";
 
-import { calculate_score, type ScoreResult } from "../../common/utils/scoring";
+import { calculate_score, type ScoreResult, type RoundHistoryItem } from "../../common/utils/scoring";
 import { type WinCondition } from "./useGameStore";
 import { type GameRules, DEFAULT_RULES } from "../../common/types/rules";
 
@@ -50,6 +50,7 @@ interface GameState {
   final_score: { team_1: ScoreResult; team_2: ScoreResult } | null;
   cumulative_score: { team_1: number; team_2: number };
   round_count: number;
+  round_history: RoundHistoryItem[];
   win_condition?: WinCondition;
   last_error: string | null;
   last_info: string | null;
@@ -134,6 +135,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
   final_score: null,
   cumulative_score: { team_1: 0, team_2: 0 },
   round_count: 1,
+  round_history: [],
   last_error: null,
   last_info: null,
   showAnimations: localStorage.getItem("baralho_show_animations") !== "false",
@@ -169,6 +171,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       final_score: null,
       cumulative_score: { team_1: 0, team_2: 0 },
       round_count: 1,
+      round_history: [],
       last_error: null,
       last_info: null,
       recentEvents: [],
@@ -269,6 +272,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       final_score: null,
       cumulative_score: { team_1: 0, team_2: 0 },
       round_count: 1,
+      round_history: [],
       win_condition: winCondition,
       last_error: null,
       last_info: null,
@@ -363,6 +367,16 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
           status: is_finished ? "FINISHED" : "ROUND_OVER",
           final_score: { team_1: t1_score, team_2: t2_score },
           cumulative_score: next_cumulative,
+          round_history: [
+            ...get().round_history,
+            {
+              round_number: get().round_count,
+              team_1_score: t1_score.total_score,
+              team_2_score: t2_score.total_score,
+              details_t1: t1_score,
+              details_t2: t2_score,
+            },
+          ],
           cardMarkers: {},
         });
         return;
@@ -1212,6 +1226,16 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         status: is_finished ? "FINISHED" : "ROUND_OVER",
         final_score: { team_1: t1_score, team_2: t2_score },
         cumulative_score: next_cumulative,
+        round_history: [
+          ...get().round_history.filter((r) => r.round_number !== get().round_count),
+          {
+            round_number: get().round_count,
+            team_1_score: t1_score.total_score,
+            team_2_score: t2_score.total_score,
+            details_t1: t1_score,
+            details_t2: t2_score,
+          },
+        ],
         cardMarkers: {},
       });
       return;
@@ -1270,6 +1294,16 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         status: is_finished ? "FINISHED" : "ROUND_OVER",
         final_score: { team_1: t1_score, team_2: t2_score },
         cumulative_score: next_cumulative,
+        round_history: [
+          ...get().round_history.filter((r) => r.round_number !== get().round_count),
+          {
+            round_number: get().round_count,
+            team_1_score: t1_score.total_score,
+            team_2_score: t2_score.total_score,
+            details_t1: t1_score,
+            details_t2: t2_score,
+          },
+        ],
         cardMarkers: {},
       });
     }

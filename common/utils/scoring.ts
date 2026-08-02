@@ -22,6 +22,14 @@ export interface ScoreResult {
   did_beat: boolean;
 }
 
+export interface RoundHistoryItem {
+  round_number: number;
+  team_1_score: number;
+  team_2_score: number;
+  details_t1: ScoreResult;
+  details_t2: ScoreResult;
+}
+
 export const calculate_score = (
   melds: Card[][],
   hands_to_penalize: Card[][] = [],

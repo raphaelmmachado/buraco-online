@@ -78,6 +78,21 @@ export const check_championship_status = (
     details_t2: details_t2,
   };
 
+  if (!game.round_history) {
+    game.round_history = [];
+  }
+  const currentRoundNum = game.round_count || 1;
+  game.round_history = game.round_history.filter(
+    (r) => r.round_number !== currentRoundNum
+  );
+  game.round_history.push({
+    round_number: currentRoundNum,
+    team_1_score: t1_round_score,
+    team_2_score: t2_round_score,
+    details_t1: details_t1,
+    details_t2: details_t2,
+  });
+
   if (!game.win_condition) {
     // Classic mode: Game ends after one round
     game.status = "FINISHED";
@@ -154,6 +169,7 @@ export const start_new_match = (game: ServerGameState) => {
     // Reset scores
     game.cumulative_score = { team_1: 0, team_2: 0 };
     game.round_count = 1;
+    game.round_history = [];
     game.status = "PLAYING";
     
     const deck = create_deck(game.rules);
@@ -391,6 +407,7 @@ export const sanitize_state = (
     final_score: game.final_score,
     cumulative_score: game.cumulative_score,
     round_count: game.round_count,
+    round_history: game.round_history || [],
     win_condition: game.win_condition,
     rematch_votes: game.rematch_votes || {},
     rules: game.rules,

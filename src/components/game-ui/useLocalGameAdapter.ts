@@ -1,7 +1,7 @@
 import { useGameStoreBots as useLocalStore } from "../../store/useGameStoreBots";
 import { useMemo } from "react";
 import type { Card } from "../../../common/types/card";
-import type { ScoreResult } from "../../../common/utils/scoring";
+import type { ScoreResult, RoundHistoryItem } from "../../../common/utils/scoring";
 import type { WinCondition } from "../../store/useGameStore";
 import { type GameRules } from "../../../common/types/rules";
 
@@ -46,6 +46,7 @@ export interface GameAdapterInterface {
   } | null;
   cumulative_score: { team_1: number; team_2: number };
   round_count: number;
+  round_history?: RoundHistoryItem[];
   win_condition?: WinCondition;
   rematch_votes?: Record<string, boolean>;
   last_error: string | null;
@@ -156,6 +157,7 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
         : null,
       cumulative_score: local.cumulative_score || { team_1: 0, team_2: 0 },
       round_count: local.round_count || 1,
+      round_history: local.round_history || [],
       win_condition: local.win_condition,
       rematch_votes: {},
       last_error: local.last_error,

@@ -1,9 +1,16 @@
 @import "tailwindcss";
 
 @layer base {
-  body {
+  html,
+  body,
+  #root {
     overscroll-behavior: none;
-    /* @apply bg-green-900 h-screen overflow-hidden; */
+    overscroll-behavior-y: none;
+  }
+
+  body {
+    /* Prevents pull-to-refresh gesture on mobile browsers */
+    touch-action: pan-x pan-y;
   }
 
   /* Custom Scrollbar Styling */

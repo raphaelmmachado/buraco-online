@@ -354,7 +354,7 @@ const TeamRoundCard = ({
       <div className="flex justify-between items-start mb-8 border-b border-white/5 pb-6">
         <div className="flex flex-col gap-1">
           <span
-            className={`text-xs font-black tracking-[0.3em] ${isMyTeam ? "text-blue-400" : "text-red-400"}`}
+            className={`text-xs font-black tracking-[0.3em] ${isMyTeam ? "text-blue-400" : "text-white/60"}`}
           >
             {title}
           </span>
@@ -591,8 +591,6 @@ const RoundHistorySection = ({
     );
   };
 
-  const isAllExpanded = expandedRounds.length === previousRounds.length;
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -612,33 +610,9 @@ const RoundHistorySection = ({
         <div className="h-px flex-1 min-w-[20px] max-w-[80px] md:max-w-[128px] bg-gradient-to-l from-transparent to-white/20" />
       </div>
 
-      {previousRounds.length > 1 && (
-        <div className="w-full flex justify-end mb-4 px-2">
-          <button
-            onClick={() =>
-              setExpandedRounds(
-                isAllExpanded ? [] : previousRounds.map((r) => r.round_number),
-              )
-            }
-            className="text-xs font-bold uppercase tracking-[0.15em] text-white/70 hover:text-white transition-all bg-white/10 hover:bg-white/15 px-4 py-2 rounded-xl border border-white/15 shadow-md flex items-center gap-2 cursor-pointer"
-          >
-            {isAllExpanded ? (
-              <ChevronUp size={14} />
-            ) : (
-              <ChevronDown size={14} />
-            )}
-            {isAllExpanded
-              ? "Recolher Todas as Rodadas"
-              : "Expandir Detalhes de Todas"}
-          </button>
-        </div>
-      )}
-
       <div className="w-full space-y-4 sm:space-y-6">
         {previousRounds.map((item) => {
           const isExpanded = expandedRounds.includes(item.round_number);
-          const t1Won = item.team_1_score > item.team_2_score;
-          const t2Won = item.team_2_score > item.team_1_score;
 
           return (
             <div
@@ -650,35 +624,22 @@ const RoundHistorySection = ({
                 onClick={() => toggleRound(item.round_number)}
                 className="w-full p-4 sm:p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6 cursor-pointer hover:bg-white/[0.03] transition-colors text-left group"
               >
-                <div className="flex items-center gap-3 sm:gap-5 w-full md:w-auto">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center font-black text-white/80 text-base sm:text-lg md:text-xl shadow-inner group-hover:scale-105 group-hover:border-white/20 transition-all shrink-0">
-                    #{item.round_number}
+                <div className="flex items-center gap-3 sm:gap-4 w-full md:w-auto">
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-yellow-500/80 shadow-inner group-hover:scale-105 group-hover:border-white/20 transition-all shrink-0">
+                    <History size={16} />
                   </div>
-                  <div className="flex flex-col gap-0.5 sm:gap-1 min-w-0 flex-1">
-                    <span className="text-sm md:text-base font-black tracking-wide sm:tracking-[0.15em] text-white/90 uppercase truncate">
-                      Rodada {item.round_number}
-                    </span>
-                    <span className="text-[11px] sm:text-xs font-medium text-white/50 tracking-wide line-clamp-1">
-                      {t1Won
-                        ? "Vantagem do Seu Time nesta rodada"
-                        : t2Won
-                          ? "Vantagem do Oponente nesta rodada"
-                          : "Empate no placar da rodada"}
-                    </span>
-                  </div>
+                  <span className="text-sm md:text-base font-black tracking-wide sm:tracking-[0.15em] text-white/90 uppercase truncate">
+                    Rodada {item.round_number}
+                  </span>
                 </div>
 
                 <div className="flex items-center justify-between md:justify-end gap-3 sm:gap-6 w-full md:w-auto border-t md:border-t-0 border-white/5 pt-3 md:pt-0">
                   <div className="flex items-center gap-4 sm:gap-5 bg-black/60 px-4 sm:px-6 py-2.5 rounded-2xl border border-white/10 shadow-inner font-mono flex-1 md:flex-initial justify-center">
                     <div className="flex flex-col items-end">
-                      <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest mb-0.5">
+                      <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-0.5">
                         NÓS
                       </span>
-                      <span
-                        className={`font-black text-lg sm:text-xl md:text-2xl leading-none tabular-nums ${
-                          myTeam === 1 ? "text-blue-400" : "text-white/80"
-                        }`}
-                      >
+                      <span className="font-black text-lg sm:text-xl md:text-2xl leading-none tabular-nums text-white/90">
                         {item.team_1_score > 0 ? "+" : ""}
                         {item.team_1_score}
                       </span>
@@ -687,14 +648,10 @@ const RoundHistorySection = ({
                       VS
                     </span>
                     <div className="flex flex-col items-start">
-                      <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest mb-0.5">
+                      <span className="text-[9px] font-black text-red-400 uppercase tracking-widest mb-0.5">
                         ELES
                       </span>
-                      <span
-                        className={`font-black text-lg sm:text-xl md:text-2xl leading-none tabular-nums ${
-                          myTeam === 2 ? "text-red-400" : "text-white/80"
-                        }`}
-                      >
+                      <span className="font-black text-lg sm:text-xl md:text-2xl leading-none tabular-nums text-white/90">
                         {item.team_2_score > 0 ? "+" : ""}
                         {item.team_2_score}
                       </span>

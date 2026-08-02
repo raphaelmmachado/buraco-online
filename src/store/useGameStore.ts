@@ -277,12 +277,12 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       recentEvents: [...state.recentEvents, { id, message, type, playerId }],
     }));
 
-    // Auto-remove after 3 seconds
+    // Auto-remove after 2 seconds
     setTimeout(() => {
       set((state) => ({
         recentEvents: state.recentEvents.filter((e) => e.id !== id),
       }));
-    }, 3000);
+    }, 2000);
   },
 
   toggleMute: () =>
@@ -650,14 +650,20 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       lastInfo = null;
     }
 
-    // Detectar uso do morto (quando o deck principal zera e um morto é usado)
-    // Mesma lógica do som de morto
+    // Detectar uso do morto
     if (
       new_status === "PLAYING" &&
       new_dead_piles < current_dead_piles &&
       current_dead_piles > 0
     ) {
-      lastInfo = "Morto está sendo usado ou algum jogador pegou.";
+      if (get().deck_count === 0) {
+        lastInfo = "Morto foi para a mesa";
+      } else {
+        const pId = get().current_player;
+        const pData = get().players_data[pId] || server_data.players_data?.[pId];
+        const pName = pData?.userName || (pId === get().my_player_number && get().my_player_name ? get().my_player_name : null) || (pId ? `Jogador ${pId}` : "Algum jogador");
+        lastInfo = `${pName} pegou o morto`;
+      }
     }
 
     set({

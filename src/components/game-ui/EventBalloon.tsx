@@ -32,13 +32,21 @@ export const EventBalloon = ({
 }: EventBalloonProps) => {
   const showAnimations = useGameStore((s) => s.showAnimations);
 
-  const bgColors = {
-    mine: "bg-blue-600",
-    opponent: "bg-red-700",
-    neutral: "bg-gray-600",
+  const themeStyles: Record<string, string> = {
+    mine: "bg-blue-950/95 border-blue-400/30 text-blue-100",
+    opponent: "bg-red-950/95 border-red-400/30 text-red-100",
+    neutral: "bg-slate-900/95 border-slate-400/25 text-slate-100",
+    success: "bg-emerald-950/95 border-emerald-400/30 text-emerald-100",
+    warning: "bg-amber-950/95 border-amber-400/30 text-amber-100",
+    error: "bg-rose-950/95 border-rose-500/40 text-rose-100",
+    info: "bg-slate-900/95 border-slate-400/30 text-slate-100",
+    timer_warning: "bg-amber-950/95 border-amber-500/40 text-amber-200",
+    timer_critical: "bg-red-950/95 border-red-500/50 text-red-200",
   };
 
-  const bgColor = customColor || bgColors[team];
+  const appliedStyle = customColor
+    ? (themeStyles[customColor] || customColor)
+    : themeStyles[team];
 
   if (!isStatic && x === 0 && y === 0) return null;
 
@@ -142,11 +150,11 @@ export const EventBalloon = ({
           top: isPositioned ? 0 : (isStatic ? undefined : 0),
           left: isPositioned ? x : (isStatic ? undefined : x),
         }}
-        className={`z-50 pointer-events-none whitespace-nowrap ${!isPositioned && isStatic ? "" : "-translate-x-1/2"} px-2 md:px-3 py-1 md:py-1.5 rounded-full shadow-lg border border-white/10 text-white ${bgColor} ${pulse ? 'animate-pulse' : ''}`}
+        className={`z-50 pointer-events-none whitespace-nowrap ${!isPositioned && isStatic ? "" : "-translate-x-1/2"} px-2.5 md:px-3.5 py-1 md:py-1.5 rounded-full shadow-xl shadow-black/60 border backdrop-blur-md ${appliedStyle} ${pulse ? 'animate-pulse' : ''}`}
       >
         {renderContent()}
         {/* Arrow */}
-        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 md:w-2 md:h-2 rotate-45 bg-inherit border-b border-r border-white/10"></div>
+        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 md:w-2 md:h-2 rotate-45 bg-inherit border-b border-r border-inherit"></div>
       </motion.div>
     </AnimatePresence>
   );

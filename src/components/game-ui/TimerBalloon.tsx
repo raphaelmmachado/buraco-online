@@ -46,7 +46,7 @@ export const TimerBalloon = ({ x, y }: TimerBalloonProps) => {
   if (timeLeft > 10) return null;
 
   const isCritical = timeLeft < 5;
-  const color = isCritical ? "bg-red-600" : "bg-orange-600";
+  const color = isCritical ? "timer_critical" : "timer_warning";
 
   return (
     <EventBalloon

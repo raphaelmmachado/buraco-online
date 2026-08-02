@@ -96,7 +96,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
     }
 
     if (game.last_info) {
-      timers.push(setTimeout(() => game.clear_info?.(), 4000));
+      timers.push(setTimeout(() => game.clear_info?.(), 2000));
     }
 
     if (game.magic_joker.power_selection?.ability === "VIEW_HAND" && 
@@ -463,10 +463,10 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                 const eventPlayerTeam = eventPlayerId % 2;
                 const team = myTeam === eventPlayerTeam ? "mine" : "opponent";
 
-                let customColor = undefined;
-                if (playerEvent.type === "warning") customColor = "bg-red-600";
+                let customColor: string | undefined = undefined;
+                if (playerEvent.type === "warning") customColor = "warning";
                 if (playerEvent.type === "success")
-                  customColor = "bg-green-600";
+                  customColor = "success";
 
                 return (
                   <EventBalloon
@@ -703,7 +703,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                     x={0} 
                     y={0} 
                     isStatic={true}
-                    customColor="bg-red-600/95"
+                    customColor="error"
                   />
                   <button
                     onClick={game.clear_error}
@@ -727,7 +727,7 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                     x={0} 
                     y={0} 
                     isStatic={true}
-                    customColor="bg-slate-800/95"
+                    customColor="info"
                   />
                   <button
                     onClick={game.clear_info}

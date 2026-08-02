@@ -190,12 +190,12 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       recentEvents: [...state.recentEvents, { id, message, type, playerId }],
     }));
 
-    // Auto-remove after 3 seconds
+    // Auto-remove after 2 seconds
     setTimeout(() => {
       set((state) => ({
         recentEvents: state.recentEvents.filter((e) => e.id !== id),
       }));
-    }, 3000);
+    }, 2000);
   },
 
   toggleAnimations: () => {
@@ -325,7 +325,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         deck = new_deck;
         set({
           dead_piles: remaining_piles,
-          last_info: "Morto está sendo usado ou algum jogador pegou.",
+          last_info: "Morto foi para a mesa",
         });
       } else {
         const t1_score = calculate_score(
@@ -1245,11 +1245,14 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       console.log(`[GAME] Jogador ${current_player} pegou o morto.`);
       get().addEvent("Pegou o morto!", "info", current_player);
       const [my_dead_pile, ...remaining_piles] = dead_piles;
+      const pNames: Record<number, string> = { 1: "Você", 2: "Bot 1", 3: "Bot 2", 4: "Bot 3" };
+      const pName = pNames[current_player] || `Jogador ${current_player}`;
       set({
         hands: { ...hands, [current_player]: sort_cards(my_dead_pile) },
         dead_piles: remaining_piles,
         has_taken_dead_pile: { ...has_taken_dead_pile, [team_id]: true },
         turn_phase: type === "DIRECT" ? "ACTION" : "DRAW",
+        last_info: `${pName} pegou o morto`,
       });
     } else {
       console.log("[GAME] Fim de jogo por batida (sem mortos disponíveis).");

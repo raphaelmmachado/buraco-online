@@ -17,7 +17,7 @@ import {
   History,
   ChevronDown,
   ChevronUp,
-  Award,
+  Play,
 } from "lucide-react";
 import { type WinCondition } from "../../store/useGameStore";
 import { motion, AnimatePresence } from "framer-motion";
@@ -89,16 +89,24 @@ export const FinishScreen = ({
         animate={{ y: 0, opacity: 1 }}
         className="w-full max-w-5xl mb-12 relative flex flex-col items-center"
       >
-        <div className="flex items-center gap-4 mb-8">
-          <div className="h-px w-12 md:w-32 bg-linear-to-r from-transparent to-white/20"></div>
-          <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-1.5 rounded-full backdrop-blur-md shadow-xl">
-            <Crown size={14} className="text-yellow-500" />
-            <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-white/70">
-              {isRoundOver ? `Rodada ${roundCount}` : "Resultado Final"}
-            </span>
-          </div>
-          <div className="h-px w-12 md:w-32 bg-linear-to-l from-transparent to-white/20"></div>
-        </div>
+        <motion.button
+          whileHover={iVoted ? {} : { scale: 1.05 }}
+          whileTap={iVoted ? {} : { scale: 0.95 }}
+          onClick={onPlayAgain}
+          disabled={!!iVoted && isOnline}
+          className={`flex items-center gap-2 px-5 py-2 rounded-full font-black text-xs uppercase tracking-wider mb-8 shadow-lg border transition-all cursor-pointer ${
+            iVoted
+              ? "bg-white/10 border-white/20 text-white/40 cursor-not-allowed shadow-none"
+              : "bg-gradient-to-r from-amber-400 to-yellow-500 text-black border-amber-300/60 shadow-[0_0_20px_rgba(245,158,11,0.4)] hover:shadow-[0_0_30px_rgba(245,158,11,0.6)]"
+          }`}
+        >
+          <Play size={13} className="fill-black shrink-0" />
+          <span>
+            {isOnline && iVoted
+              ? `Aguardando... (${votesCount}/${totalHumanPlayers})`
+              : "Continuar Rodada"}
+          </span>
+        </motion.button>
 
         {/* COMPARATIVO DE PONTOS ACUMULADOS */}
         <div className="grid grid-cols-3 w-full items-center gap-4 md:gap-12 px-4">
@@ -134,7 +142,7 @@ export const FinishScreen = ({
             </span>
 
             {winCondition && (
-              <div className="flex flex-col items-center gap-1.5 bg-black/40 border border-white/5 px-4 md:px-6 py-2 rounded-2xl shadow-2xl backdrop-blur-xl">
+              <div className="flex flex-col items-center gap-1.5 bg-black/60 border border-white/10 px-4 md:px-6 py-2 rounded-2xl shadow-2xl">
                 <div className="flex items-center gap-2 text-yellow-500/80">
                   {winCondition.type === "POINTS" ? (
                     <Target size={14} />
@@ -216,13 +224,15 @@ export const FinishScreen = ({
 
       {/* 2. DETALHAMENTO DA RODADA (CARDS) */}
       <div className="w-full max-w-6xl flex flex-col items-center mb-12">
-        <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 mb-6 backdrop-blur-md">
-          <Award size={14} className="text-yellow-400" />
-          <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.25em] text-white/80">
-            {isRoundOver
-              ? `Resumo Desta Rodada (Rodada ${roundCount})`
-              : `Resumo da Última Rodada (Rodada ${roundCount})`}
-          </span>
+        <div className="flex items-center gap-2 sm:gap-4 mb-6 w-full justify-center px-2">
+          <div className="h-px flex-1 min-w-[20px] max-w-[80px] md:max-w-[128px] bg-linear-to-r from-transparent to-white/20"></div>
+          <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#092213] border border-white/15 shadow-xl">
+            <Crown size={14} className="text-yellow-500 shrink-0" />
+            <span className="text-[10px] md:text-xs font-black uppercase tracking-wider sm:tracking-[0.25em] text-white/80 text-center">
+              {isRoundOver ? `Rodada ${roundCount}` : "Resultado Final"}
+            </span>
+          </div>
+          <div className="h-px flex-1 min-w-[20px] max-w-[80px] md:max-w-[128px] bg-linear-to-l from-transparent to-white/20"></div>
         </div>
 
         <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -271,9 +281,7 @@ export const FinishScreen = ({
           className={`relative flex items-center justify-center gap-3 px-8 py-5 rounded-2xl font-black text-base md:text-lg uppercase tracking-[0.15em] shadow-2xl transition-all duration-300 overflow-hidden w-full flex-1 ${
             iVoted
               ? "bg-white/10 border border-white/20 text-white/40 cursor-not-allowed shadow-none"
-              : isRoundOver
-                ? "bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-black font-black shadow-[0_0_35px_rgba(16,185,129,0.4)] border border-emerald-300/50 hover:shadow-[0_0_50px_rgba(16,185,129,0.7)] hover:border-emerald-200"
-                : "bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-black font-black shadow-[0_0_40px_rgba(245,158,11,0.5)] border border-amber-200/60 hover:shadow-[0_0_60px_rgba(245,158,11,0.8)] hover:border-amber-100"
+              : "bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-black font-black shadow-[0_0_40px_rgba(245,158,11,0.5)] border border-amber-200/60 hover:shadow-[0_0_60px_rgba(245,158,11,0.8)] hover:border-amber-100"
           }`}
         >
           {/* Subtle shine overlay */}
@@ -300,7 +308,7 @@ export const FinishScreen = ({
           whileHover={{ scale: 1.02, y: -2 }}
           whileTap={{ scale: 0.98 }}
           onClick={onLeave}
-          className="relative flex items-center justify-center gap-3 px-8 py-5 rounded-2xl font-black text-sm md:text-base uppercase tracking-widest bg-gradient-to-b from-red-950/60 via-[#1a080a]/80 to-black/90 border border-red-500/40 text-red-300 shadow-[0_0_25px_rgba(239,68,68,0.2)] backdrop-blur-xl hover:border-red-500/80 hover:text-red-100 hover:shadow-[0_0_40px_rgba(239,68,68,0.5)] hover:bg-red-950/80 transition-all duration-300 w-full md:w-auto md:min-w-[220px]"
+          className="relative flex items-center justify-center gap-3 px-8 py-5 rounded-2xl font-black text-sm md:text-base uppercase tracking-widest bg-gradient-to-b from-red-950/60 via-[#1a080a]/80 to-black/90 border border-red-500/40 text-red-300 shadow-[0_0_25px_rgba(239,68,68,0.2)] hover:border-red-500/80 hover:text-red-100 hover:shadow-[0_0_40px_rgba(239,68,68,0.5)] hover:bg-red-950/80 transition-all duration-300 w-full md:w-auto md:min-w-[220px]"
         >
           <LogOut size={20} className="text-red-400 shrink-0" />
           <span className="relative z-10">
@@ -335,21 +343,20 @@ const TeamRoundCard = ({
     initial={{ x: teamId === 1 ? -20 : 20, opacity: 0 }}
     animate={{ x: 0, opacity: 1 }}
     transition={{ delay }}
-    className={`flex flex-col rounded-[2.5rem] border backdrop-blur-md overflow-hidden shadow-2xl ${
+    className={`flex flex-col rounded-[2rem] md:rounded-[2.5rem] border overflow-hidden shadow-2xl ${
       isMyTeam
-        ? "bg-blue-600/5 border-blue-500/20"
-        : "bg-white/[0.02] border-white/5"
+        ? "bg-[#091b2c] border-blue-500/30"
+        : "bg-[#09170e] border-white/10"
     }`}
   >
-    <div className="p-8 md:p-10">
+    <div className="p-5 sm:p-8 md:p-10">
       {/* Header do Card */}
       <div className="flex justify-between items-start mb-8 border-b border-white/5 pb-6">
         <div className="flex flex-col gap-1">
           <span
-            className={`text-xs font-black tracking-[0.3em] ${isMyTeam ? "text-blue-400" : "text-white/40"}`}
+            className={`text-xs font-black tracking-[0.3em] ${isMyTeam ? "text-blue-400" : "text-red-400"}`}
           >
-            {title}{" "}
-            <span className="text-[10px] opacity-30 ml-2">TIME {teamId}</span>
+            {title}
           </span>
           <div className="flex gap-2 mt-3">
             {details.did_beat && (
@@ -593,16 +600,16 @@ const RoundHistorySection = ({
       transition={{ delay: 0.5 }}
       className="w-full max-w-6xl mb-16 flex flex-col items-center"
     >
-      {/* Header do Histórico com Estética Cassino/Mesa */}
-      <div className="flex items-center gap-4 mb-6 w-full justify-center px-4">
-        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-emerald-500/30 to-emerald-500/50" />
-        <div className="flex items-center gap-3 px-6 py-2 rounded-full bg-emerald-950/70 border border-emerald-400/40 backdrop-blur-2xl shadow-[0_0_25px_rgba(16,185,129,0.25)]">
-          <History size={18} className="text-emerald-400 animate-pulse" />
-          <span className="text-xs md:text-sm font-black uppercase tracking-[0.25em] text-emerald-100">
-            Histórico de Rodadas Anteriores
+      {/* Header do Histórico combinando com a estética das seções anteriores */}
+      <div className="flex items-center gap-2 sm:gap-4 mb-6 w-full justify-center px-2">
+        <div className="h-px flex-1 min-w-[20px] max-w-[80px] md:max-w-[128px] bg-gradient-to-r from-transparent to-white/20" />
+        <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#092213] border border-white/15 shadow-xl">
+          <History size={14} className="text-yellow-400 shrink-0" />
+          <span className="text-[10px] md:text-xs font-black uppercase tracking-wider sm:tracking-[0.25em] text-white/80">
+            Rodadas Anteriores
           </span>
         </div>
-        <div className="h-px flex-1 bg-gradient-to-l from-transparent via-emerald-500/30 to-emerald-500/50" />
+        <div className="h-px flex-1 min-w-[20px] max-w-[80px] md:max-w-[128px] bg-gradient-to-l from-transparent to-white/20" />
       </div>
 
       {previousRounds.length > 1 && (
@@ -613,7 +620,7 @@ const RoundHistorySection = ({
                 isAllExpanded ? [] : previousRounds.map((r) => r.round_number),
               )
             }
-            className="text-xs font-bold uppercase tracking-[0.15em] text-emerald-300 hover:text-emerald-100 transition-all bg-emerald-900/30 hover:bg-emerald-800/50 px-4 py-2 rounded-xl border border-emerald-500/30 shadow-md flex items-center gap-2 cursor-pointer"
+            className="text-xs font-bold uppercase tracking-[0.15em] text-white/70 hover:text-white transition-all bg-white/10 hover:bg-white/15 px-4 py-2 rounded-xl border border-white/15 shadow-md flex items-center gap-2 cursor-pointer"
           >
             {isAllExpanded ? (
               <ChevronUp size={14} />
@@ -627,7 +634,7 @@ const RoundHistorySection = ({
         </div>
       )}
 
-      <div className="w-full space-y-5">
+      <div className="w-full space-y-4 sm:space-y-6">
         {previousRounds.map((item) => {
           const isExpanded = expandedRounds.includes(item.round_number);
           const t1Won = item.team_1_score > item.team_2_score;
@@ -636,22 +643,22 @@ const RoundHistorySection = ({
           return (
             <div
               key={item.round_number}
-              className="bg-gradient-to-br from-[#081e13]/90 via-[#05140b]/95 to-black border border-white/10 hover:border-emerald-500/50 rounded-[2rem] overflow-hidden backdrop-blur-2xl shadow-2xl transition-all duration-300"
+              className="flex flex-col rounded-[2rem] md:rounded-[2.5rem] border overflow-hidden shadow-2xl bg-[#09170e] border-white/10 hover:border-white/20 transition-all duration-300"
             >
               {/* Cabeçalho da Rodada (Clicável para expandir/recolher) */}
               <button
                 onClick={() => toggleRound(item.round_number)}
-                className="w-full px-6 md:px-8 py-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 cursor-pointer hover:bg-white/5 transition-colors text-left group"
+                className="w-full p-4 sm:p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6 cursor-pointer hover:bg-white/[0.03] transition-colors text-left group"
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/40 flex items-center justify-center font-black text-emerald-300 text-lg md:text-xl shadow-inner group-hover:scale-105 transition-transform">
+                <div className="flex items-center gap-3 sm:gap-5 w-full md:w-auto">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center font-black text-white/80 text-base sm:text-lg md:text-xl shadow-inner group-hover:scale-105 group-hover:border-white/20 transition-all shrink-0">
                     #{item.round_number}
                   </div>
-                  <div>
-                    <h4 className="text-base md:text-lg font-black text-white/95 uppercase tracking-wider flex items-center gap-2">
+                  <div className="flex flex-col gap-0.5 sm:gap-1 min-w-0 flex-1">
+                    <span className="text-sm md:text-base font-black tracking-wide sm:tracking-[0.15em] text-white/90 uppercase truncate">
                       Rodada {item.round_number}
-                    </h4>
-                    <span className="text-xs md:text-sm font-semibold text-white/50 tracking-wide">
+                    </span>
+                    <span className="text-[11px] sm:text-xs font-medium text-white/50 tracking-wide line-clamp-1">
                       {t1Won
                         ? "Vantagem do Seu Time nesta rodada"
                         : t2Won
@@ -661,35 +668,31 @@ const RoundHistorySection = ({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto border-t md:border-t-0 border-white/5 pt-3 md:pt-0">
-                  <div className="flex items-center gap-4 bg-black/50 px-5 py-2.5 rounded-2xl border border-white/10 shadow-inner font-mono">
+                <div className="flex items-center justify-between md:justify-end gap-3 sm:gap-6 w-full md:w-auto border-t md:border-t-0 border-white/5 pt-3 md:pt-0">
+                  <div className="flex items-center gap-4 sm:gap-5 bg-black/60 px-4 sm:px-6 py-2.5 rounded-2xl border border-white/10 shadow-inner font-mono flex-1 md:flex-initial justify-center">
                     <div className="flex flex-col items-end">
-                      <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">
-                        Nós
+                      <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest mb-0.5">
+                        NÓS
                       </span>
                       <span
-                        className={`font-black text-lg md:text-2xl leading-none ${
-                          myTeam === 1
-                            ? "text-blue-400 drop-shadow-[0_0_10px_rgba(59,130,246,0.3)]"
-                            : "text-white/60"
+                        className={`font-black text-lg sm:text-xl md:text-2xl leading-none tabular-nums ${
+                          myTeam === 1 ? "text-blue-400" : "text-white/80"
                         }`}
                       >
                         {item.team_1_score > 0 ? "+" : ""}
                         {item.team_1_score}
                       </span>
                     </div>
-                    <span className="text-white/20 text-xs font-bold self-center">
-                      vs
+                    <span className="text-white/20 text-xs font-black italic tracking-widest self-center px-1">
+                      VS
                     </span>
                     <div className="flex flex-col items-start">
-                      <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">
-                        Eles
+                      <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest mb-0.5">
+                        ELES
                       </span>
                       <span
-                        className={`font-black text-lg md:text-2xl leading-none ${
-                          myTeam === 2
-                            ? "text-red-400 drop-shadow-[0_0_10px_rgba(239,68,68,0.3)]"
-                            : "text-white/60"
+                        className={`font-black text-lg sm:text-xl md:text-2xl leading-none tabular-nums ${
+                          myTeam === 2 ? "text-red-400" : "text-white/80"
                         }`}
                       >
                         {item.team_2_score > 0 ? "+" : ""}
@@ -698,11 +701,11 @@ const RoundHistorySection = ({
                     </div>
                   </div>
 
-                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/60 group-hover:text-white group-hover:bg-white/10 transition-all">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/40 group-hover:text-white/80 group-hover:bg-white/10 transition-all shrink-0">
                     {isExpanded ? (
-                      <ChevronUp size={22} />
+                      <ChevronUp size={20} />
                     ) : (
-                      <ChevronDown size={22} />
+                      <ChevronDown size={20} />
                     )}
                   </div>
                 </div>
@@ -716,7 +719,7 @@ const RoundHistorySection = ({
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.3 }}
-                    className="overflow-hidden border-t border-white/10 bg-black/40 p-6 md:p-8"
+                    className="overflow-hidden border-t border-white/5 bg-black/40 p-4 sm:p-6 md:p-10"
                   >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       <TeamRoundCard

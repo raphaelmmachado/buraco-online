@@ -14,7 +14,7 @@ export const LoadingScreen = ({
   useEffect(() => {
     // Initialize audio
     audioRef.current = new Audio(shufflingSound);
-    audioRef.current.volume = 0.5;
+    audioRef.current.volume = 0.25;
 
     // Play audio
     const playAudio = async () => {

@@ -14,8 +14,8 @@ export const useGameAudio = (game: GameAdapterInterface, isMyTurn: boolean) => {
 
   // --- AUDIO SYSTEM (Optimized) ---
   // Memoize audio instances so they are not re-created on every render
-  const sfx = useMemo(
-    () => ({
+  const sfx = useMemo(() => {
+    const audioMap = {
       start: new Audio(start_sound),
       deadPile: new Audio(pounding_card_sound),
       flick: new Audio(flick_card_sound),
@@ -23,9 +23,12 @@ export const useGameAudio = (game: GameAdapterInterface, isMyTurn: boolean) => {
       placement: new Audio(card_placement_sound),
       discardPile: new Audio(cards_sound),
       cardDrop: new Audio(card_drop_sound),
-    }),
-    [],
-  );
+    };
+    Object.values(audioMap).forEach((audio) => {
+      audio.volume = 0.25;
+    });
+    return audioMap;
+  }, []);
 
   // Helper to safely play sound
   const playSound = useCallback(

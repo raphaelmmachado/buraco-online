@@ -279,16 +279,18 @@ const evaluate_potential_melds = (
         if (!validation.is_clean && cards.length < 5) score -= 30;
     }
 
-    // CRITÉRIO 5: Impacto na conectividade da mão
+    // CRITÉRIO 5: Impacto na conectividade da mão e Desova de Cartas
     // Penaliza se baixar o jogo destruir muitas possibilidades de outras sequências na mão.
-    // Porém, se a mão é grande (ex: pegou o lixo e está com muitas cartas), desovar as cartas na mesa tem prioridade!
+    // Porém, se a mão é grande (>= 9 cartas) OU se o monte tem poucas cartas (modo desespero, <= 4 cartas no monte),
+    // desovar as cartas na mesa tem prioridade máxima para evitar penalidades de pontos na mão!
+    const should_dump_cards = currentHand.length >= 9 || isDesperate;
     const remainingConnectedness = analyze_hand_for_potential_sequences(remainingHand);
     const connectednessChange = initialConnectedness - remainingConnectedness;
-    const connectednessWeight = currentHand.length >= 9 ? 0.5 : 2.0;
+    const connectednessWeight = should_dump_cards ? 0.3 : 2.0;
     score -= connectednessChange * connectednessWeight;
 
-    if (currentHand.length >= 9) {
-      score += cards.length * 5; // Incentiva desovar sequências quando a mão está com muitas cartas
+    if (should_dump_cards) {
+      score += cards.length * 8; // Incentiva fortemente desovar sequências quando a mão é grande ou está no fim do monte
     }
 
     // CRITÉRIO 6: Lógica de "Gap" (Lacuna) na mesa e Proteção contra "Matar a Canastra"

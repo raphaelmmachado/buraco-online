@@ -4,8 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "server:dist": "bun run server_dist.ts",
-    "server": "bun run index.ts",
+    "server:dist": "tsx server_dist.ts",
+    "server": "tsx index.ts",
     "tunnel": "cloudflared tunnel --url http://localhost:3050"
   },
   "devDependencies": {

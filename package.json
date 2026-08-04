@@ -9,6 +9,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:server": "cd server && bun run index.ts",
+    "start:server": "cd server && bun run index.ts",
+    "host": "bun run build && cd server && bun install && bun run server:dist",
     "build": "vite build",
     "lint": "eslint . && tsc -b",
     "preview": "vite preview"

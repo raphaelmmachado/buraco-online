@@ -35,7 +35,7 @@ export const MeldBadge = ({ meld }: { meld: CardType[] }) => {
       label = "Perfeita!";
       break;
     default:
-      color = "bg-slate-700 backdrop-blur-sm";
+      color = "bg-slate-700";
       label = `${length} / ${rules.min_cards_for_canastra}`;
   }
 
@@ -50,7 +50,8 @@ export const MeldBadge = ({ meld }: { meld: CardType[] }) => {
             ? { type: "spring", stiffness: 500, damping: 20 }
             : { duration: 0 }
         }
-        className={`w-full ${color} flex flex-col items-center justify-center p-1 rounded-md rounded-tl-none rounded-tr-none shadow-lg border border-white/10`}
+        className={`w-full ${color} flex flex-col items-center justify-center 
+        p-1 rounded-md rounded-tl-none rounded-tr-none shadow-lg border border-white/10`}
       >
         <span className="text-xs md:text-sm text-white font-black uppercase tracking-widest">
           {label}

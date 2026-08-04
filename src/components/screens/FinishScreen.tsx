@@ -213,11 +213,11 @@ export const FinishScreen = ({
               ? "Placar Empatado"
               : isRoundOver
                 ? amIWinner
-                  ? "Liderança de Vocês!"
-                  : "Vantagem Deles!"
+                  ? "Vocês estão vencendo!"
+                  : "Vocês estão perdendo!"
                 : amIWinner
-                  ? "Vocês Venceram!"
-                  : "Eles Venceram!"}
+                  ? "Vocês Venceram o jogo!"
+                  : "Se fodeu!"}
           </h2>
         </motion.div>
       </motion.div>
@@ -229,7 +229,9 @@ export const FinishScreen = ({
           <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#092213] border border-white/15 shadow-xl">
             <Crown size={14} className="text-yellow-500 shrink-0" />
             <span className="text-[10px] md:text-xs font-black uppercase tracking-wider sm:tracking-[0.25em] text-white/80 text-center">
-              {isRoundOver ? `Rodada ${roundCount}` : "Resultado Final"}
+              {isRoundOver
+                ? `Rodada ${roundCount}`
+                : `Fim de Jogo - Rodada ${roundCount}`}
             </span>
           </div>
           <div className="h-px flex-1 min-w-[20px] max-w-[80px] md:max-w-[128px] bg-linear-to-l from-transparent to-white/20"></div>

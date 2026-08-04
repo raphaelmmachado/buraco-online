@@ -612,7 +612,12 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
             style={{ height: `${opponentHeight}%` }}
             className="bg-red-950/10 border-b border-white/5 px-4 md:px-6 py-1 flex flex-col relative z-10 min-h-0 transition-[height] duration-75 ease-linear"
           >
-            <div className="flex-1 flex flex-wrap content-start gap-x-2 md:gap-x-4 gap-y-1.5 md:gap-y-8 overflow-y-auto scrollbar-hide pt-1">
+            <div className="flex-1 flex flex-wrap content-start gap-x-2 md:gap-x-4 gap-y-1.5 md:gap-y-8 overflow-y-auto scrollbar-hide pt-1 relative">
+              <div className="absolute inset-0 text-center w-full h-full flex items-center justify-center pointer-events-none z-0">
+                <span className="text-white/5 text-xl md:text-3xl font-black uppercase tracking-[0.5em]">
+                  ELES
+                </span>
+              </div>
               {game.team_melds[opponent_team]?.map((meld, idx) => (
                 <MeldDisplay
                   key={idx}
@@ -620,11 +625,6 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
                   enterFrom={activePlayerDirection}
                 />
               ))}
-              <div className="absolute text-center w-full h-full flex items-center justify-center pointer-events-none">
-                <span className="text-white/5 text-xl md:text-3xl font-black uppercase tracking-[0.5em]">
-                  ELES
-                </span>
-              </div>
             </div>
           </section>
           {/* SEPARATOR / INFO BAR (Draggable) */}

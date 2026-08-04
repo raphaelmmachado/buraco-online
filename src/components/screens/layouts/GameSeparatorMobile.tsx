@@ -11,7 +11,6 @@ export const GameSeparatorMobile = ({
   canAction,
   selectedCards,
   isDiscardSelected,
-  hoveredMeld,
   discardOriginDirection,
   onDeckClick,
   onDiscardClick,
@@ -81,7 +80,7 @@ export const GameSeparatorMobile = ({
             quantity={game.discard_pile.length}
             onClick={onDiscardClick}
             isActionable={canDraw || (canAction && selectedCards.length === 1)}
-            highlight={isDiscardSelected || hoveredMeld !== null}
+            highlight={isDiscardSelected}
             subtleHighlight={canAction && selectedCards.length === 1}
             originDirection={discardOriginDirection}
           />

@@ -1,152 +1,133 @@
-<div align="center">
-  <h1>🃏 Buraco Online</h1>
-  <p><strong>Um jogo de cartas. Jogue com bots ou com amigos. Hospede você mesmo.</strong></p>
-</div>
+# Buraco Online
+
+![Demonstração do Jogo](public/preview.png)
+
+## 1. Sobre o Projeto
+
+Este projeto é uma implementação web do tradicional jogo de cartas **Buraco** (Canastra). Focado para quem quer jogar rápidamente seja com bots ou com amigos.
+
+- **Modos de Jogo:** Suporta partidas em duplas (**2v2**).
+- **Multiplayer & Bots:** É possível jogar online com amigos ou adicionar **Bots** com inteligência artificial para completar a mesa.
+- **Regras Customizáveis:** No lobby da partida, o criador da sala pode personalizar algumas regras, como a condição de vitória (por limite de pontos ou número de rodadas) e o tempo por turno.
+- **Design Responsivo:** Possível jogar em dispositivos móveis ou no computador.
+- **Fácil acesso:** Sem login e instalações, basta um navegador.
+- **Jogue Offline:** Pode instalar como PWA e jogar sem internet com bots.
 
 ---
 
-## ✨ Destaques e Funcionalidades
+## 2. Como Jogar e Regras do Buraco
 
-- **Modos 2v2:** Jogue partidas em duplas sincronizadas com baixa latência via WebSockets.
-- **Bots Inteligentes:** Não tem amigos online? Jogue com e contra Bots autônomos que contam com lógica heurística avançada para tomada de decisões estratégicas (compra do lixo, criação de canastras limpas/sujas, uso tático de curingas e batida no tempo certo).
-- **Coringas Mágicos (Modo Especial):** Uma variação caótica e inovadora que introduz poderes especiais aleatórios nas partidas!
+O jogo segue as regras do **Buraco Fechado**.
 
----
+### Regras Básicas
 
-## 🚀 Guia Rápido: Como Jogar e Hostear no seu PC
+- **Baralho:** Jogado com 2 baralhos franceses tradicionais (104 cartas no total).
+- **Sequências:** Só valem **sequências do mesmo naipe** com no mínimo 3 cartas (ex: `4♥ 5♥ 6♥`). Não são permitidas trincas (cartas do mesmo valor de naipes diferentes) nem lavadeiras.
+- **Curingas:** Os **8 "2s"** do baralho funcionam como curingas, podendo substituir qualquer carta na sequência.
+- **Lixo Fechado:** Apenas a carta do topo do lixo fica visível.
 
-Se você deseja rodar o jogo no seu computador de forma rápida e prática, seja para testar contra os **Bots** ou jogar com amigos conectados na mesma rede (LAN/Wi-Fi):
+### Fluxo do Turno
 
-### 1. Pré-requisitos
+1. **Comprar:** Puxar 1 carta do monte **ou** pegar a carta do topo do lixo (somente se for usá-la imediatamente para baixar um novo jogo de 3+ cartas ou adicionar a um jogo existente na mesa).
+2. **Baixar:** Formar novas sequências ou encaixar cartas nos jogos já baixados pela sua equipe.
+3. **Descartar:** Jogar 1 carta no lixo para encerrar a vez.
 
-- Ter o **[Node.js](https://nodejs.org/)** (v18+) ou **[Bun](https://bun.sh/)** instalado no sistema.
+### Pontuação (Você pode alterar)
 
-### 2. Passo a Passo
-
-Abra o terminal na pasta do projeto e execute os comandos de acordo com seu ambiente:
-
-**Com Bun:**
-
-```bash
-# 1. Instalar as dependências
-bun install
-
-# 2. Compilar e rodar o Servidor Integrado (Modo Host na porta 3000)
-bun run host
-```
-
-**Com Node.js (npm):**
-
-```bash
-# 1. Instalar as dependências
-npm install
-
-# 2. Compilar e rodar o Servidor Integrado (Modo Host na porta 3000)
-npm run host
-```
-
-**Pronto!** 🚀 Abra **`http://localhost:3000`** no seu navegador.
-
-> _Nota:_ O comando `host` (`bun run host` ou `npm run host`) compila o frontend e faz com que o servidor Backend exiba tanto a interface web quanto conecte na lógica de jogo e multiplayer na mesma porta (3000).
+- **Bônus de Canastras (7 ou mais cartas):**
+  - **Canastra Suja (+100 pts):** Contém 1 curinga "2" fora de sua posição natural.
+  - **Canastra Limpa (+200 pts):** Não contém nenhum curinga. _(Obrigatória pelo menos 1 limpa para bater o jogo)._
+  - **Canastra de 500 (+500 pts):** 13 cartas consecutivas sem curinga (de Ás a Rei ou 2 a Ás).
+  - **Canastra Real (+1.000 pts):** 14 cartas limpas de Ás (baixo) a Ás (alto).
+  - **Batida (+100 pts):** Zerar as cartas da mão e pegar o morto. _(Multa de -100 pts caso a dupla não pegue o morto)._
+- **Cada carta tem um valor de pontuação:**
+  - A = 15 pontos
+  - 8, 9, 10, J, Q, K = 10 pontos
+  - 3, 4, 5, 6, 7 = 5 pontos
+  - 2 = 20 pontos
 
 ---
 
-## 🌐 Como Hospedar para Amigos à Distância (Multiplayer Online)
+## 3. Como Hospedar o Próprio Jogo
 
-Quer chamar seus amigos para jogar da casa deles com link direto?
+Você pode rodar o jogo na sua máquina local ou hospedar num servidor para jogar com amigos.
 
-### 🌟 Opção 1: Modo Túnel (Rápido, Gratuito e Zero Configuração)
+### Pré-requisitos
 
-Usando ferramentas de túnel seguras, você expõe a porta `3000` da sua máquina e ganha um link HTTPS compartilhável:
+- **Node.js** (v18+) ou **Bun** instalado.
 
-1. Deixe o jogo rodando no terminal do seu computador com o comando:
+### Rodando Localmente (Frontend + Backend Integrados)
+
+1. Instale as dependências:
+
    ```bash
+   npm install
+   # ou com bun:
+   bun install
+   ```
+
+2. Inicie o servidor em modo host:
+
+   ```bash
+   npm run host
+   # ou com bun:
    bun run host
    ```
-2. Abra outro terminal e crie o túnel em segundos via **Cloudflare Tunnels** ou **Ngrok**:
-   - **Via Ngrok** (Se tiver instalado):
-     ```bash
-     ngrok http 3000
-     ```
-   - **Via Cloudflare** (Sem conta necessária):
-     ```bash
-     npx cloudflared tunnel --url http://localhost:3000
-     ```
 
-3. O terminal gerará um link HTTPS seguro (exemplo: `https://seu-jogo.ngrok-free.app` ou `https://seu-jogo.trycloudflare.com`). **Envie esse link aos seus amigos**! O frontend tem detecção de URL inteligente e sincronizará automaticamente.
+3. Acesse `http://localhost:3000` no seu navegador. Esse comando compila a aplicação e roda o backend e o frontend juntos na mesma porta.
 
 ---
 
-### ☁️ Opção 2: Hospedagem 24/7 na Nuvem (Render / Docker)
+### Jogando com Amigos (Túnel HTTPS Gratuito)
 
-Se quiser que o servidor fique online noite e dia na internet em plataformas gratuitas como o **[Render.com](https://render.com/)**:
+Se quiser liberar o acesso para amigos fora da sua rede local sem precisar configurar roteador:
 
-#### Método Recomendado: Serviço Único (All-in-One no Render)
-
-1. Crie um novo **Web Service** no console do Render conectando o seu GitHub.
-2. Configure as opções de Build e Run:
-   - **Runtime:** `Node`
-   - **Build Command:**
-     ```bash
-     bun install && bun run build && cd server && bun install
-     ```
-   - **Start Command:**
-     ```bash
-     cd server && bun run server:dist
-     ```
-3. O Render configurará automaticamente uma variável de porta (`PORT`). Quando terminar, basta abrir a URL HTTPS contínua gerada pelo Render para jogar de qualquer lugar!
-
-#### Método Separado: Frontend Estático + Backend Remota
-
-Caso você queira publicar o frontend no **Vercel / Netlify** e rodar apenas a API Backend separadamente (ex: Render ou VPS):
-
-- Suba a pasta `server/` na nuvem executando `bun run index.ts`.
-- No site Estático do Frontend (Vercel / Netlify / Render Static Site), adicione a **Variável de Ambiente** na configuração de build:
-  ```env
-  VITE_SERVER_URL=https://sua-api-backend-na-nuvem.com
-  ```
-  _(Confira os modelos nos arquivos `.env.example`)._
-
----
-
-## 💻 Contribuição:
-
-Se você quer estudar o código:
-
-1. **Instale os pacotes principais:**
-
+1. Inicie o servidor local: `npm run host` (ou `bun run host`).
+2. Em outro terminal, crie um túnel rápido usando Cloudflare ou Ngrok:
    ```bash
-   bun install && cd server && bun install && cd ..
+   npx cloudflared tunnel --url http://localhost:3000
+   # ou
+   ngrok http 3000
    ```
-
-2. **Inicie os servidores de Desenvolvimento:**
-   Abra dois terminais independentes na pasta raiz do repositório:
-
-   ```bash
-   # Terminal 1: Sobe o Servidor Socket.io / Backend de Desenvolvimento
-   bun run dev:server
-
-   # Terminal 2: Sobe a Interface Gráfica com Hot-Reload (Vite)
-   bun run dev
-   ```
-
-3. Abra `http://localhost:5173` para testar.
+3. Envie o link HTTPS gerado aos seus amigos.
 
 ---
 
-## 📁 Estrutura da Arquitetura do Projeto
+### Hospedando 24/7 na Nuvem (Render, Docker ou VPS)
 
-A base de código é distribuída de forma modular para fácil manutenção e escalabilidade:
+Para manter o jogo rodando direto num serviço como o **Render**:
+
+- **Build Command:** `npm install && npm run build && cd server && npm install`
+- **Start Command:** `cd server && npm run server:dist`
+- _(Opcional)_ Se decidir hospedar o Frontend e o Backend em servidores/domínios totalmente separados, defina a variável de ambiente no Frontend:
+  `VITE_SERVER_URL=https://url-do-seu-backend.com` (veja `.env.example`).
+
+---
+
+## 4. Tecnologias e Arquitetura do Projeto
+
+### Stack Utilizada
+
+- **Frontend:** React 19, Vite, TailwindCSS, Framer Motion, Zustand.
+- **Backend:** Node.js / Bun, Express, Socket.IO.
+- **Linguagem:** TypeScript.
+
+### Arquitetura do Código
 
 ```text
-├── common/              # Código compartilhado de Regras, Scoring e Tipos TypeScript (Front <-> Back)
-├── server/              # Backend autoritativo, Máquina de Estado, Lógicas de IA dos Bots e Rotas
-│   ├── controllers/     # Controladores das Salas e Lógicas de Partida Socket.io
-│   ├── state.ts         # Central de Estado em Memória da Aplicação
-│   ├── server_dist.ts   # Servidor integrado que serve Frontend Produção + Socket (bun run host)
-│   └── index.ts         # Servidor de Desenvolvimento da API Socket
-└── src/                 # Frontend - Vite React Typescript Tailwind Zustand
-    ├── components/      # UI Modular (Mesa, Cartas, Lixo, Animações, Sons, Modais de Sala)
-    ├── store/           # Estado local de UI e interceptor dos pacotes WS via Zustand
-    └── hooks/           # Hooks React como Áudios Dinâmicos (useGameAudio)
+├── common/              # Lógica compartilhada entre Frontend e Backend
+│   ├── types/           # Interfaces de Cartas, Jogadores e Regras
+│   └── utils/           # Algoritmos de pontuação e validação de sequências
+│
+├── server/              # Backend autoritativo do jogo
+│   ├── controllers/     # Handlers de Socket.io (gerenciamento de salas e turnos)
+│   ├── services/        # Lógica dos Bots e inteligência artificial
+│   ├── state.ts         # Armazenamento e gerenciamento do estado em memória
+│   ├── index.ts         # Servidor de desenvolvimento (porta 3050)
+│   └── server_dist.ts   # Servidor de produção estático + WebSockets (porta 3000)
+│
+└── src/                 # Frontend (Client Web)
+    ├── components/      # Componentes UI (Mesa, Mão, Lixo, Animações, Placar)
+    ├── store/           # Gerenciamento de estado global com Zustand e Socket.io
+    └── hooks/           # Hooks utilitários e efeitos sonoros
 ```

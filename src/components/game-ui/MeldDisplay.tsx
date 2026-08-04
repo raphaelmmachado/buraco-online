@@ -51,9 +51,7 @@ export const MeldDisplay = memo(
             interactive
               ? "cursor-pointer origin-top-left transition-transform"
               : "origin-left"
-          } ${scale} ${
-            interactive && isHovered ? "scale-95 md:scale-105" : ""
-          }`}
+          } ${scale}`}
         >
           <div className="flex -space-x-7 md:-space-x-10 transition-all">
             {organizedCards.map((card, i) => (

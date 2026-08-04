@@ -662,9 +662,9 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
            gap-y-1.5 md:gap-y-8 overflow-y-auto scrollbar-hide pt-1 pb-16"
             >
               {game.team_melds[my_team]?.map((meld, idx) => {
-                // Logic: Can interact if (Draw Phase & Discard Avail) OR (Action Phase & Hand Cards Selected)
+                // Logic: Can interact if (Draw Phase & Discard Selected) OR (Action Phase & Hand Cards Selected)
                 const canInteractWithMeld =
-                  (canDraw && (game.discard_pile?.length ?? 0) > 0) ||
+                  (canDraw && isDiscardSelected) ||
                   (canAction && selectedCards.length > 0);
 
                 const isHovered =

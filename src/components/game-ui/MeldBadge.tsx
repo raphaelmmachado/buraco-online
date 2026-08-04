@@ -4,14 +4,14 @@ import { calculate_meld_score } from "../../../common/utils/scoring";
 import { useGameStore } from "../../store/useGameStore";
 import { useGameStoreBots } from "../../store/useGameStoreBots";
 
-export const MeldBadge = ({ meld }: { meld: CardType[] }) => {
+export const MeldBadgeBox = ({ meld }: { meld: CardType[] }) => {
   const isLocal = !useGameStore.getState().roomId;
   const onlineRules = useGameStore((s) => s.rules);
   const localRules = useGameStoreBots((s) => s.rules);
   const showAnimations = useGameStore((s) => s.showAnimations);
 
   const rules = isLocal ? localRules : onlineRules;
-  const { score, type, length } = calculate_meld_score(meld, rules);
+  const { type, length } = calculate_meld_score(meld, rules);
   if (length < 3) return null;
 
   let color: string;
@@ -40,32 +40,53 @@ export const MeldBadge = ({ meld }: { meld: CardType[] }) => {
   }
 
   return (
+    <motion.div
+      key={label}
+      initial={{ scale: 0.8, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={
+        showAnimations
+          ? { type: "spring", stiffness: 500, damping: 20 }
+          : { duration: 0 }
+      }
+      className={`w-full ${color} flex flex-col items-center justify-center 
+      p-1 rounded-md rounded-tl-none rounded-tr-none shadow-lg border border-white/10 z-20`}
+    >
+      <span className="text-xs md:text-sm text-white font-black uppercase tracking-widest">
+        {label}
+      </span>
+    </motion.div>
+  );
+};
+
+export const MeldScoreText = ({ meld }: { meld: CardType[] }) => {
+  const isLocal = !useGameStore.getState().roomId;
+  const onlineRules = useGameStore((s) => s.rules);
+  const localRules = useGameStoreBots((s) => s.rules);
+  const showAnimations = useGameStore((s) => s.showAnimations);
+
+  const rules = isLocal ? localRules : onlineRules;
+  const { score, length } = calculate_meld_score(meld, rules);
+  if (length < 3) return null;
+
+  return (
+    <motion.span
+      key={score}
+      initial={{ scale: 1.5, color: "#ffff00" }}
+      animate={{ scale: 1, color: "#ffffff" }}
+      transition={showAnimations ? {} : { duration: 0 }}
+      className="text-[10px] md:text-xs text-white/60 font-black drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] mt-0.5"
+    >
+      {score} pts
+    </motion.span>
+  );
+};
+
+export const MeldBadge = ({ meld }: { meld: CardType[] }) => {
+  return (
     <div className="flex flex-col items-center z-20 w-full">
-      <motion.div
-        key={label}
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={
-          showAnimations
-            ? { type: "spring", stiffness: 500, damping: 20 }
-            : { duration: 0 }
-        }
-        className={`w-full ${color} flex flex-col items-center justify-center 
-        p-1 rounded-md rounded-tl-none rounded-tr-none shadow-lg border border-white/10`}
-      >
-        <span className="text-xs md:text-sm text-white font-black uppercase tracking-widest">
-          {label}
-        </span>
-      </motion.div>
-      <motion.span
-        key={score}
-        initial={{ scale: 1.5, color: "#ffff00" }}
-        animate={{ scale: 1, color: "#ffffff" }}
-        transition={showAnimations ? {} : { duration: 0 }}
-        className="text-[10px] md:text-xs text-white/60 font-black drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] mt-0.5"
-      >
-        {score} pts
-      </motion.span>
+      <MeldBadgeBox meld={meld} />
+      <MeldScoreText meld={meld} />
     </div>
   );
 };

@@ -217,7 +217,7 @@ export const FinishScreen = ({
                   : "Vocês estão perdendo!"
                 : amIWinner
                   ? "Vocês Venceram o jogo!"
-                  : "Se fodeu!"}
+                  : "Vocês perderam o jogo!"}
           </h2>
         </motion.div>
       </motion.div>

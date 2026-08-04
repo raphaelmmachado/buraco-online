@@ -603,7 +603,8 @@ export const analyze_discard_pickup = (
 ): PickupAction | null => {
   
   const desperation_factor = deck_size <= 4 ? (5 - deck_size) * 40 : 0; // Fim de jogo quando faltam 4 ou menos cartas
-  const is_large_discard = discard_pile_size >= 12; // Lixo grande se tem 12 cartas ou mais
+  const is_large_discard = discard_pile_size >= 7; // Lixo valioso e atraente para o bot se tem 7 cartas ou mais
+  const is_huge_discard = discard_pile_size >= 12; // Lixo gigante (12 ou mais cartas)
   
   // 1. Tenta adicionar a carta do lixo diretamente em um jogo da mesa
   for (let i = 0; i < team_melds.length; i++) {
@@ -621,23 +622,25 @@ export const analyze_discard_pickup = (
       const was_clean = meld_val.is_valid && meld_val.is_clean;
 
       // Bots não sujam jogos limpos pegando coringa do lixo,
-      // A NÃO SER QUE SEJA PARA PEGAR UM GRANDE BOLO DE LIXO (12+ cartas), em qualquer momento do jogo!
+      // A NÃO SER QUE SEJA PARA PEGAR UM BOLO VALIOSO DE LIXO (7+ cartas), em qualquer momento do jogo!
       if (was_clean && !validation.is_clean) {
         const is_wildcard_pickup =
           top_discard.value === "2" || top_discard.value === "JOKER";
 
-        if (is_wildcard_pickup && !is_large_discard) {
-          // REGRA DE OURO: Com lixo pequeno (< 12), NUNCA suja uma canastra limpa (min_cards_for_canastra+).
-          if (meld.length >= rules.min_cards_for_canastra) continue;
+        if (is_wildcard_pickup) {
+          // REGRA DE OURO: A menos que seja um lixo gigante (12+), NUNCA suja uma canastra limpa já finalizada!
+          if (meld.length >= rules.min_cards_for_canastra && !is_huge_discard) continue;
 
-          const is_cleanable_2 =
-            top_discard.value === "2" && top_discard.suit.name === target_suit;
-          // Se for um "2" do mesmo naipe e NÃO for canastra, o bot pode pegar (é limpável).
-          if (is_cleanable_2) {
-            // Prossiga (não dê continue)
-          } else {
-            // Se for Joker ou 2 de outro naipe, só pega em desespero final.
-            if (desperation_factor < 40) continue;
+          if (!is_large_discard) {
+            const is_cleanable_2 =
+              top_discard.value === "2" && top_discard.suit.name === target_suit;
+            // Se for um "2" do mesmo naipe e NÃO for canastra, o bot pode pegar (é limpável).
+            if (is_cleanable_2) {
+              // Prossiga (não dê continue)
+            } else {
+              // Se for Joker ou 2 de outro naipe, só pega em desespero final.
+              if (desperation_factor < 40) continue;
+            }
           }
         }
       }
@@ -689,7 +692,7 @@ export const analyze_discard_pickup = (
         const was_clean = meld_val.is_valid && meld_val.is_clean;
 
         // Evita sujar jogos limpos na ponte se envolver coringas,
-        // EXCETO se for para pegar um grande bolo de lixo (12+ cartas), em qualquer momento do jogo!
+        // EXCETO se for para pegar um bolo valioso de lixo (7+ cartas), em qualquer momento do jogo!
         if (was_clean && !validation.is_clean) {
           const has_wildcard =
             top_discard.value === "2" ||
@@ -697,16 +700,18 @@ export const analyze_discard_pickup = (
             card.value === "2" ||
             card.value === "JOKER";
 
-          if (has_wildcard && !is_large_discard) {
-            // NUNCA suja canastra com lixo pequeno (min_cards_for_canastra+)
-            if (meld.length >= rules.min_cards_for_canastra) continue;
+          if (has_wildcard) {
+            // REGRA DE OURO: A menos que seja um lixo gigante (12+), NUNCA suja uma canastra limpa já finalizada!
+            if (meld.length >= rules.min_cards_for_canastra && !is_huge_discard) continue;
 
-            const is_cleanable_wildcard =
-              (top_discard.value === "2" &&
-                top_discard.suit.name === target_suit) ||
-              (card.value === "2" && card.suit.name === target_suit);
+            if (!is_large_discard) {
+              const is_cleanable_wildcard =
+                (top_discard.value === "2" &&
+                  top_discard.suit.name === target_suit) ||
+                (card.value === "2" && card.suit.name === target_suit);
 
-            if (!is_cleanable_wildcard && desperation_factor < 40) continue;
+              if (!is_cleanable_wildcard && desperation_factor < 40) continue;
+            }
           }
         }
 
@@ -781,14 +786,15 @@ export const analyze_discard_pickup = (
                 else if (e2 < s1) gap = s1 - e2;
                 else gap = 0;
 
-                const is_existing_dead_end =
-                  existing_meld.length >= rules.min_cards_for_canastra &&
-                  !existing_details.is_clean &&
-                  existing_meld.some(
-                    (c) => c.value === "2" && c.suit.name === target_suit,
-                  );
+                const is_existing_canastra =
+                  existing_meld.length >= rules.min_cards_for_canastra;
 
-                if (gap <= 4 && !is_existing_dead_end) {
+                // Se o jogo existente na mesa já é uma canastra pronta, pegar o lixo fazendo sequência repetida ou próxima é limpo e seguro!
+                if (is_existing_canastra) {
+                  continue;
+                }
+
+                if (gap <= 4) {
                   is_split_risk = true;
                   break;
                 }
@@ -796,8 +802,8 @@ export const analyze_discard_pickup = (
             }
           }
 
-          // Se o lixo tem 12 ou mais cartas (is_large_discard), vale a pena pegar o lixo mesmo que assim gere jogos do mesmo naipe próximos!
-          if (is_split_risk && !is_large_discard) continue;
+          // Se o lixo tem 4 ou mais cartas, a vantagem de ganhar novas cartas já supera o risco de lacuna no naipe!
+          if (is_split_risk && discard_pile_size < 4 && !is_large_discard) continue;
 
           const is_now_canastra = validation.is_valid && (validation.canastra_type === 'CLEAN' || validation.canastra_type === 'KING' || validation.canastra_type === 'ACE');
           const will_have_clean = has_clean_canastra || is_now_canastra;

@@ -1,6 +1,6 @@
 import { expect, test, describe } from "bun:test";
 import { validate_discard_add_to_meld, validate_sequence, type MeldValidation } from "./rules_logic";
-import { find_card_to_add, find_meld_in_hand } from "./bot_logic";
+import { find_card_to_add, find_meld_in_hand, analyze_discard_pickup } from "./bot_logic";
 import { type Card, type CardValue, type Suit, SUITS } from "../types/card";
 import { DEFAULT_RULES } from "../types/rules";
 
@@ -428,5 +428,73 @@ describe("Bot AI logic for jokers and sequences", () => {
       2, // discard_pile_size
     );
     expect(result_with_small_discard?.value).toBe("7"); // Adiciona na mesa!
+  });
+
+  test("Bot picks up discard pile of 4+ cards even when there is a nearby incomplete sequence on table (ignoring gap rules due to card volume)", () => {
+    // Mesa tem 8, 9, 10 de Copas (incompleto)
+    const team_melds = [[
+      createCard("8", hearts, "8h_tbl"),
+      createCard("9", hearts, "9h_tbl"),
+      createCard("10", hearts, "10h_tbl"),
+    ]];
+    // Topo do lixo é o 6 de Copas (distância 2 do jogo da mesa, que antes gerava bloqueio se lixo < 12)
+    const top_discard = createCard("6", hearts, "6h_lixo");
+    // Mão do bot tem 4 e 5 de Copas
+    const bot_hand = [
+      createCard("4", hearts, "4h_hand"),
+      createCard("5", hearts, "5h_hand"),
+      createCard("K", clubs, "Kc_hand"), // Para sobrar carta
+    ];
+
+    // Com lixo de 5 cartas (>= 4), o bot deve PEGAR O LIXO aproveitando a oportunidade!
+    const result_4_plus = analyze_discard_pickup(
+      bot_hand,
+      top_discard,
+      team_melds,
+      false,
+      true,
+      5, // discard_pile_size
+      30, // deck_size
+      DEFAULT_RULES,
+      2,
+    );
+    expect(result_4_plus).not.toBeNull();
+    expect(result_4_plus?.type).toBe("NEW_MELD");
+  });
+
+  test("Bot picks up discard pile with duplicate/nearby sequence when table already has a completed Canastra", () => {
+    // Mesa já tem Canastra Pronta de Copas (A a 7)
+    const team_melds = [[
+      createCard("A", hearts, "Ah_tbl"),
+      createCard("2", hearts, "2h_tbl"),
+      createCard("3", hearts, "3h_tbl"),
+      createCard("4", hearts, "4h_tbl"),
+      createCard("5", hearts, "5h_tbl"),
+      createCard("6", hearts, "6h_tbl"),
+      createCard("7", hearts, "7h_tbl"),
+    ]];
+    // Topo do lixo é o 6 de Copas (duplicado/repetido!)
+    const top_discard = createCard("6", hearts, "6h_lixo");
+    // Mão do bot tem 4 e 5 de Copas
+    const bot_hand = [
+      createCard("4", hearts, "4h_hand2"),
+      createCard("5", hearts, "5h_hand2"),
+      createCard("Q", clubs, "Qc_hand2"),
+    ];
+
+    // Mesmo com lixo pequeno (ex: 2 cartas), deve pegar porque a canastra na mesa já está pronta!
+    const result_canastra = analyze_discard_pickup(
+      bot_hand,
+      top_discard,
+      team_melds,
+      false,
+      true,
+      2, // discard_pile_size pequeno
+      30,
+      DEFAULT_RULES,
+      2,
+    );
+    expect(result_canastra).not.toBeNull();
+    expect(result_canastra?.type).toBe("NEW_MELD");
   });
 });

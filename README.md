@@ -1,8 +1,6 @@
 # Buraco Online
 
-![Demonstração do Jogo](public/preview.png)
-
-## 1. Sobre o Projeto
+## Sobre o Projeto
 
 Este projeto é uma implementação web do tradicional jogo de cartas **Buraco** (Canastra). Focado para quem quer jogar rápidamente seja com bots ou com amigos.
 
@@ -15,7 +13,7 @@ Este projeto é uma implementação web do tradicional jogo de cartas **Buraco**
 
 ---
 
-## 2. Como Jogar e Regras do Buraco
+## Como Jogar e Regras do Buraco
 
 O jogo segue as regras do **Buraco Fechado**.
 
@@ -48,7 +46,11 @@ O jogo segue as regras do **Buraco Fechado**.
 
 ---
 
-## 3. Como Hospedar o Próprio Jogo
+## Interface de Usuário
+
+![Demonstração do Jogo](public/preview.png)
+
+## Como Hospedar o Próprio Jogo
 
 Você pode rodar o jogo na sua máquina local ou hospedar num servidor para jogar com amigos.
 

@@ -497,4 +497,39 @@ describe("Bot AI logic for jokers and sequences", () => {
     expect(result_canastra).not.toBeNull();
     expect(result_canastra?.type).toBe("NEW_MELD");
   });
+
+  test("Bot MUST pick up discard pile when top discard (J) directly fits existing table sequence (6,7,8,9,10)", () => {
+    // Mesa do time tem 6, 7, 8, 9, 10 de Copas
+    const team_melds = [[
+      createCard("6", hearts, "6h_tbl"),
+      createCard("7", hearts, "7h_tbl"),
+      createCard("8", hearts, "8h_tbl"),
+      createCard("9", hearts, "9h_tbl"),
+      createCard("10", hearts, "10h_tbl"),
+    ]];
+    // Topo do lixo é o Valete (J) de Copas
+    const top_discard = createCard("J", hearts, "Jh_lixo");
+    // Mão do bot tem 3 cartas
+    const bot_hand = [
+      createCard("4", clubs, "4c_hand"),
+      createCard("5", clubs, "5c_hand"),
+      createCard("K", clubs, "Kc_hand"),
+    ];
+
+    const result = analyze_discard_pickup(
+      bot_hand,
+      top_discard,
+      team_melds,
+      false,
+      true,
+      3, // discard_pile_size (mais de 1 carta)
+      30,
+      DEFAULT_RULES,
+      2,
+    );
+
+    expect(result).not.toBeNull();
+    expect(result?.type).toBe("ADD_TO_MELD");
+    expect(result?.meld_index).toBe(0);
+  });
 });

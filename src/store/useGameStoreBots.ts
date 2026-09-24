@@ -14,7 +14,11 @@ import {
   validate_discard_pickup,
 } from "../../common/utils/rules_logic";
 
-import { calculate_score, type ScoreResult, type RoundHistoryItem } from "../../common/utils/scoring";
+import {
+  calculate_score,
+  type ScoreResult,
+  type RoundHistoryItem,
+} from "../../common/utils/scoring";
 import { type WinCondition } from "./useGameStore";
 import { type GameRules, DEFAULT_RULES } from "../../common/types/rules";
 
@@ -26,6 +30,7 @@ interface GameState {
   status: "IDLE" | "LOBBY" | "PLAYING" | "ROUND_OVER" | "FINISHED";
   mode: GameMode;
   deck: Card[];
+  deck_source: "MAIN" | "DEAD_PILE";
   discard_pile: Card[];
   hands: Record<number, Card[]>;
   team_melds: Record<TeamID, Card[][]>;
@@ -118,6 +123,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
   status: "LOBBY",
   mode: "1v1",
   deck: [],
+  deck_source: "MAIN",
   discard_pile: [],
   hands: {},
   team_melds: { 1: [], 2: [] },
@@ -154,6 +160,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       status: "LOBBY",
       mode: "1v1",
       deck: [],
+      deck_source: "MAIN",
       discard_pile: [],
       hands: {},
       team_melds: { 1: [], 2: [] },
@@ -255,6 +262,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       status: "PLAYING",
       mode,
       deck: setup.remaining_deck,
+      deck_source: "MAIN",
       hands: sorted_hands,
       dead_piles: setup.dead_piles,
       has_taken_dead_pile: { 1: false, 2: false },
@@ -295,6 +303,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
     set({
       status: "PLAYING",
       deck: setup.remaining_deck,
+      deck_source: "MAIN",
       hands: sorted_hands,
       dead_piles: setup.dead_piles,
       has_taken_dead_pile: { 1: false, 2: false },
@@ -325,6 +334,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         deck = new_deck;
         set({
           dead_piles: remaining_piles,
+          deck_source: "DEAD_PILE",
           last_info: "Morto foi para a mesa",
         });
       } else {
@@ -463,7 +473,9 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         is_final_beat &&
         !will_have_clean
       ) {
-        set({ last_error: "Proibido bater ou ficar com 1 carta sem canastra limpa." });
+        set({
+          last_error: "Proibido bater ou ficar com 1 carta sem canastra limpa.",
+        });
         return;
       }
       if (is_final_beat && has_taken_dead && !will_have_clean) {
@@ -483,7 +495,11 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
 
     const new_melds = [...team_melds[team_id], final_meld];
 
-    get().addEvent(`Pegou ${discard_pile.length} ${discard_pile.length === 1 ? "carta" : "cartas"} do lixo`, "info", current_player);
+    get().addEvent(
+      `Pegou ${discard_pile.length} ${discard_pile.length === 1 ? "carta" : "cartas"} do lixo`,
+      "info",
+      current_player,
+    );
 
     set({
       hands: { ...hands, [current_player]: new_hand },
@@ -568,7 +584,9 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         is_final_beat &&
         !will_have_clean
       ) {
-        set({ last_error: "Proibido bater ou ficar com 1 carta sem canastra limpa." });
+        set({
+          last_error: "Proibido bater ou ficar com 1 carta sem canastra limpa.",
+        });
         return;
       }
       if (is_final_beat && has_taken_dead && !will_have_clean) {
@@ -584,7 +602,11 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         ? organized_meld
         : sort_cards(proposed_meld);
 
-    get().addEvent(`Pegou ${discard_pile.length} ${discard_pile.length === 1 ? "carta" : "cartas"} do lixo`, "info", current_player);
+    get().addEvent(
+      `Pegou ${discard_pile.length} ${discard_pile.length === 1 ? "carta" : "cartas"} do lixo`,
+      "info",
+      current_player,
+    );
 
     set({
       hands: { ...hands, [current_player]: new_hand },
@@ -653,7 +675,9 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         is_final_beat &&
         !will_have_clean
       ) {
-        set({ last_error: "Proibido bater ou ficar com 1 carta sem canastra limpa." });
+        set({
+          last_error: "Proibido bater ou ficar com 1 carta sem canastra limpa.",
+        });
         return;
       }
       if (is_final_beat && has_taken_dead && !will_have_clean) {
@@ -735,7 +759,9 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         is_final_beat &&
         !will_have_clean
       ) {
-        set({ last_error: "Proibido bater ou ficar com 1 carta sem canastra limpa." });
+        set({
+          last_error: "Proibido bater ou ficar com 1 carta sem canastra limpa.",
+        });
         return;
       }
       if (is_final_beat && has_taken_dead && !will_have_clean) {
@@ -1227,7 +1253,9 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         final_score: { team_1: t1_score, team_2: t2_score },
         cumulative_score: next_cumulative,
         round_history: [
-          ...get().round_history.filter((r) => r.round_number !== get().round_count),
+          ...get().round_history.filter(
+            (r) => r.round_number !== get().round_count,
+          ),
           {
             round_number: get().round_count,
             team_1_score: t1_score.total_score,
@@ -1295,7 +1323,9 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         final_score: { team_1: t1_score, team_2: t2_score },
         cumulative_score: next_cumulative,
         round_history: [
-          ...get().round_history.filter((r) => r.round_number !== get().round_count),
+          ...get().round_history.filter(
+            (r) => r.round_number !== get().round_count,
+          ),
           {
             round_number: get().round_count,
             team_1_score: t1_score.total_score,

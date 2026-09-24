@@ -3,7 +3,9 @@ interface PileCardProps {
   active?: boolean;
   quantity: number;
   dead_piles: number;
+  dead_pile_size: number;
   draw_phase: boolean;
+  deck_source: "MAIN" | "DEAD_PILE";
 }
 
 export const PileCard = ({
@@ -11,9 +13,12 @@ export const PileCard = ({
   active = false,
   quantity,
   dead_piles,
+  dead_pile_size,
   draw_phase = false,
+  deck_source,
 }: PileCardProps) => {
-  const displayQuantity = quantity === 0 && dead_piles > 0 ? 11 : quantity;
+  const displayQuantity =
+    quantity === 0 && dead_piles > 0 ? dead_pile_size : quantity;
 
   if (displayQuantity === 0) {
     return (
@@ -83,7 +88,10 @@ export const PileCard = ({
         ></div>
 
         {/* Número da quantidade */}
-        <PileQuantity quantity={displayQuantity} />
+        <PileQuantity
+          numberDisplay={displayQuantity}
+          deck_source={deck_source}
+        />
 
         {/* Borda brilhante quando ativo */}
         {active && onClick && (
@@ -108,11 +116,19 @@ export const PileCard = ({
   );
 };
 
-const PileQuantity = ({ quantity }: { quantity: number }) => {
+const PileQuantity = ({
+  numberDisplay,
+  deck_source,
+}: {
+  numberDisplay: number;
+  deck_source: string;
+}) => {
   return (
     <>
-      <div className="text-white rounded-xl font-bold text-xl md:text-2xl drop-shadow-md z-20">
-        {quantity}
+      <div
+        className={`${deck_source === "DEAD_PILE" ? "text-red-300" : "text-white"} rounded-xl font-bold text-xl md:text-2xl drop-shadow-md z-20`}
+      >
+        {numberDisplay}
       </div>
     </>
   );

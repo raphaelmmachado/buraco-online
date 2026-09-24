@@ -26,8 +26,11 @@ export const GameSeparatorMobile = ({
       {/* LEFT: MY TEAM BLOCK */}
       <div className="flex flex-col gap-1 items-start min-w-[90px]">
         {/* TOP SPACER to push names down */}
-        <div className="h-5 invisible select-none pointer-events-none" aria-hidden="true" />
-        
+        <div
+          className="h-5 invisible select-none pointer-events-none"
+          aria-hidden="true"
+        />
+
         <div className="flex flex-col gap-0.5">
           {Object.entries(game.players_data)
             .filter(([id]) => Number(id) % 2 === my_player_id % 2)
@@ -71,6 +74,8 @@ export const GameSeparatorMobile = ({
             quantity={game.deck_count}
             draw_phase={game.turn_phase === "DRAW"}
             dead_piles={game.dead_piles_count}
+            dead_pile_size={game.rules.cards_in_dead_pile}
+            deck_source={game.deck_source}
           />
         </div>
 
@@ -121,9 +126,12 @@ export const GameSeparatorMobile = ({
               />
             ))}
         </div>
-        
+
         {/* BOTTOM SPACER to push names up */}
-        <div className="h-5 invisible select-none pointer-events-none" aria-hidden="true" />
+        <div
+          className="h-5 invisible select-none pointer-events-none"
+          aria-hidden="true"
+        />
       </div>
     </div>
   );

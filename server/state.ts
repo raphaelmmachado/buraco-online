@@ -1,7 +1,16 @@
 import { type Card } from "../common/types/card";
-import { type ScoreResult, type RoundHistoryItem } from "../common/utils/scoring";
+import {
+  type ScoreResult,
+  type RoundHistoryItem,
+} from "../common/utils/scoring";
 import { type GameRules } from "../common/types/rules";
-import { type PlayerData, type GameMode, type TeamID, type PlayerID, type WinCondition } from "./types";
+import {
+  type PlayerData,
+  type GameMode,
+  type TeamID,
+  type PlayerID,
+  type WinCondition,
+} from "./types";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -9,6 +18,7 @@ export interface ServerGameState {
   mode: GameMode;
   status: "LOBBY" | "PLAYING" | "ROUND_OVER" | "FINISHED";
   deck: Card[];
+  deck_source: "MAIN" | "DEAD_PILE";
   discard_pile: Card[];
   dead_piles: Card[][];
   hands: Record<number, Card[]>;
@@ -19,7 +29,7 @@ export interface ServerGameState {
   players_connected: string[];
   players_data: Partial<Record<PlayerID, PlayerData>>;
   rules: GameRules;
-  
+
   // Power states grouped
   magic_joker: {
     direction: 1 | -1;
@@ -33,7 +43,7 @@ export interface ServerGameState {
       stage: "PICK_MY_CARD" | "PICK_THEIR_CARD";
     };
   };
-  
+
   // Championship State
   win_condition?: WinCondition;
   cumulative_score: { team_1: number; team_2: number };
@@ -64,7 +74,7 @@ let saveTimeout: NodeJS.Timeout | null = null;
 
 export const saveState = () => {
   if (saveTimeout) return;
-  
+
   saveTimeout = setTimeout(() => {
     try {
       // Serialize games, excluding circular refs like Timeouts
@@ -72,7 +82,7 @@ export const saveState = () => {
         if (key === "disconnectTimeout") return undefined;
         return value;
       });
-      
+
       fs.writeFile(STORAGE_FILE, serialized, "utf-8", (err) => {
         if (err) console.error("Failed to save game state:", err);
       });
@@ -90,17 +100,17 @@ export const loadState = () => {
       const data = fs.readFileSync(STORAGE_FILE, "utf-8");
       const loaded = JSON.parse(data);
       games = loaded;
-      
+
       // Reset volatile state on load
       for (const roomId in games) {
         if (games[roomId]) {
-            games[roomId].players_connected = [];
-            games[roomId].disconnectTimeout = null;
+          games[roomId].players_connected = [];
+          games[roomId].disconnectTimeout = null;
         }
       }
 
       console.log(`📂 Loaded ${Object.keys(games).length} games from disk.`);
-      
+
       // Clean up stale games or reset timeouts if needed?
       // For now, we just load them. Clients will try to reconnect.
     }

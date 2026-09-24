@@ -3,7 +3,10 @@ import { io, Socket } from "socket.io-client";
 import type { Card } from "../../common/types/card";
 import { SERVER_ADDRESS } from "../../common/const/server-address";
 
-import { type ScoreResult, type RoundHistoryItem } from "../../common/utils/scoring";
+import {
+  type ScoreResult,
+  type RoundHistoryItem,
+} from "../../common/utils/scoring";
 import { type GameRules, DEFAULT_RULES } from "../../common/types/rules";
 
 export type WinCondition =
@@ -15,6 +18,7 @@ interface IncomingServerState {
   mode: "1v1" | "2v2";
   status: "LOBBY" | "PLAYING" | "ROUND_OVER" | "FINISHED";
   deck_count: number;
+  deck_source: "MAIN" | "DEAD_PILE";
   discard_pile: Card[];
   hands: Record<number, Card[] | number>;
   team_melds: Record<number, Card[][]>;
@@ -113,6 +117,7 @@ interface GameState {
 
   cardsPlayedThisTurn: number;
   deck_count: number;
+  deck_source: "MAIN" | "DEAD_PILE";
   discard_pile: Card[];
   hands: Record<number, Card[] | number>;
   team_melds: { 1: Card[][]; 2: Card[][] };
@@ -217,7 +222,9 @@ export const updateSocketBehavior = (mode: "MENU" | "GAME") => {
   } else {
     socket.io.reconnection(false); // Desativa busca automática no menu
   }
-  console.log(`[SOCKET] Comportamento alterado para modo: ${mode} (Auto-reconnect: ${socket.io.reconnection()})`);
+  console.log(
+    `[SOCKET] Comportamento alterado para modo: ${mode} (Auto-reconnect: ${socket.io.reconnection()})`,
+  );
 };
 
 let listeners_setup = false;
@@ -247,6 +254,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
   cardsPlayedThisTurn: 0,
   deck_count: 0,
+  deck_source: "MAIN",
   discard_pile: [],
   hands: {} as Record<number, Card[] | number>,
   team_melds: { 1: [], 2: [] },
@@ -390,6 +398,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       team_melds: { 1: [], 2: [] },
       discard_pile: [],
       deck_count: 0,
+      deck_source: "MAIN",
       dead_piles_count: 0,
       players_data: {},
       final_score: null,
@@ -452,6 +461,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
           team_melds: { 1: [], 2: [] },
           discard_pile: [],
           deck_count: 0,
+          deck_source: "MAIN",
           dead_piles_count: 0,
           players_data: {},
           final_score: null,
@@ -473,6 +483,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
           team_melds: { 1: [], 2: [] },
           discard_pile: [],
           deck_count: 0,
+          deck_source: "MAIN",
           dead_piles_count: 0,
           players_data: {},
           final_score: null,
@@ -672,7 +683,11 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       server_data.deck_count === get().deck_count
     ) {
       const count = get().discard_pile.length;
-      get().addEvent(`Pegou ${count} ${count === 1 ? "carta" : "cartas"} do lixo`, "info", get().current_player);
+      get().addEvent(
+        `Pegou ${count} ${count === 1 ? "carta" : "cartas"} do lixo`,
+        "info",
+        get().current_player,
+      );
     }
 
     set({
@@ -682,6 +697,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       cardMarkers,
       last_info: lastInfo,
       deck_count: server_data.deck_count,
+      deck_source: server_data.deck_source ?? "MAIN",
       discard_pile: server_data.discard_pile,
       dead_piles_count: server_data.dead_piles_count,
       has_taken_dead_pile: server_data.has_taken_dead_pile || [false, false],

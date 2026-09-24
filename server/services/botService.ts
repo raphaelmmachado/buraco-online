@@ -71,7 +71,7 @@ export const execute_joker_power = (
 
   const jokerIdx = player_hand.findIndex((c) => c.id === cardId);
   if (jokerIdx === -1) return { error: "Joker não encontrado na mão." };
-  
+
   const joker = player_hand[jokerIdx]!;
   if (joker.value !== "JOKER" || !joker.ability) {
     return { error: "Carta não é um Magic Joker." };
@@ -153,10 +153,13 @@ export const execute_joker_power = (
     }
 
     case "SAFE": {
-      const teammate = game.mode === "2v2" 
-        ? (player_id <= 2 ? player_id + 2 : player_id - 2) 
-        : null;
-      
+      const teammate =
+        game.mode === "2v2"
+          ? player_id <= 2
+            ? player_id + 2
+            : player_id - 2
+          : null;
+
       const giveCards = (pId: number, count: number) => {
         const hand = game.hands[pId];
         if (!hand) return;
@@ -175,7 +178,7 @@ export const execute_joker_power = (
 
       io.to(roomId).emit(
         "info_msg",
-        teammate 
+        teammate
           ? `[SAFE] Seguro ativado! ${player_id} e ${teammate} ganharam 3 cartas.`
           : `[SAFE] Seguro ativado! O Jogador ${player_id} ganhou 3 cartas.`,
       );
@@ -197,8 +200,7 @@ export const execute_joker_power = (
     }
 
     case "REVERSE": {
-      game.magic_joker.direction =
-        game.magic_joker.direction === 1 ? -1 : 1;
+      game.magic_joker.direction = game.magic_joker.direction === 1 ? -1 : 1;
       io.to(roomId).emit(
         "info_msg",
         `[REVERSE] O Jogador ${player_id} INVERTEU o sentido do jogo!`,
@@ -329,14 +331,14 @@ const execute_bot_move = (io: Server, roomId: string) => {
         [t1_hand_1, t1_hand_2],
         false, // Ninguém bateu, acabou por exaustão
         !t1_taken,
-        game.rules
+        game.rules,
       );
       const t2_score = calculate_score(
         t2_melds,
         [t2_hand_1, t2_hand_2],
         false,
         !t2_taken,
-        game.rules
+        game.rules,
       );
 
       check_championship_status(
@@ -356,17 +358,17 @@ const execute_bot_move = (io: Server, roomId: string) => {
       if (top_discard) {
         const has_taken = game.has_taken_dead_pile[my_team_idx as 0 | 1];
 
-                  const action = analyze_discard_pickup(
-                    my_hand,
-                    top_discard,
-                    team_melds,
-                    has_taken,
-                    has_clean,
-                    game.discard_pile.length,
-                    game.deck.length,
-                    game.rules,
-                    game.dead_piles.length,
-                  );
+        const action = analyze_discard_pickup(
+          my_hand,
+          top_discard,
+          team_melds,
+          has_taken,
+          has_clean,
+          game.discard_pile.length,
+          game.deck.length,
+          game.rules,
+          game.dead_piles.length,
+        );
         if (action) {
           console.log(`[BOT] Bot pegou do lixo: ${action.type}`);
 
@@ -412,6 +414,7 @@ const execute_bot_move = (io: Server, roomId: string) => {
     console.log(`[BOT] ${pData.userName} comprando do monte.`);
     if (game.deck.length === 0 && game.dead_piles.length > 0) {
       game.deck = game.dead_piles.shift() || [];
+      game.deck_source = "DEAD_PILE";
     }
 
     const card = game.deck.shift();
@@ -429,12 +432,18 @@ const execute_bot_move = (io: Server, roomId: string) => {
     const has_taken = game.has_taken_dead_pile[my_team_idx as 0 | 1];
 
     // --- NOVA ETAPA: USAR MAGIC JOKERS ---
-    const jokers_in_hand = my_hand.filter((c) => c.value === "JOKER" && c.ability);
+    const jokers_in_hand = my_hand.filter(
+      (c) => c.value === "JOKER" && c.ability,
+    );
     if (jokers_in_hand.length > 0) {
       // O Bot avalia se deve usar o poder agora ou guardar como coringa normal
       for (const joker of jokers_in_hand) {
         let should_use = false;
-        const next_player = get_next_player(game.current_player, game.mode, game.magic_joker.direction);
+        const next_player = get_next_player(
+          game.current_player,
+          game.mode,
+          game.magic_joker.direction,
+        );
         const next_player_hand_len = game.hands[next_player]?.length || 0;
 
         switch (joker.ability) {
@@ -448,14 +457,18 @@ const execute_bot_move = (io: Server, roomId: string) => {
             break;
           case "REVERSE": {
             // Inverte se o jogador que jogaria depois de mim tem menos cartas que o jogador que jogaria antes de mim
-            const prev_player = get_next_player(game.current_player, game.mode, (-game.magic_joker.direction) as (1 | -1));
+            const prev_player = get_next_player(
+              game.current_player,
+              game.mode,
+              -game.magic_joker.direction as 1 | -1,
+            );
             const prev_hand_len = game.hands[prev_player]?.length || 0;
             if (next_player_hand_len < prev_hand_len) should_use = true;
             break;
           }
           case "TAX_COLLECTOR": {
             const my_len = my_hand.length;
-            const others = Object.values(game.hands).map(h => h.length);
+            const others = Object.values(game.hands).map((h) => h.length);
             const avg = others.reduce((a, b) => a + b, 0) / others.length;
             if (my_len <= avg) should_use = true;
             break;
@@ -471,7 +484,13 @@ const execute_bot_move = (io: Server, roomId: string) => {
         if (should_use) {
           console.log(`[BOT] Usando Poder do Joker: ${joker.ability}`);
           // Para o bot, chamamos a lógica diretamente em vez de emitir evento
-          execute_joker_power(io, game, game.current_player as PlayerID, joker.id, roomId);
+          execute_joker_power(
+            io,
+            game,
+            game.current_player as PlayerID,
+            joker.id,
+            roomId,
+          );
           // Após usar um poder, o bot faz uma pausa e reavalia o turno
           setTimeout(() => execute_bot_move(io, roomId), 1500);
           return;
@@ -479,7 +498,7 @@ const execute_bot_move = (io: Server, roomId: string) => {
       }
     }
 
-    const is_desperate = game.deck.length <= 4; // Fim de jogo quando faltam 4 ou menos cartas no monte.
+    const is_desperate = game.deck.length <= 4 || game.dead_piles.length === 0;
     const opponent_team = team_id === 1 ? 2 : 1;
     const opponent_melds = game.team_melds[opponent_team] || [];
 

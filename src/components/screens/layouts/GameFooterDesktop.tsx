@@ -26,7 +26,9 @@ export const GameFooterDesktop = ({
           active={canDraw}
           quantity={game.deck_count}
           dead_piles={game.dead_piles_count}
+          dead_pile_size={game.rules.cards_in_dead_pile}
           draw_phase={game.turn_phase === "DRAW"}
+          deck_source={game.deck_source}
         />
       </div>
 

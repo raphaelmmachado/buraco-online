@@ -53,6 +53,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
           const new_deck = game.dead_piles.shift();
           if (new_deck) {
             game.deck = new_deck;
+            game.deck_source = "DEAD_PILE";
           }
         } else {
           calculate_game_end_score(game);
@@ -619,7 +620,9 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
 
         // Se houver um bloqueio pendente, pula o próximo e vai para o subsequente
         if (game.magic_joker.pending_skip) {
-          console.log(`[SKIP] Pulando a vez do Jogador ${nextPlayer} devido ao Bloqueio.`);
+          console.log(
+            `[SKIP] Pulando a vez do Jogador ${nextPlayer} devido ao Bloqueio.`,
+          );
           nextPlayer = get_next_player(
             nextPlayer,
             game.mode,

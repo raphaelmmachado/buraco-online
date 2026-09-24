@@ -1,7 +1,10 @@
 import { useGameStoreBots as useLocalStore } from "../../store/useGameStoreBots";
 import { useMemo } from "react";
 import type { Card } from "../../../common/types/card";
-import type { ScoreResult, RoundHistoryItem } from "../../../common/utils/scoring";
+import type {
+  ScoreResult,
+  RoundHistoryItem,
+} from "../../../common/utils/scoring";
 import type { WinCondition } from "../../store/useGameStore";
 import { type GameRules } from "../../../common/types/rules";
 
@@ -15,10 +18,14 @@ export interface GameAdapterInterface {
   roomId: string; // Mocked
   my_player_number: number | null;
   my_player_name: string | null;
-  players_data: Record<number, { socketId: string; userName: string; isBot?: boolean }>;
+  players_data: Record<
+    number,
+    { socketId: string; userName: string; isBot?: boolean }
+  >;
   rules: GameRules;
 
   deck_count: number;
+  deck_source: "MAIN" | "DEAD_PILE";
   discard_pile: Card[];
   hands: Record<number, Card[] | number>;
   team_melds: { 1: Card[][]; 2: Card[][] };
@@ -93,7 +100,10 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
   const local = useLocalStore();
 
   const players_data = useMemo(() => {
-    const data: Record<number, { socketId: string; userName: string; isBot?: boolean }> = {
+    const data: Record<
+      number,
+      { socketId: string; userName: string; isBot?: boolean }
+    > = {
       1: { socketId: "local-1", userName: "Você", isBot: false },
       2: { socketId: "local-2", userName: "Bot 1", isBot: true },
     };
@@ -113,8 +123,8 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
     Object.keys(local.hands).forEach((idStr) => {
       const id = Number(idStr);
       const isMe = id === myPlayerId;
-      const isPowerTarget = 
-        local.magic_joker.power_selection?.player_id === myPlayerId && 
+      const isPowerTarget =
+        local.magic_joker.power_selection?.player_id === myPlayerId &&
         local.magic_joker.power_selection?.target_player_id === id;
 
       if (isMe || isPowerTarget) {
@@ -129,12 +139,13 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       status: local.status,
       mode: local.mode,
       roomId: "LOCAL_DEBUG",
-      my_player_number: myPlayerId, 
+      my_player_number: myPlayerId,
       my_player_name: "Você",
       players_data,
       rules: local.rules,
 
       deck_count: local.deck.length,
+      deck_source: local.deck_source,
       discard_pile: local.discard_pile,
       hands: sanitizedHands,
       team_melds: local.team_melds,
@@ -183,7 +194,8 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       nextRound: local.next_round,
       voteNext: () => {
         if (local.status === "ROUND_OVER") local.next_round();
-        else if (local.status === "FINISHED") local.start_game(local.win_condition);
+        else if (local.status === "FINISHED")
+          local.start_game(local.win_condition);
       },
       leaveGame: () => {
         window.location.reload();

@@ -1,11 +1,19 @@
 import { expect, test, describe } from "bun:test";
-import { validate_discard_add_to_meld, validate_sequence, type MeldValidation } from "./rules_logic";
-import { find_card_to_add, find_meld_in_hand, analyze_discard_pickup } from "./bot_logic";
+import {
+  validate_discard_add_to_meld,
+  validate_sequence,
+  type MeldValidation,
+} from "./rules_logic";
+import {
+  find_card_to_add,
+  find_meld_in_hand,
+  analyze_discard_pickup,
+} from "./bot_logic";
 import { type Card, type CardValue, type Suit, SUITS } from "../types/card";
 import { DEFAULT_RULES } from "../types/rules";
 
-const hearts = SUITS.find(s => s.name === "copas")!;
-const clubs = SUITS.find(s => s.name === "paus")!;
+const hearts = SUITS.find((s) => s.name === "copas")!;
+const clubs = SUITS.find((s) => s.name === "paus")!;
 
 type SuccessMeld = Extract<MeldValidation, { is_valid: true }>;
 type FailMeld = Extract<MeldValidation, { is_valid: false }>;
@@ -31,10 +39,16 @@ describe("validate_discard_add_to_meld", () => {
     // Discard: 8H
     const discard_card = createCard("8", hearts, "8h");
 
-    const result = validate_discard_add_to_meld(target_meld, bridge_cards, discard_card);
-    
+    const result = validate_discard_add_to_meld(
+      target_meld,
+      bridge_cards,
+      discard_card,
+    );
+
     expect(result.is_valid).toBe(false);
-    expect((result as FailMeld).error).toBe("Proibido usar curinga da mão para realizar a pegada do lixo.");
+    expect((result as FailMeld).error).toBe(
+      "Proibido usar curinga da mão para realizar a pegada do lixo.",
+    );
   });
 
   test("LEGAL: Adding to an already dirty meld", () => {
@@ -51,8 +65,12 @@ describe("validate_discard_add_to_meld", () => {
     // Discard: 8H
     const discard_card = createCard("8", hearts, "8h");
 
-    const result = validate_discard_add_to_meld(target_meld, bridge_cards, discard_card);
-    
+    const result = validate_discard_add_to_meld(
+      target_meld,
+      bridge_cards,
+      discard_card,
+    );
+
     expect(result.is_valid).toBe(true);
   });
 
@@ -68,14 +86,18 @@ describe("validate_discard_add_to_meld", () => {
     // Discard: 3H
     const discard_card = createCard("3", hearts, "3h");
 
-    const result = validate_discard_add_to_meld(target_meld, bridge_cards, discard_card);
-    
+    const result = validate_discard_add_to_meld(
+      target_meld,
+      bridge_cards,
+      discard_card,
+    );
+
     expect(result.is_valid).toBe(true);
   });
 
   test("LEGAL: 'Pushing' a joker that becomes natural (Scenário do usuário)", () => {
     // Original state: 2H (as joker for 3H), 4H, 5H (Dirty)
-    // Wait, if it's 2H in Hearts, it COULD be natural. 
+    // Wait, if it's 2H in Hearts, it COULD be natural.
     // Let's use 2C as joker for 3H.
     // Meld: 2C (as 3H), 4H, 5H (Dirty)
     const target_meld = [
@@ -90,8 +112,12 @@ describe("validate_discard_add_to_meld", () => {
 
     // Proposed Result: 2H, 3H, 4H, 5H + 2C (as 6H) -> Valid Dirty
     // Since original was dirty, it should be LEGAL.
-    const result = validate_discard_add_to_meld(target_meld, bridge_cards, discard_card);
-    
+    const result = validate_discard_add_to_meld(
+      target_meld,
+      bridge_cards,
+      discard_card,
+    );
+
     expect(result.is_valid).toBe(true);
   });
 
@@ -108,10 +134,16 @@ describe("validate_discard_add_to_meld", () => {
     // Discard: 8H
     const discard_card = createCard("8", hearts, "8h");
 
-    const result = validate_discard_add_to_meld(target_meld, bridge_cards, discard_card);
-    
+    const result = validate_discard_add_to_meld(
+      target_meld,
+      bridge_cards,
+      discard_card,
+    );
+
     expect(result.is_valid).toBe(false);
-    expect((result as FailMeld).error).toBe("Proibido usar curinga da mão para realizar a pegada do lixo.");
+    expect((result as FailMeld).error).toBe(
+      "Proibido usar curinga da mão para realizar a pegada do lixo.",
+    );
   });
 });
 
@@ -209,16 +241,16 @@ describe("General Game Rules", () => {
     expect(result.is_valid).toBe(true);
     expect((result as SuccessMeld).is_clean).toBe(true);
   });
-  
+
   test("VALID: Canastra Limpa (7 cards, no joker)", () => {
     const cards = [
-        createCard("3", hearts, "3h"),
-        createCard("4", hearts, "4h"),
-        createCard("5", hearts, "5h"),
-        createCard("6", hearts, "6h"),
-        createCard("7", hearts, "7h"),
-        createCard("8", hearts, "8h"),
-        createCard("9", hearts, "9h"),
+      createCard("3", hearts, "3h"),
+      createCard("4", hearts, "4h"),
+      createCard("5", hearts, "5h"),
+      createCard("6", hearts, "6h"),
+      createCard("7", hearts, "7h"),
+      createCard("8", hearts, "8h"),
+      createCard("9", hearts, "9h"),
     ];
     const result = validate_sequence(cards);
     expect(result.is_valid).toBe(true);
@@ -228,13 +260,13 @@ describe("General Game Rules", () => {
 
   test("VALID: Canastra Suja (7 cards, with joker)", () => {
     const cards = [
-        createCard("3", hearts, "3h"),
-        createCard("4", hearts, "4h"),
-        createCard("5", hearts, "5h"),
-        createCard("6", hearts, "6h"),
-        createCard("7", hearts, "7h"),
-        createCard("8", hearts, "8h"),
-        createCard("2", clubs, "2c"), // Joker
+      createCard("3", hearts, "3h"),
+      createCard("4", hearts, "4h"),
+      createCard("5", hearts, "5h"),
+      createCard("6", hearts, "6h"),
+      createCard("7", hearts, "7h"),
+      createCard("8", hearts, "8h"),
+      createCard("2", clubs, "2c"), // Joker
     ];
     const result = validate_sequence(cards);
     expect(result.is_valid).toBe(true);
@@ -244,9 +276,23 @@ describe("General Game Rules", () => {
 
   test("VALID: Canastra de 500 (13 cards, no joker)", () => {
     const cards: Card[] = [];
-    const values: CardValue[] = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+    const values: CardValue[] = [
+      "A",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "J",
+      "Q",
+      "K",
+    ];
     values.forEach((v, i) => cards.push(createCard(v, hearts, `h_${i}`)));
-    
+
     const result = validate_sequence(cards);
     expect(result.is_valid).toBe(true);
     expect((result as SuccessMeld).is_clean).toBe(true);
@@ -256,9 +302,24 @@ describe("General Game Rules", () => {
   test("VALID: Canastra Real (14 cards, no joker)", () => {
     const cards: Card[] = [];
     // A, 2, 3, 4, 5, 6, 7, 8, 9, 10, J, Q, K, A
-    const values: CardValue[] = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
+    const values: CardValue[] = [
+      "A",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "J",
+      "Q",
+      "K",
+      "A",
+    ];
     values.forEach((v, i) => cards.push(createCard(v, hearts, `h_${i}`)));
-    
+
     const result = validate_sequence(cards);
     expect(result.is_valid).toBe(true);
     expect((result as SuccessMeld).is_clean).toBe(true);
@@ -306,7 +367,16 @@ describe("Bot AI logic for jokers and sequences", () => {
       createCard("9", clubs, "9c"),
     ];
 
-    const meld = find_meld_in_hand(bot_hand, [completed_canastra], false, true, false, false, DEFAULT_RULES, 2);
+    const meld = find_meld_in_hand(
+      bot_hand,
+      [completed_canastra],
+      false,
+      true,
+      false,
+      false,
+      DEFAULT_RULES,
+      2,
+    );
     expect(meld).not.toBeNull();
     expect(meld?.map((c) => c.value)).toEqual(["4", "5", "6"]);
   });
@@ -325,7 +395,16 @@ describe("Bot AI logic for jokers and sequences", () => {
       createCard("9", clubs, "9c"),
     ];
 
-    const meld = find_meld_in_hand(bot_hand, [incomplete_meld], false, false, false, false, DEFAULT_RULES, 2);
+    const meld = find_meld_in_hand(
+      bot_hand,
+      [incomplete_meld],
+      false,
+      false,
+      false,
+      false,
+      DEFAULT_RULES,
+      2,
+    );
     expect(meld).toBeNull();
   });
 
@@ -348,7 +427,16 @@ describe("Bot AI logic for jokers and sequences", () => {
       createCard("9", clubs, "9c"),
     ];
 
-    const meld = find_meld_in_hand(bot_hand, [completed_canastra_to_8], false, true, false, false, DEFAULT_RULES, 2);
+    const meld = find_meld_in_hand(
+      bot_hand,
+      [completed_canastra_to_8],
+      false,
+      true,
+      false,
+      false,
+      DEFAULT_RULES,
+      2,
+    );
     expect(meld).toBeNull();
   });
 
@@ -371,7 +459,16 @@ describe("Bot AI logic for jokers and sequences", () => {
       createCard("9", clubs, "9c"),
     ];
 
-    const meld = find_meld_in_hand(bot_hand, [completed_canastra_to_8], false, true, true, false, DEFAULT_RULES, 0);
+    const meld = find_meld_in_hand(
+      bot_hand,
+      [completed_canastra_to_8],
+      false,
+      true,
+      true,
+      false,
+      DEFAULT_RULES,
+      0,
+    );
     expect(meld).not.toBeNull();
     expect(meld?.map((c) => c.value)).toEqual(["10", "J", "Q"]);
   });
@@ -432,11 +529,13 @@ describe("Bot AI logic for jokers and sequences", () => {
 
   test("Bot picks up discard pile of 4+ cards even when there is a nearby incomplete sequence on table (ignoring gap rules due to card volume)", () => {
     // Mesa tem 8, 9, 10 de Copas (incompleto)
-    const team_melds = [[
-      createCard("8", hearts, "8h_tbl"),
-      createCard("9", hearts, "9h_tbl"),
-      createCard("10", hearts, "10h_tbl"),
-    ]];
+    const team_melds = [
+      [
+        createCard("8", hearts, "8h_tbl"),
+        createCard("9", hearts, "9h_tbl"),
+        createCard("10", hearts, "10h_tbl"),
+      ],
+    ];
     // Topo do lixo é o 6 de Copas (distância 2 do jogo da mesa, que antes gerava bloqueio se lixo < 12)
     const top_discard = createCard("6", hearts, "6h_lixo");
     // Mão do bot tem 4 e 5 de Copas
@@ -464,15 +563,17 @@ describe("Bot AI logic for jokers and sequences", () => {
 
   test("Bot picks up discard pile with duplicate/nearby sequence when table already has a completed Canastra", () => {
     // Mesa já tem Canastra Pronta de Copas (A a 7)
-    const team_melds = [[
-      createCard("A", hearts, "Ah_tbl"),
-      createCard("2", hearts, "2h_tbl"),
-      createCard("3", hearts, "3h_tbl"),
-      createCard("4", hearts, "4h_tbl"),
-      createCard("5", hearts, "5h_tbl"),
-      createCard("6", hearts, "6h_tbl"),
-      createCard("7", hearts, "7h_tbl"),
-    ]];
+    const team_melds = [
+      [
+        createCard("A", hearts, "Ah_tbl"),
+        createCard("2", hearts, "2h_tbl"),
+        createCard("3", hearts, "3h_tbl"),
+        createCard("4", hearts, "4h_tbl"),
+        createCard("5", hearts, "5h_tbl"),
+        createCard("6", hearts, "6h_tbl"),
+        createCard("7", hearts, "7h_tbl"),
+      ],
+    ];
     // Topo do lixo é o 6 de Copas (duplicado/repetido!)
     const top_discard = createCard("6", hearts, "6h_lixo");
     // Mão do bot tem 4 e 5 de Copas
@@ -500,13 +601,15 @@ describe("Bot AI logic for jokers and sequences", () => {
 
   test("Bot MUST pick up discard pile when top discard (J) directly fits existing table sequence (6,7,8,9,10)", () => {
     // Mesa do time tem 6, 7, 8, 9, 10 de Copas
-    const team_melds = [[
-      createCard("6", hearts, "6h_tbl"),
-      createCard("7", hearts, "7h_tbl"),
-      createCard("8", hearts, "8h_tbl"),
-      createCard("9", hearts, "9h_tbl"),
-      createCard("10", hearts, "10h_tbl"),
-    ]];
+    const team_melds = [
+      [
+        createCard("6", hearts, "6h_tbl"),
+        createCard("7", hearts, "7h_tbl"),
+        createCard("8", hearts, "8h_tbl"),
+        createCard("9", hearts, "9h_tbl"),
+        createCard("10", hearts, "10h_tbl"),
+      ],
+    ];
     // Topo do lixo é o Valete (J) de Copas
     const top_discard = createCard("J", hearts, "Jh_lixo");
     // Mão do bot tem 3 cartas
@@ -529,7 +632,11 @@ describe("Bot AI logic for jokers and sequences", () => {
     );
 
     expect(result).not.toBeNull();
-    expect(result?.type).toBe("ADD_TO_MELD");
-    expect(result?.meld_index).toBe(0);
+    if (result?.type !== "ADD_TO_MELD") {
+      throw new Error(
+        "Expected the bot to add the discard to an existing meld",
+      );
+    }
+    expect(result.meld_index).toBe(0);
   });
 });

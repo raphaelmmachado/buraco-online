@@ -45,16 +45,25 @@ export const useGameBots = () => {
             store.discard_pile.length,
             store.deck.length,
             store.rules,
-            store.dead_piles.length
+            store.dead_piles.length,
           );
 
           if (action) {
             if (action.type === "NEW_MELD") {
-              console.log(`🤖 Bot ${store.current_player} pegou lixo (Novo Jogo)!`);
-              store.pick_up_discard_new_meld(action.cards.map((c: Card) => c.id));
+              console.log(
+                `🤖 Bot ${store.current_player} pegou lixo (Novo Jogo)!`,
+              );
+              store.pick_up_discard_new_meld(
+                action.cards.map((c: Card) => c.id),
+              );
             } else if (action.type === "ADD_TO_MELD") {
-              console.log(`🤖 Bot ${store.current_player} pegou lixo (Adicionar)!`);
-              store.pick_up_discard_add_to_meld(action.meld_index, action.cards.map((c: Card) => c.id));
+              console.log(
+                `🤖 Bot ${store.current_player} pegou lixo (Adicionar)!`,
+              );
+              store.pick_up_discard_add_to_meld(
+                action.meld_index,
+                action.cards.map((c: Card) => c.id),
+              );
             }
             return; // Após pegar o lixo, o turno continua na fase de ação.
           }
@@ -69,8 +78,10 @@ export const useGameBots = () => {
       else if (store.turn_phase === "ACTION") {
         const has_taken = store.has_taken_dead_pile[team_id];
         const has_clean = store.internal_can_beat();
-        const is_desperate = store.deck.length <= 4; // Fim de jogo quando faltam 4 ou menos cartas no monte.
-        const opponent_melds = team_id === 1 ? store.team_melds[2] : store.team_melds[1];
+        const is_desperate =
+          store.deck.length <= 4 || store.dead_piles.length === 0;
+        const opponent_melds =
+          team_id === 1 ? store.team_melds[2] : store.team_melds[1];
 
         // A. PRIORIDADE: Tenta adicionar cartas a jogos que já estão na mesa.
         const all_played_cards_for_add = [
@@ -95,7 +106,9 @@ export const useGameBots = () => {
             store.discard_pile.length,
           );
           if (card_to_add) {
-            console.log(`🤖 Bot ${store.current_player} adicionou ao jogo ${i}.`);
+            console.log(
+              `🤖 Bot ${store.current_player} adicionou ao jogo ${i}.`,
+            );
             store.add_card_to_meld([card_to_add.id], i);
             return; // Sai para esperar a atualização do estado do componente.
           }
@@ -110,7 +123,7 @@ export const useGameBots = () => {
           is_desperate,
           store.mode === "2v2",
           store.rules,
-          store.dead_piles.length
+          store.dead_piles.length,
         );
         if (new_meld) {
           console.log(`🤖 Bot ${store.current_player} baixou um novo jogo.`);
@@ -119,7 +132,7 @@ export const useGameBots = () => {
         }
 
         // C. Se não tem mais o que fazer, DESCARTA uma carta para encerrar o turno.
-        
+
         // Identifica o parceiro para fins de estratégia (ex: não dar carta que ele precisa).
         let partner_id = 0;
         if (team_id === 1) partner_id = store.current_player === 1 ? 3 : 1;
@@ -141,7 +154,9 @@ export const useGameBots = () => {
         );
 
         if (card_to_discard) {
-          console.log(`🤖 Bot ${store.current_player} descartou ${card_to_discard.value}.`);
+          console.log(
+            `🤖 Bot ${store.current_player} descartou ${card_to_discard.value}.`,
+          );
           store.discard_card(card_to_discard.id);
         }
       }

@@ -62,7 +62,10 @@ const handleTurnTimeout = (io: Server, roomId: string) => {
       // Lógica de fim de deck (igual ao gameController)
       if (game.dead_piles.length > 0) {
         const new_deck = game.dead_piles.shift();
-        if (new_deck) game.deck = new_deck;
+        if (new_deck) {
+          game.deck = new_deck;
+          game.deck_source = "DEAD_PILE";
+        }
       } else {
         finishGame(io, roomId);
         return;
@@ -214,17 +217,23 @@ const finishGame = (io: Server, roomId: string) => {
     [t1_hand_1, t1_hand_2],
     false,
     !t1_taken,
-    game.rules
+    game.rules,
   );
   const t2_score = calculate_score(
     t2_melds,
     [t2_hand_1, t2_hand_2],
     false,
     !t2_taken,
-    game.rules
+    game.rules,
   );
 
-  check_championship_status(game, t1_score.total_score, t2_score.total_score, t1_score, t2_score);
+  check_championship_status(
+    game,
+    t1_score.total_score,
+    t2_score.total_score,
+    t1_score,
+    t2_score,
+  );
   stopTurnTimer(roomId);
   broadcast_game_update(io, roomId);
 };

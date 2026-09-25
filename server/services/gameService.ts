@@ -2,9 +2,66 @@ import { create_deck, distribute_cards } from "../../common/utils/game_logic";
 import { calculate_score, type ScoreResult } from "../../common/utils/scoring";
 import { sort_cards } from "../../common/utils/sort_cards";
 import { validate_sequence } from "../../common/utils/rules_logic";
-import { type ServerGameState } from "../state";
+import { type MeldUndoSnapshot, type ServerGameState } from "../state";
 import { type PlayerID, type TeamID, type GameMode } from "../types";
 import { type Card } from "../../common/types/card";
+import { DEFAULT_RULES } from "../../common/types/rules";
+
+export const create_meld_undo_snapshot = (
+  game: ServerGameState,
+  player_id: PlayerID,
+): MeldUndoSnapshot => ({
+  player_id,
+  hands: Object.fromEntries(
+    Object.entries(game.hands).map(([id, hand]) => [id, [...hand]]),
+  ),
+  team_melds: {
+    1: game.team_melds[1].map((meld) => [...meld]),
+    2: game.team_melds[2].map((meld) => [...meld]),
+  },
+  dead_piles: game.dead_piles.map((pile) => [...pile]),
+  has_taken_dead_pile: [...game.has_taken_dead_pile],
+  turn_phase: game.turn_phase,
+  status: game.status,
+  cumulative_score: { ...game.cumulative_score },
+  round_history: game.round_history.map((round) => ({ ...round })),
+  final_score: game.final_score ? { ...game.final_score } : null,
+});
+
+export const restore_meld_undo_snapshot = (
+  game: ServerGameState,
+  player_id: PlayerID,
+): boolean => {
+  const snapshot = game.undo_meld_stack?.at(-1);
+  if (
+    game.status !== "PLAYING" ||
+    game.turn_phase !== "ACTION" ||
+    !snapshot ||
+    snapshot.player_id !== player_id
+  ) {
+    return false;
+  }
+
+  game.undo_meld_stack?.pop();
+  game.hands = Object.fromEntries(
+    Object.entries(snapshot.hands).map(([id, hand]) => [id, [...hand]]),
+  );
+  game.team_melds = {
+    1: snapshot.team_melds[1].map((meld) => [...meld]),
+    2: snapshot.team_melds[2].map((meld) => [...meld]),
+  };
+  game.dead_piles = snapshot.dead_piles.map((pile) => [...pile]);
+  game.has_taken_dead_pile = [
+    snapshot.has_taken_dead_pile[0],
+    snapshot.has_taken_dead_pile[1],
+  ];
+  game.turn_phase = snapshot.turn_phase;
+  game.status = snapshot.status;
+  game.cumulative_score = { ...snapshot.cumulative_score };
+  game.round_history = snapshot.round_history.map((round) => ({ ...round }));
+  game.final_score = snapshot.final_score ? { ...snapshot.final_score } : null;
+  return true;
+};
 
 export const get_team = (player_id: number): TeamID => {
   return (player_id % 2 !== 0 ? 1 : 2) as TeamID;
@@ -134,6 +191,7 @@ export const check_championship_status = (
 export const start_next_round = (game: ServerGameState) => {
   game.round_count += 1;
   game.status = "PLAYING";
+  game.undo_meld_stack = [];
 
   // Create new deck and distribute
   const deck = create_deck(game.rules);
@@ -176,6 +234,7 @@ export const start_new_match = (game: ServerGameState) => {
   game.round_count = 1;
   game.round_history = [];
   game.status = "PLAYING";
+  game.undo_meld_stack = [];
 
   const deck = create_deck(game.rules);
   const setup = distribute_cards(deck, game.mode, game.rules);
@@ -214,6 +273,7 @@ export const handle_empty_hand = (
   player_id: PlayerID,
   type: "DIRECT" | "INDIRECT",
 ) => {
+  game.undo_meld_stack = [];
   const team_id = get_team(player_id);
   const team_idx = (team_id - 1) as 0 | 1;
 
@@ -391,6 +451,13 @@ export const sanitize_state = (
 ) => {
   const sanitizedHands: Record<number, Card[] | number> = {};
   const myPlayerId = get_player_id_by_socket(game, targetSocketId);
+  const latestUndo = game.undo_meld_stack?.at(-1);
+  const canUndoMeld =
+    game.rules.allow_undo_melds &&
+    myPlayerId !== null &&
+    latestUndo?.player_id === myPlayerId &&
+    game.status === "PLAYING" &&
+    game.turn_phase === "ACTION";
 
   // Para cada jogador, decide se envia as cartas ou apenas a contagem
   Object.keys(game.hands).forEach((idStr) => {
@@ -432,7 +499,8 @@ export const sanitize_state = (
     round_history: game.round_history || [],
     win_condition: game.win_condition,
     rematch_votes: game.rematch_votes || {},
-    rules: game.rules,
+    rules: { ...DEFAULT_RULES, ...game.rules },
+    can_undo_meld: canUndoMeld,
     magic_joker: game.magic_joker,
   };
 };

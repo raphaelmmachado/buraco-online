@@ -17,7 +17,7 @@ import { FinishScreen } from "./FinishScreen";
 import { type GameAdapterInterface } from "../game-ui/useLocalGameAdapter";
 import { OpponentsHandsLayer } from "../game-ui/OpponentsHandsLayer";
 import { LoadingScreen } from "../ui/LoadingScreen";
-import { X } from "lucide-react";
+import { Undo2, X } from "lucide-react";
 import { type Card } from "../../../common/types/card";
 
 // Custom Hooks
@@ -657,6 +657,19 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
             id="player-area"
             className="flex-1 bg-blue-950/10 px-4 md:px-6 py-1 flex flex-col relative z-10 min-h-0"
           >
+            {game.rules.allow_undo_melds && isMyTurn && (
+              <button
+                type="button"
+                onClick={game.undo_meld}
+                disabled={!game.can_undo_meld}
+                aria-label="Desfazer última baixa"
+                title="Desfazer última baixa"
+                className="absolute top-2 right-3 z-20 flex items-center gap-2 rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-black/80 disabled:cursor-not-allowed disabled:opacity-40 pointer-events-auto"
+              >
+                <Undo2 size={16} />
+                <span>Desfazer</span>
+              </button>
+            )}
             <div
               className="flex-1 flex flex-wrap content-start gap-x-2 md:gap-x-4
            gap-y-1.5 md:gap-y-8 overflow-y-auto scrollbar-hide pt-1 pb-16"

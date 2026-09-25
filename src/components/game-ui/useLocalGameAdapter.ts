@@ -23,6 +23,7 @@ export interface GameAdapterInterface {
     { socketId: string; userName: string; isBot?: boolean }
   >;
   rules: GameRules;
+  can_undo_meld: boolean;
 
   deck_count: number;
   deck_source: "MAIN" | "DEAD_PILE";
@@ -75,6 +76,7 @@ export interface GameAdapterInterface {
   discard_card: (card_id: string) => void;
   meld_cards: (card_ids: string[]) => void;
   add_to_meld: (card_ids: string[], meld_index: number) => void;
+  undo_meld: () => void;
   pick_up_discard_new_meld: (card_ids: string[]) => void;
   pick_up_discard_add_to_meld: (meld_index: number, card_ids: string[]) => void;
   useJoker: (cardId: string) => void;
@@ -143,6 +145,11 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       my_player_name: "Você",
       players_data,
       rules: local.rules,
+      can_undo_meld:
+        local.rules.allow_undo_melds &&
+        local.undo_meld_stack.at(-1)?.player_id === local.current_player &&
+        local.status === "PLAYING" &&
+        local.turn_phase === "ACTION",
 
       deck_count: local.deck.length,
       deck_source: local.deck_source,
@@ -185,6 +192,7 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       discard_card: local.discard_card,
       meld_cards: local.meld_cards,
       add_to_meld: local.add_card_to_meld,
+      undo_meld: local.undo_meld,
       pick_up_discard_new_meld: local.pick_up_discard_new_meld,
       pick_up_discard_add_to_meld: local.pick_up_discard_add_to_meld,
       useJoker: local.use_joker,

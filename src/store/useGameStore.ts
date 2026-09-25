@@ -36,6 +36,7 @@ interface IncomingServerState {
     }
   >;
   rules: GameRules;
+  can_undo_meld?: boolean;
   magic_joker?: {
     direction: 1 | -1;
     is_discard_frozen: boolean;
@@ -126,6 +127,7 @@ interface GameState {
   turn_phase: "DRAW" | "ACTION" | "DISCARD";
   current_player: number;
   rules: GameRules;
+  can_undo_meld: boolean;
   magic_joker: {
     direction: 1 | -1;
     is_discard_frozen: boolean;
@@ -168,6 +170,7 @@ interface GameActions {
   discard_card: (card_id: string) => void;
   meld_cards: (card_ids: string[]) => void;
   add_to_meld: (card_ids: string[], meld_index: number) => void;
+  undo_meld: () => void;
   pick_up_discard_new_meld: (card_ids: string[]) => void;
   pick_up_discard_add_to_meld: (meld_index: number, card_ids: string[]) => void;
   useJoker: (cardId: string) => void;
@@ -263,6 +266,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   turn_phase: "DRAW",
   current_player: 1,
   rules: { ...DEFAULT_RULES },
+  can_undo_meld: false,
   magic_joker: {
     direction: 1,
     is_discard_frozen: false,
@@ -717,8 +721,9 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
             server_data.rules,
           );
         }
-        return server_data.rules || DEFAULT_RULES;
+        return { ...DEFAULT_RULES, ...server_data.rules };
       })(),
+      can_undo_meld: server_data.can_undo_meld ?? false,
       last_drawn_card_id: server_data.last_drawn_card_id,
       final_score: server_data.final_score,
       cumulative_score: server_data.cumulative_score || {
@@ -786,6 +791,20 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     socket.emit(
       "action_add_to_meld",
       { roomId, card_ids, meld_index, playerId },
+      (response: ServerResponse) => {
+        if (response && response.error) {
+          set({ last_error: response.error });
+        }
+      },
+    );
+  },
+
+  undo_meld: () => {
+    const { roomId } = get();
+    const playerId = localStorage.getItem("baralho_player_id");
+    socket.emit(
+      "action_undo_meld",
+      { roomId, playerId },
       (response: ServerResponse) => {
         if (response && response.error) {
           set({ last_error: response.error });

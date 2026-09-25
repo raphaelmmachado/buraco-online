@@ -253,7 +253,7 @@ export const registerRoomHandlers = (io: Server, socket: Socket) => {
 
       // Gravação direta no estado global para evitar perda de referência
       if (actualGame) {
-        actualGame.rules = { ...rules };
+        actualGame.rules = { ...DEFAULT_RULES, ...rules };
         console.log(
           `[RULES] OK: Regras atualizadas e gravadas no servidor para a sala ${actualRoomId}.`,
         );

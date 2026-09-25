@@ -14,6 +14,19 @@ import {
 import * as fs from "fs";
 import * as path from "path";
 
+export interface MeldUndoSnapshot {
+  player_id: PlayerID;
+  hands: Record<number, Card[]>;
+  team_melds: Record<TeamID, Card[][]>;
+  dead_piles: Card[][];
+  has_taken_dead_pile: [boolean, boolean];
+  turn_phase: ServerGameState["turn_phase"];
+  status: ServerGameState["status"];
+  cumulative_score: { team_1: number; team_2: number };
+  round_history: RoundHistoryItem[];
+  final_score: ServerGameState["final_score"];
+}
+
 export interface ServerGameState {
   mode: GameMode;
   status: "LOBBY" | "PLAYING" | "ROUND_OVER" | "FINISHED";
@@ -53,6 +66,7 @@ export interface ServerGameState {
 
   turn_start_time?: number;
   last_drawn_card_id: string | null;
+  undo_meld_stack?: MeldUndoSnapshot[];
   cardsPlayedThisTurn?: number; // Added to match frontend expectations
   final_score: {
     team_1: number;

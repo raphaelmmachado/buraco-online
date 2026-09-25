@@ -95,137 +95,226 @@ const PointInput = ({
   </div>
 );
 
+const gameplayToggleRules: Array<{
+  label: string;
+  ruleKey: keyof GameRules;
+  info: string;
+}> = [
+  {
+    label: "Lixo com Coringa",
+    ruleKey: "can_pickup_discard_with_joker",
+    info: "Permite comprar o lixo usando um 2 ou Curinga da mão para formar um novo jogo.",
+  },
+  {
+    label: "Time pode pegar dois mortos",
+    ruleKey: "team_can_take_both_dead_piles",
+    info: "Permite que a mesma equipe pegue os dois mortos do jogo (um para cada jogador).",
+  },
+  {
+    label: "Exigir canastra limpa para bater",
+    ruleKey: "must_have_clean_canastra_to_beat",
+    info: "Se ativado, é obrigatório ter pelo menos uma canastra limpa na mesa para poder realizar a batida final (encerrar a rodada). Não impede de esvaziar a mão para pegar o morto.",
+  },
+  {
+    label: "Desfazer cartas abaixadas",
+    ruleKey: "allow_undo_melds",
+    info: "Permite desfazer apenas cartas baixadas da mão nesta vez. Compras e descartes não podem ser desfeitos.",
+  },
+  {
+    label: "Coringas Mágicos",
+    ruleKey: "use_magic_jokers",
+    info: "Coringas especiais que tem poderes e também continuam servindo como coringa. É destruído ao usar o poder.",
+  },
+];
+
+const gameplayStatusRules: Array<{
+  key: keyof GameRules;
+  label: string;
+  badge?: string;
+  tone?: "green" | "violet";
+}> = [
+  { key: "can_pickup_discard_with_joker", label: "Comprar lixo com curinga" },
+  {
+    key: "team_can_take_both_dead_piles",
+    label: "Equipe pode pegar os dois mortos",
+  },
+  { key: "allow_undo_melds", label: "Desfazer cartas abaixadas" },
+  {
+    key: "use_magic_jokers",
+    label: "Magic Jokers (Cartas de Poder)",
+    badge: "* Novo",
+    tone: "violet",
+  },
+  {
+    key: "must_have_clean_canastra_to_beat",
+    label: "Exigir Canastra Limpa para Bater",
+  },
+];
+
+const advancedRuleRows: Array<{
+  label: string;
+  key: keyof GameRules;
+  unit?: string;
+}> = [
+  { label: "Baralhos", key: "decks_to_use", unit: "x" },
+  { label: "Cartas na Mão", key: "cards_per_hand" },
+  { label: "Cartas no Morto", key: "cards_in_dead_pile" },
+  { label: "Mínimo para Baixar", key: "min_cards_for_meld" },
+  { label: "Mínimo para Canastra", key: "min_cards_for_canastra" },
+];
+
+const scoreRows: Array<{
+  label: string;
+  key: keyof GameRules;
+  isPenalty?: boolean;
+}> = [
+  { label: "Batida Final", key: "points_for_ending" },
+  { label: "Canastra Limpa", key: "points_clean_canastra" },
+  { label: "Canastra Suja", key: "points_dirty_canastra" },
+  { label: "Canastra A-K", key: "points_king_canastra" },
+  { label: "Canastra Completa", key: "points_ace_canastra" },
+  {
+    label: "Morto não pego",
+    key: "penalty_dead_pile_not_taken",
+    isPenalty: true,
+  },
+];
+
+const scoreInputRules: Array<{
+  label: string;
+  ruleKey: keyof GameRules;
+}> = [
+  { label: "Batida Final", ruleKey: "points_for_ending" },
+  { label: "Canastra Limpa", ruleKey: "points_clean_canastra" },
+  { label: "Canastra Suja", ruleKey: "points_dirty_canastra" },
+  { label: "Canastra Real A-K", ruleKey: "points_king_canastra" },
+  { label: "Canastra Completa A-A", ruleKey: "points_ace_canastra" },
+  { label: "Morto não pego", ruleKey: "penalty_dead_pile_not_taken" },
+];
+
+const advancedInputRules: Array<{
+  label: string;
+  ruleKey: keyof GameRules;
+  step?: number;
+  unit?: string;
+}> = [
+  {
+    label: "Quantidade de Baralhos",
+    ruleKey: "decks_to_use",
+    step: 1,
+    unit: "",
+  },
+  { label: "Cartas por Mão", ruleKey: "cards_per_hand", step: 1, unit: "" },
+  {
+    label: "Cartas no Morto",
+    ruleKey: "cards_in_dead_pile",
+    step: 1,
+    unit: "",
+  },
+  {
+    label: "Mínimo para Baixar",
+    ruleKey: "min_cards_for_meld",
+    step: 1,
+    unit: "",
+  },
+  {
+    label: "Mínimo para Canastra",
+    ruleKey: "min_cards_for_canastra",
+    step: 1,
+    unit: "",
+  },
+];
+
+const RuleStatusRow = ({
+  checked,
+  label,
+  badge,
+  tone = "green",
+}: {
+  checked: boolean;
+  label: string;
+  badge?: string;
+  tone?: "green" | "violet";
+}) => (
+  <div className="flex items-center gap-3 text-sm">
+    <div
+      className={`p-1 rounded ${
+        checked
+          ? tone === "violet"
+            ? "bg-violet-500/20 text-violet-400"
+            : "bg-green-500/20 text-green-400"
+          : "bg-white/5 text-white/20"
+      }`}
+    >
+      <Check size={14} strokeWidth={checked ? 4 : 1} />
+    </div>
+    <span
+      className={
+        checked
+          ? "text-slate-200 font-bold"
+          : "text-slate-500 line-through decoration-slate-700"
+      }
+    >
+      {label}
+      {badge ? (
+        <span className="ml-2 text-[8px] font-black text-blue-400 uppercase">
+          {badge}
+        </span>
+      ) : null}
+    </span>
+  </div>
+);
+
 // Component for non-host players to see rules as a text list
 const RulesListView = ({ rules }: { rules: GameRules }) => {
   return (
     <div className="flex flex-col gap-6 animate-fade-in">
-      {/* Jogabilidade Section */}
       <div className="flex flex-col gap-3">
         <h3 className="text-[10px] font-black uppercase tracking-widest text-yellow-500/50 mb-1 flex items-center gap-2">
           <Dot size={20} /> Jogabilidade
         </h3>
         <div className="space-y-2 pl-2">
-          <div className="flex items-center gap-3 text-sm">
-            <div
-              className={`p-1 rounded ${rules.can_pickup_discard_with_joker ? "bg-green-500/20 text-green-400" : "bg-white/5 text-white/20"}`}
-            >
-              <Check
-                size={14}
-                strokeWidth={rules.can_pickup_discard_with_joker ? 4 : 1}
-              />
-            </div>
-            <span
-              className={
-                rules.can_pickup_discard_with_joker
-                  ? "text-slate-200 font-bold"
-                  : "text-slate-500 line-through decoration-slate-700"
-              }
-            >
-              Comprar lixo com curinga
-            </span>
-          </div>
-          <div className="flex items-center gap-3 text-sm">
-            <div
-              className={`p-1 rounded ${rules.team_can_take_both_dead_piles ? "bg-green-500/20 text-green-400" : "bg-white/5 text-white/20"}`}
-            >
-              <Check
-                size={14}
-                strokeWidth={rules.team_can_take_both_dead_piles ? 4 : 1}
-              />
-            </div>
-            <span
-              className={
-                rules.team_can_take_both_dead_piles
-                  ? "text-slate-200 font-bold"
-                  : "text-slate-500 line-through decoration-slate-700"
-              }
-            >
-              Equipe pode pegar os dois mortos
-            </span>
-          </div>
-          <div className="flex items-center gap-3 text-sm">
-            <div
-              className={`p-1 rounded ${rules.use_magic_jokers ? "bg-violet-500/20 text-violet-400" : "bg-white/5 text-white/20"}`}
-            >
-              <Check size={14} strokeWidth={rules.use_magic_jokers ? 4 : 1} />
-            </div>
-            <span
-              className={
-                rules.use_magic_jokers
-                  ? "text-slate-200 font-bold"
-                  : "text-slate-500 line-through decoration-slate-700"
-              }
-            >
-              Magic Jokers (Cartas de Poder)
-              <span className="ml-2 text-[8px] font-black text-blue-400 uppercase">
-                * Novo
-              </span>
-            </span>
-          </div>
-          <div className="flex items-center gap-3 text-sm">
-            <div
-              className={`p-1 rounded ${rules.must_have_clean_canastra_to_beat ? "bg-green-500/20 text-green-400" : "bg-white/5 text-white/20"}`}
-            >
-              <Check
-                size={14}
-                strokeWidth={rules.must_have_clean_canastra_to_beat ? 4 : 1}
-              />
-            </div>
-            <span
-              className={
-                rules.must_have_clean_canastra_to_beat
-                  ? "text-slate-200 font-bold"
-                  : "text-slate-500 line-through decoration-slate-700"
-              }
-            >
-              Exigir Canastra Limpa para Bater
-            </span>
-          </div>
+          {gameplayStatusRules.map((rule) => (
+            <RuleStatusRow
+              key={rule.key}
+              checked={Boolean(rules[rule.key])}
+              label={rule.label}
+              badge={rule.badge}
+              tone={rule.tone}
+            />
+          ))}
         </div>
       </div>
 
-      {/* Regras Avançadas Section */}
       <div className="flex flex-col gap-3">
         <h3 className="text-[10px] font-black uppercase tracking-widest text-orange-500/50 mb-1 flex items-center gap-2">
           <Dot size={20} /> Regras Avançadas
         </h3>
         <div className="grid grid-cols-1 gap-2 bg-black/20 rounded-2xl border border-white/5 overflow-hidden">
-          <PointRow label="Baralhos" value={rules.decks_to_use} unit="x" />
-          <PointRow label="Cartas na Mão" value={rules.cards_per_hand} />
-          <PointRow label="Cartas no Morto" value={rules.cards_in_dead_pile} />
-          <PointRow
-            label="Mínimo para Baixar"
-            value={rules.min_cards_for_meld}
-          />
-          <PointRow
-            label="Mínimo para Canastra"
-            value={rules.min_cards_for_canastra}
-          />
+          {advancedRuleRows.map(({ label, key, unit }) => (
+            <PointRow
+              key={key}
+              label={label}
+              value={Number(rules[key])}
+              unit={unit}
+            />
+          ))}
         </div>
       </div>
 
-      {/* Pontuação Section */}
       <div className="flex flex-col gap-3">
         <h3 className="text-[10px] font-black uppercase tracking-widest text-blue-500/50 mb-1 flex items-center gap-2">
           <Dot size={20} /> Tabela de Pontos
         </h3>
         <div className="grid grid-cols-1 gap-2 bg-black/20 rounded-2xl border border-white/5 overflow-hidden">
-          <PointRow label="Batida Final" value={rules.points_for_ending} />
-          <PointRow
-            label="Canastra Limpa"
-            value={rules.points_clean_canastra}
-          />
-          <PointRow label="Canastra Suja" value={rules.points_dirty_canastra} />
-          <PointRow label="Canastra A-K" value={rules.points_king_canastra} />
-          <PointRow
-            label="Canastra Completa"
-            value={rules.points_ace_canastra}
-          />
-          <PointRow
-            label="Morto não pego"
-            value={rules.penalty_dead_pile_not_taken}
-            isPenalty
-          />
+          {scoreRows.map(({ label, key, isPenalty }) => (
+            <PointRow
+              key={key}
+              label={label}
+              value={Number(rules[key])}
+              isPenalty={isPenalty}
+            />
+          ))}
         </div>
       </div>
     </div>
@@ -354,39 +443,17 @@ export const GameRulesModal = ({
                   <span className="w-1 h-1 bg-yellow-500 rounded-full"></span>
                   Jogabilidade
                 </h3>
-                <RuleToggle
-                  label="Lixo com Coringa"
-                  ruleKey="can_pickup_discard_with_joker"
-                  info="Permite comprar o lixo usando um 2 ou Curinga da mão para formar um novo jogo."
-                  rules={localRules}
-                  isHost={isHost}
-                  onToggle={toggleRule}
-                />
-                <RuleToggle
-                  label="Time pode pegar dois mortos"
-                  ruleKey="team_can_take_both_dead_piles"
-                  info="Permite que a mesma equipe pegue os dois mortos do jogo (um para cada jogador)."
-                  rules={localRules}
-                  isHost={isHost}
-                  onToggle={toggleRule}
-                />
-                <RuleToggle
-                  label="Exigir Canastra Limpa para Bater"
-                  ruleKey="must_have_clean_canastra_to_beat"
-                  info="Se ativado, é obrigatório ter pelo menos uma canastra limpa na mesa para poder realizar a batida final (encerrar a rodada). Não impede de esvaziar a mão para pegar o morto."
-                  rules={localRules}
-                  isHost={isHost}
-                  onToggle={toggleRule}
-                />
-
-                <RuleToggle
-                  label="Coringas Mágicos"
-                  ruleKey="use_magic_jokers"
-                  info="Coringas especiais que tem poderes e também continuam servindo como coringa. É destruído ao usar o poder."
-                  rules={localRules}
-                  isHost={isHost}
-                  onToggle={toggleRule}
-                />
+                {gameplayToggleRules.map((rule) => (
+                  <RuleToggle
+                    key={rule.ruleKey}
+                    label={rule.label}
+                    ruleKey={rule.ruleKey}
+                    info={rule.info}
+                    rules={localRules}
+                    isHost={isHost}
+                    onToggle={toggleRule}
+                  />
+                ))}
               </div>
 
               <div className="flex flex-col gap-3">
@@ -395,48 +462,16 @@ export const GameRulesModal = ({
                   Pontuação
                 </h3>
                 <div className="grid grid-cols-1 gap-2">
-                  <PointInput
-                    label="Batida Final"
-                    ruleKey="points_for_ending"
-                    rules={localRules}
-                    isHost={isHost}
-                    onChange={updatePoints}
-                  />
-                  <PointInput
-                    label="Canastra Limpa"
-                    ruleKey="points_clean_canastra"
-                    rules={localRules}
-                    isHost={isHost}
-                    onChange={updatePoints}
-                  />
-                  <PointInput
-                    label="Canastra Suja"
-                    ruleKey="points_dirty_canastra"
-                    rules={localRules}
-                    isHost={isHost}
-                    onChange={updatePoints}
-                  />
-                  <PointInput
-                    label="Canastra Real A-K"
-                    ruleKey="points_king_canastra"
-                    rules={localRules}
-                    isHost={isHost}
-                    onChange={updatePoints}
-                  />
-                  <PointInput
-                    label="Canastra Completa A-A"
-                    ruleKey="points_ace_canastra"
-                    rules={localRules}
-                    isHost={isHost}
-                    onChange={updatePoints}
-                  />
-                  <PointInput
-                    label="Morto não pego"
-                    ruleKey="penalty_dead_pile_not_taken"
-                    rules={localRules}
-                    isHost={isHost}
-                    onChange={updatePoints}
-                  />
+                  {scoreInputRules.map(({ label, ruleKey }) => (
+                    <PointInput
+                      key={ruleKey}
+                      label={label}
+                      ruleKey={ruleKey}
+                      rules={localRules}
+                      isHost={isHost}
+                      onChange={updatePoints}
+                    />
+                  ))}
                 </div>
               </div>
 
@@ -446,51 +481,18 @@ export const GameRulesModal = ({
                   Regras Avançadas
                 </h3>
                 <div className="grid grid-cols-1 gap-2">
-                  <PointInput
-                    label="Quantidade de Baralhos"
-                    ruleKey="decks_to_use"
-                    rules={localRules}
-                    isHost={isHost}
-                    onChange={updatePoints}
-                    step={1}
-                    unit=""
-                  />
-                  <PointInput
-                    label="Cartas por Mão"
-                    ruleKey="cards_per_hand"
-                    rules={localRules}
-                    isHost={isHost}
-                    onChange={updatePoints}
-                    step={1}
-                    unit=""
-                  />
-                  <PointInput
-                    label="Cartas no Morto"
-                    ruleKey="cards_in_dead_pile"
-                    rules={localRules}
-                    isHost={isHost}
-                    onChange={updatePoints}
-                    step={1}
-                    unit=""
-                  />
-                  <PointInput
-                    label="Mínimo para Baixar"
-                    ruleKey="min_cards_for_meld"
-                    rules={localRules}
-                    isHost={isHost}
-                    onChange={updatePoints}
-                    step={1}
-                    unit=""
-                  />
-                  <PointInput
-                    label="Mínimo para Canastra"
-                    ruleKey="min_cards_for_canastra"
-                    rules={localRules}
-                    isHost={isHost}
-                    onChange={updatePoints}
-                    step={1}
-                    unit=""
-                  />
+                  {advancedInputRules.map(({ label, ruleKey, step, unit }) => (
+                    <PointInput
+                      key={ruleKey}
+                      label={label}
+                      ruleKey={ruleKey}
+                      rules={localRules}
+                      isHost={isHost}
+                      onChange={updatePoints}
+                      step={step}
+                      unit={unit}
+                    />
+                  ))}
                 </div>
               </div>
             </div>

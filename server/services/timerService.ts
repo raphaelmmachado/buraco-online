@@ -51,6 +51,7 @@ const handleTurnTimeout = (io: Server, roomId: string) => {
 
   const player_id = game.current_player;
   const team_id = get_team(player_id);
+  game.undo_meld_stack = [];
 
   console.log(
     `[TIMER] Auto-playing for Player ${player_id} in ${game.turn_phase}`,

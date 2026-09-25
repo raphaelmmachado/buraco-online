@@ -10,6 +10,8 @@ import {
   start_next_round,
   start_new_match,
   calculate_game_end_score,
+  create_meld_undo_snapshot,
+  restore_meld_undo_snapshot,
 } from "../services/gameService";
 import {
   broadcast_game_update,
@@ -67,6 +69,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       const player_hand = game.hands[player_id];
 
       if (card && player_hand) {
+        game.undo_meld_stack = [];
         player_hand.unshift(card);
         // Ordena automaticamente após a compra (sem randomizar naipes)
         game.hands[player_id] = sort_cards(player_hand);
@@ -174,6 +177,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       }
 
       const all_discard = [...game.discard_pile];
+      game.undo_meld_stack = [];
       game.discard_pile = [];
 
       // Remove from hand
@@ -322,6 +326,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       }
 
       const all_discard = [...game.discard_pile];
+      game.undo_meld_stack = [];
       game.discard_pile = [];
 
       game.hands[player_id] = current_hand.filter(
@@ -425,6 +430,10 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         }
       }
 
+      if (game.rules.allow_undo_melds) {
+        game.undo_meld_stack ??= [];
+        game.undo_meld_stack.push(create_meld_undo_snapshot(game, player_id));
+      }
       game.hands[player_id] = sort_cards(
         current_hand.filter((c) => !card_ids.includes(c.id)),
       );
@@ -527,6 +536,10 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         }
       }
 
+      if (game.rules.allow_undo_melds) {
+        game.undo_meld_stack ??= [];
+        game.undo_meld_stack.push(create_meld_undo_snapshot(game, player_id));
+      }
       game.hands[player_id] = sort_cards(
         current_hand.filter((c) => !card_ids.includes(c.id)),
       );
@@ -548,6 +561,43 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       }
       saveState();
       broadcast_game_update(io, roomId);
+    },
+  );
+
+  socket.on(
+    "action_undo_meld",
+    (
+      { roomId, playerId }: { roomId: string; playerId?: string },
+      callback?: (res: ServerResponse) => void,
+    ) => {
+      const game = games[roomId];
+      if (!game) return;
+
+      const ctx = validateTurn(game, socket.id, playerId);
+      const snapshot = game.undo_meld_stack?.at(-1);
+      const canUndoInCurrentState =
+        game.status === "PLAYING" && game.turn_phase === "ACTION";
+      if (
+        !ctx ||
+        !game.rules.allow_undo_melds ||
+        !snapshot ||
+        snapshot.player_id !== ctx.player_id ||
+        !canUndoInCurrentState
+      ) {
+        callback?.({ error: "Não há uma baixa sua que possa ser desfeita." });
+        return;
+      }
+
+      if (!restore_meld_undo_snapshot(game, ctx.player_id)) {
+        callback?.({ error: "Não foi possível desfazer essa baixa." });
+        return;
+      }
+
+      stopTurnTimer(roomId);
+      if (game.status === "PLAYING") startTurnTimer(io, roomId);
+      saveState();
+      broadcast_game_update(io, roomId);
+      callback?.({ success: true });
     },
   );
 
@@ -600,6 +650,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
       }
 
       game.hands[player_id] = current_hand.filter((c) => c.id !== card_id);
+      game.undo_meld_stack = [];
       game.discard_pile.unshift(card_to_discard);
 
       const updated_hand = game.hands[player_id];
@@ -842,6 +893,7 @@ export const registerGameHandlers = (io: Server, socket: Socket) => {
         callback({ error: result.error });
         return;
       }
+      game.undo_meld_stack = [];
 
       if (game.turn_phase === "ACTION") {
         startTurnTimer(io, roomId);

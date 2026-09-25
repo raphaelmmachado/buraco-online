@@ -26,6 +26,21 @@ type PlayerID = 1 | 2 | 3 | 4;
 type TeamID = 1 | 2;
 type GameMode = "1v1" | "2v2";
 
+interface LocalMeldUndoSnapshot {
+  player_id: PlayerID;
+  hands: Record<number, Card[]>;
+  team_melds: Record<TeamID, Card[][]>;
+  dead_piles: Card[][];
+  has_taken_dead_pile: Record<TeamID, boolean>;
+  turn_phase: GameState["turn_phase"];
+  status: GameState["status"];
+  cumulative_score: GameState["cumulative_score"];
+  round_history: RoundHistoryItem[];
+  final_score: GameState["final_score"];
+  cardsPlayedThisTurn: number;
+  recentEvents: GameState["recentEvents"];
+}
+
 interface GameState {
   status: "IDLE" | "LOBBY" | "PLAYING" | "ROUND_OVER" | "FINISHED";
   mode: GameMode;
@@ -70,7 +85,31 @@ interface GameState {
     type: "info" | "success" | "warning" | "error";
   }[];
   cardsPlayedThisTurn: number;
+  undo_meld_stack: LocalMeldUndoSnapshot[];
 }
+
+const create_local_meld_undo_snapshot = (
+  state: GameState,
+  player_id: PlayerID,
+): LocalMeldUndoSnapshot => ({
+  player_id,
+  hands: Object.fromEntries(
+    Object.entries(state.hands).map(([id, hand]) => [id, [...hand]]),
+  ),
+  team_melds: {
+    1: state.team_melds[1].map((meld) => [...meld]),
+    2: state.team_melds[2].map((meld) => [...meld]),
+  },
+  dead_piles: state.dead_piles.map((pile) => [...pile]),
+  has_taken_dead_pile: { ...state.has_taken_dead_pile },
+  turn_phase: state.turn_phase,
+  status: state.status,
+  cumulative_score: { ...state.cumulative_score },
+  round_history: state.round_history.map((round) => ({ ...round })),
+  final_score: state.final_score ? { ...state.final_score } : null,
+  cardsPlayedThisTurn: state.cardsPlayedThisTurn,
+  recentEvents: [...state.recentEvents],
+});
 
 interface GameActions {
   start_game: (config?: WinCondition | GameMode, rules?: GameRules) => void;
@@ -80,6 +119,7 @@ interface GameActions {
   sort_my_hand: () => void;
   meld_cards: (card_ids: string[]) => void;
   add_card_to_meld: (card_ids: string[], meld_index: number) => void;
+  undo_meld: () => void;
   pick_up_discard_new_meld: (hand_card_ids: string[]) => void;
   pick_up_discard_add_to_meld: (
     meld_index: number,
@@ -150,6 +190,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
   cardMarkers: {},
   recentEvents: [],
   cardsPlayedThisTurn: 0,
+  undo_meld_stack: [],
 
   clear_error: () => set({ last_error: null }),
   set_error: (msg: string) => set({ last_error: msg }),
@@ -183,6 +224,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       last_info: null,
       recentEvents: [],
       cardsPlayedThisTurn: 0,
+      undo_meld_stack: [],
       cardMarkers: {},
     });
   },
@@ -286,6 +328,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       last_info: null,
       recentEvents: [],
       cardMarkers: {},
+      undo_meld_stack: [],
     });
   },
 
@@ -322,6 +365,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       last_error: null,
       last_info: null,
       cardMarkers: {},
+      undo_meld_stack: [],
     });
   },
 
@@ -405,6 +449,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       turn_phase: "ACTION",
       last_error: null,
       cardsPlayedThisTurn: 0,
+      undo_meld_stack: [],
     });
   },
 
@@ -508,6 +553,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       turn_phase: "ACTION",
       last_error: null,
       cardsPlayedThisTurn: get().cardsPlayedThisTurn + selected_cards.length,
+      undo_meld_stack: [],
     });
 
     if (new_hand.length === 0) get().internal_handle_empty_hand("DIRECT");
@@ -615,6 +661,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       turn_phase: "ACTION",
       last_error: null,
       cardsPlayedThisTurn: get().cardsPlayedThisTurn + bridge_cards.length,
+      undo_meld_stack: [],
     });
 
     if (new_hand.length === 0) get().internal_handle_empty_hand("DIRECT");
@@ -694,6 +741,10 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         ? organized_meld
         : sort_cards(proposed_meld);
 
+    const undoSnapshot = get().rules.allow_undo_melds
+      ? create_local_meld_undo_snapshot(get(), current_player)
+      : null;
+
     if (
       target_meld.length < get().rules.min_cards_for_canastra &&
       proposed_meld.length >= get().rules.min_cards_for_canastra
@@ -706,6 +757,9 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       team_melds: { ...team_melds, [team_id]: new_melds },
       last_error: null,
       cardsPlayedThisTurn: get().cardsPlayedThisTurn + cards_to_add.length,
+      undo_meld_stack: undoSnapshot
+        ? [...get().undo_meld_stack, undoSnapshot]
+        : [],
     });
 
     if (new_hand.length === 0) get().internal_handle_empty_hand("DIRECT");
@@ -776,6 +830,10 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         ? organized_meld
         : sort_cards(cards);
 
+    const undoSnapshot = get().rules.allow_undo_melds
+      ? create_local_meld_undo_snapshot(get(), current_player)
+      : null;
+
     if (
       validation.canastra_type === "CLEAN" ||
       validation.canastra_type === "KING" ||
@@ -792,6 +850,9 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       },
       last_error: null,
       cardsPlayedThisTurn: get().cardsPlayedThisTurn + cards.length,
+      undo_meld_stack: undoSnapshot
+        ? [...get().undo_meld_stack, undoSnapshot]
+        : [],
     });
 
     if (new_hand.length === 0) get().internal_handle_empty_hand("DIRECT");
@@ -839,6 +900,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       discard_pile: [card, ...discard_pile],
       last_drawn_card_id: null,
       last_error: null,
+      undo_meld_stack: [],
     });
 
     if (new_hand.length === 0) {
@@ -935,6 +997,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
           current_player: nextP,
           turn_phase: "DRAW",
           last_error: null,
+          undo_meld_stack: [],
         });
         return;
       }
@@ -999,6 +1062,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
             pending_skip: true,
           },
           last_error: null,
+          undo_meld_stack: [],
         });
         return;
       }
@@ -1095,6 +1159,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
         power_selection: powerSelection,
       },
       last_error: null,
+      undo_meld_stack: [],
     });
 
     if (finalHands[current_player].length === 0)
@@ -1170,6 +1235,43 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
     }));
   },
 
+  undo_meld: () => {
+    const { undo_meld_stack, current_player, rules, status, turn_phase } =
+      get();
+    const snapshot = undo_meld_stack.at(-1);
+    const canUndoInCurrentState =
+      status === "PLAYING" && turn_phase === "ACTION";
+    if (
+      !rules.allow_undo_melds ||
+      !snapshot ||
+      snapshot.player_id !== current_player ||
+      !canUndoInCurrentState
+    ) {
+      return;
+    }
+
+    set({
+      hands: Object.fromEntries(
+        Object.entries(snapshot.hands).map(([id, hand]) => [id, [...hand]]),
+      ),
+      team_melds: {
+        1: snapshot.team_melds[1].map((meld) => [...meld]),
+        2: snapshot.team_melds[2].map((meld) => [...meld]),
+      },
+      dead_piles: snapshot.dead_piles.map((pile) => [...pile]),
+      has_taken_dead_pile: { ...snapshot.has_taken_dead_pile },
+      turn_phase: snapshot.turn_phase,
+      status: snapshot.status,
+      cumulative_score: { ...snapshot.cumulative_score },
+      round_history: snapshot.round_history.map((round) => ({ ...round })),
+      final_score: snapshot.final_score ? { ...snapshot.final_score } : null,
+      cardsPlayedThisTurn: snapshot.cardsPlayedThisTurn,
+      recentEvents: snapshot.recentEvents,
+      undo_meld_stack: undo_meld_stack.slice(0, -1),
+      last_error: null,
+    });
+  },
+
   sort_my_hand: () => {
     const { hands, current_player } = get();
     set({
@@ -1195,6 +1297,7 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
   },
 
   internal_handle_empty_hand: (type: "DIRECT" | "INDIRECT") => {
+    set({ undo_meld_stack: [] });
     const {
       dead_piles,
       has_taken_dead_pile,

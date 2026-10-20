@@ -14,7 +14,8 @@
     "host": "bun run build && cd server && bun install && bun run server:dist",
     "build": "vite build",
     "lint": "eslint . && tsc -b",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "preview:pwa": "npm run build && vite preview"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",

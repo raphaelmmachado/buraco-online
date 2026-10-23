@@ -163,8 +163,12 @@ export const PlayerTimerBadge = ({
 
           {/* Cards Count Badge */}
           <div className="flex items-center bg-white/10 rounded-md gap-0.5 px-1">
-            <Hand size={12} className="opacity-60" />
-            <span className="text-xs font-mono font-bold">{handSize}</span>
+            <span
+              className="text-xs font-mono font-bold"
+              aria-label="Quantidade de cartas na mão"
+            >
+              {handSize}
+            </span>
           </div>
 
           {/* Turn Icon Slot (Reserved space to prevent layout jump) */}

@@ -31,7 +31,7 @@ export const GameSeparatorMobile = ({
           aria-hidden="true"
         />
 
-        <div className="flex flex-col gap-0.5">
+        <div className="flex flex-col gap-1.5">
           {Object.entries(game.players_data)
             .filter(([id]) => Number(id) % 2 === my_player_id % 2)
             .map(([id, p]) => (
@@ -102,7 +102,7 @@ export const GameSeparatorMobile = ({
           horizontal={true}
           className="py-0 h-5"
         />
-        <div className="flex flex-col gap-0.5 items-end">
+        <div className="flex flex-col gap-1.5 items-end">
           {Object.entries(game.players_data)
             .filter(([id]) => Number(id) % 2 !== my_player_id % 2)
             .map(([id, p]) => (

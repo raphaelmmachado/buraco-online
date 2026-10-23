@@ -18,9 +18,7 @@ export const GameFooterMobile = ({
       onUseJoker={game.useJoker}
       onSortHand={game.sort_hand}
       showSortButton={game.showSortButton}
-      showCardMarkers={game.showCardMarkers}
-      cardMarkers={game.cardMarkers}
-      setCardMarker={game.setCardMarker}
+      carouselEnabled={game.mobileHandCarousel}
       focusedCardId={focusedCardId}
     />
   );

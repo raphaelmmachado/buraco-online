@@ -61,8 +61,7 @@ export interface GameAdapterInterface {
   last_info: string | null;
   showAnimations: boolean;
   showSortButton: boolean;
-  showCardMarkers: boolean;
-  cardMarkers: Record<string, string>;
+  mobileHandCarousel: boolean;
   cardsPlayedThisTurn: number;
   recentEvents: {
     id: string;
@@ -94,8 +93,7 @@ export interface GameAdapterInterface {
   clear_info: () => void;
   toggleAnimations: () => void;
   toggleSortButton: () => void;
-  toggleCardMarkers: () => void;
-  setCardMarker: (cardId: string, color: string | null) => void;
+  toggleMobileHandCarousel: () => void;
 }
 
 export const useLocalGameAdapter = (): GameAdapterInterface => {
@@ -182,8 +180,7 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       last_info: local.last_info,
       showAnimations: local.showAnimations,
       showSortButton: local.showSortButton,
-      showCardMarkers: local.showCardMarkers,
-      cardMarkers: local.cardMarkers,
+      mobileHandCarousel: local.mobileHandCarousel,
       cardsPlayedThisTurn: local.cardsPlayedThisTurn,
       recentEvents: local.recentEvents,
 
@@ -220,8 +217,7 @@ export const useLocalGameAdapter = (): GameAdapterInterface => {
       clear_info: local.clear_info,
       toggleAnimations: local.toggleAnimations,
       toggleSortButton: local.toggleSortButton,
-      toggleCardMarkers: local.toggleCardMarkers,
-      setCardMarker: local.setCardMarker,
+      toggleMobileHandCarousel: local.toggleMobileHandCarousel,
     };
   }, [local, players_data]);
 

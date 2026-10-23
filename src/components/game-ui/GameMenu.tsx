@@ -11,11 +11,13 @@ import {
   EyeOff,
   Type,
   Wand2,
-  Bookmark,
+  GalleryHorizontalEnd,
+  Rows3,
   ChevronRight,
   Gavel,
 } from "lucide-react";
 import { useGameStore } from "../../store/useGameStore";
+import { useMobileCheck } from "../../hooks/useMobileCheck";
 
 interface GameMenuProps {
   onOpenHowToPlay?: () => void;
@@ -28,8 +30,8 @@ interface GameMenuProps {
   toggleOpponentHands?: () => void;
   showSortButton?: boolean;
   toggleSortButton?: () => void;
-  showCardMarkers?: boolean;
-  toggleCardMarkers?: () => void;
+  mobileHandCarousel?: boolean;
+  toggleMobileHandCarousel?: () => void;
 }
 
 const SectionTitle = ({ children }: { children: React.ReactNode }) => (
@@ -51,9 +53,10 @@ export const GameMenu = ({
   toggleOpponentHands,
   showSortButton,
   toggleSortButton,
-  showCardMarkers,
-  toggleCardMarkers,
+  mobileHandCarousel,
+  toggleMobileHandCarousel,
 }: GameMenuProps) => {
+  const { isMobile } = useMobileCheck();
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"SETTINGS" | "RULES">("SETTINGS");
 
@@ -221,26 +224,26 @@ export const GameMenu = ({
                       </button>
                     )}
 
-                    {toggleCardMarkers && (
+                    {isMobile && toggleMobileHandCarousel && (
                       <button
-                        onClick={() => toggleCardMarkers()}
+                        onClick={() => toggleMobileHandCarousel()}
                         className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-sm font-bold text-slate-300 hover:bg-white/5 hover:text-white transition-all group"
                       >
                         <div className="flex items-center gap-3">
-                          <Bookmark
-                            size={16}
-                            className={
-                              showCardMarkers
-                                ? "text-orange-400"
-                                : "text-slate-500"
-                            }
-                          />
-                          <span>Marcadores</span>
+                          {mobileHandCarousel ? (
+                            <GalleryHorizontalEnd
+                              size={16}
+                              className="text-cyan-400"
+                            />
+                          ) : (
+                            <Rows3 size={16} className="text-cyan-400" />
+                          )}
+                          <span>Cartas da Mão</span>
                         </div>
                         <span
-                          className={`text-[10px] px-2 py-0.5 rounded-full ${showCardMarkers ? "bg-orange-500/10 text-orange-400" : "bg-slate-500/10 text-slate-500"}`}
+                          className={`text-[10px] px-2 py-0.5 rounded-full ${mobileHandCarousel ? "bg-cyan-500/10 text-cyan-400" : "bg-amber-500/10 text-amber-400"}`}
                         >
-                          {showCardMarkers ? "ON" : "OFF"}
+                          {mobileHandCarousel ? "Carrossel" : "Estacadas"}
                         </span>
                       </button>
                     )}

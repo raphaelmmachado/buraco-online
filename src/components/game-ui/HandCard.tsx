@@ -4,7 +4,6 @@ import { SuitIcon } from "./SuitIcon";
 import { getCardImageSrc } from "../../utils/card_image_map";
 import { useGameStore } from "../../store/useGameStore";
 import { useMobileCheck } from "../../hooks/useMobileCheck";
-import { Palette, X } from "lucide-react";
 import { useState } from "react";
 
 interface HandCardProps {
@@ -17,16 +16,7 @@ interface HandCardProps {
   className?: string;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
-  markerColor?: string | null;
-  onSetMarker?: (color: string | null) => void;
 }
-
-const MARKER_COLORS = [
-  { name: "Limpar", color: null, class: "bg-slate-200" },
-  { name: "Amarelo", color: "#facc15", class: "bg-yellow-400" },
-  { name: "Azul", color: "#3b82f6", class: "bg-blue-500" },
-  { name: "Vermelho", color: "#ef4444", class: "bg-red-500" },
-];
 
 const ABILITY_DESCRIPTIONS: Record<string, { name: string; desc: string }> = {
   VIEW_HAND: { name: "Visão", desc: "Veja a mão do próximo" },
@@ -305,21 +295,8 @@ export const HandCard = ({
   className = "",
   onMouseEnter,
   onMouseLeave,
-  markerColor,
-  onSetMarker,
 }: HandCardProps) => {
-  const [showPicker, setShowPicker] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [pickerDirection, setPickerDirection] = useState<"left" | "right">(
-    "left",
-  );
-
-  const handlePaletteClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const rect = e.currentTarget.getBoundingClientRect();
-    setPickerDirection(rect.left < 60 ? "right" : "left");
-    setShowPicker(!showPicker);
-  };
 
   const isRed = card.color === "red";
   const isJoker = card.value === "JOKER";
@@ -374,21 +351,6 @@ export const HandCard = ({
       `}
       style={style}
     >
-      {/* Marcador de Cor */}
-      {markerColor && (
-        <motion.div
-          initial={{ y: -10, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="absolute -top-1 left-5 w-3 h-5 md:w-4 md:h-7 shadow-md z-30 rounded-b-sm border-x border-b border-black/10"
-          style={{
-            backgroundColor: markerColor,
-            backgroundImage: "linear-gradient(to bottom, rgba(255,255,255,0.2), transparent)",
-          }}
-        >
-          <div className="absolute top-0 left-0 right-0 h-1 bg-black/10" />
-        </motion.div>
-      )}
-
       {/* Conteúdo da Carta */}
       {isAccessibilityMode ? (
         <AccessibilityCardContent
@@ -413,49 +375,6 @@ export const HandCard = ({
         />
       ) : (
         <NormalCardContent card={card} imageSrc={imageSrc} valueClass={valueClass} suitClass={suitClass} />
-      )}
-
-      {/* Botão de Marcador */}
-      {onSetMarker && (
-        <div className="absolute bottom-0 left-0 z-40">
-          <button
-            onClick={handlePaletteClick}
-            className={`p-1 md:p-1.5 rounded-tr-lg bg-white border-t border-r border-slate-200 shadow-md transition-all 
-              ${showPicker ? "scale-110 ring-2 ring-blue-400 opacity-100" : "opacity-80 hover:opacity-100"}`}
-          >
-            <Palette className="w-3 h-3 md:w-4 md:h-4 text-slate-700" />
-          </button>
-
-          <AnimatePresence>
-            {showPicker && (
-              <motion.div
-                initial={{ opacity: 0, y: 5, scale: 0.8 }}
-                animate={{ opacity: 1, y: -2, scale: 1 }}
-                exit={{ opacity: 0, y: 5, scale: 0.8 }}
-                className={`absolute bottom-full ${
-                  pickerDirection === "right" ? "left-0" : "right-0"
-                } mb-0.5 bg-white/95 backdrop-blur-sm rounded-full shadow-lg border border-slate-200 p-0.5 flex flex-col gap-1 z-50 items-center`}
-              >
-                {MARKER_COLORS.map((c) => (
-                  <button
-                    key={c.name}
-                    title={c.name}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSetMarker(c.color);
-                      setShowPicker(false);
-                    }}
-                    className={`w-5 h-5 md:w-6 md:h-6 rounded-full border border-slate-200 transition-transform hover:scale-125 flex items-center justify-center ${c.class}`}
-                  >
-                    {!c.color && (
-                      <X className="w-2.5 h-2.5 md:w-3 md:h-3 text-slate-400" />
-                    )}
-                  </button>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
       )}
     </motion.div>
   );

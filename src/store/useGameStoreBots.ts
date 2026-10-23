@@ -76,8 +76,7 @@ interface GameState {
   last_info: string | null;
   showAnimations: boolean;
   showSortButton: boolean;
-  showCardMarkers: boolean;
-  cardMarkers: Record<string, string>;
+  mobileHandCarousel: boolean;
   recentEvents: {
     id: string;
     message: string;
@@ -132,8 +131,7 @@ interface GameActions {
   set_error: (msg: string) => void;
   toggleAnimations: () => void;
   toggleSortButton: () => void;
-  toggleCardMarkers: () => void;
-  setCardMarker: (cardId: string, color: string | null) => void;
+  toggleMobileHandCarousel: () => void;
   addEvent: (
     message: string,
     type?: "info" | "success" | "warning" | "error",
@@ -186,8 +184,8 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
   last_info: null,
   showAnimations: localStorage.getItem("baralho_show_animations") !== "false",
   showSortButton: localStorage.getItem("baralho_show_sort") === "true",
-  showCardMarkers: localStorage.getItem("baralho_show_card_markers") === "true",
-  cardMarkers: {},
+  mobileHandCarousel:
+    localStorage.getItem("baralho_mobile_hand_carousel") !== "false",
   recentEvents: [],
   cardsPlayedThisTurn: 0,
   undo_meld_stack: [],
@@ -225,7 +223,6 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       recentEvents: [],
       cardsPlayedThisTurn: 0,
       undo_meld_stack: [],
-      cardMarkers: {},
     });
   },
 
@@ -263,20 +260,11 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
     });
   },
 
-  toggleCardMarkers: () => {
+  toggleMobileHandCarousel: () => {
     set((state) => {
-      const newVal = !state.showCardMarkers;
-      localStorage.setItem("baralho_show_card_markers", String(newVal));
-      return { showCardMarkers: newVal };
-    });
-  },
-
-  setCardMarker: (cardId, color) => {
-    set((state) => {
-      const newMarkers = { ...state.cardMarkers };
-      if (color) newMarkers[cardId] = color;
-      else delete newMarkers[cardId];
-      return { cardMarkers: newMarkers };
+      const newVal = !state.mobileHandCarousel;
+      localStorage.setItem("baralho_mobile_hand_carousel", String(newVal));
+      return { mobileHandCarousel: newVal };
     });
   },
 
@@ -327,7 +315,6 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       last_error: null,
       last_info: null,
       recentEvents: [],
-      cardMarkers: {},
       undo_meld_stack: [],
     });
   },
@@ -364,7 +351,6 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
       round_count: round_count + 1,
       last_error: null,
       last_info: null,
-      cardMarkers: {},
       undo_meld_stack: [],
     });
   },
@@ -431,7 +417,6 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
               details_t2: t2_score,
             },
           ],
-          cardMarkers: {},
         });
         return;
       }
@@ -1367,7 +1352,6 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
             details_t2: t2_score,
           },
         ],
-        cardMarkers: {},
       });
       return;
     }
@@ -1437,7 +1421,6 @@ export const useGameStoreBots = create<GameState & GameActions>((set, get) => ({
             details_t2: t2_score,
           },
         ],
-        cardMarkers: {},
       });
     }
   },

@@ -552,8 +552,8 @@ export const GameScreen = ({ game }: { game: GameAdapterInterface }) => {
               toggleAnimations={game.toggleAnimations}
               showSortButton={game.showSortButton}
               toggleSortButton={game.toggleSortButton}
-              showCardMarkers={game.showCardMarkers}
-              toggleCardMarkers={game.toggleCardMarkers}
+              mobileHandCarousel={game.mobileHandCarousel}
+              toggleMobileHandCarousel={game.toggleMobileHandCarousel}
               onOpenHowToPlay={() => setShowHowToPlay(true)}
               onOpenRules={() => setShowRules(true)}
               showOpponentHands={showOpponentHands}

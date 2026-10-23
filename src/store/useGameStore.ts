@@ -107,8 +107,7 @@ interface GameState {
   showAnimations: boolean;
   isAccessibilityMode: boolean;
   showSortButton: boolean;
-  showCardMarkers: boolean;
-  cardMarkers: Record<string, string>; // cardId -> color hex/class
+  mobileHandCarousel: boolean;
   recentEvents: {
     id: string;
     message: string;
@@ -192,8 +191,7 @@ interface GameActions {
   toggleAnimations: () => void;
   toggleAccessibilityMode: () => void;
   toggleSortButton: () => void;
-  toggleCardMarkers: () => void;
-  setCardMarker: (cardId: string, color: string | null) => void;
+  toggleMobileHandCarousel: () => void;
   addEvent: (
     message: string,
     type?: "info" | "success" | "warning" | "error",
@@ -249,8 +247,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   isAccessibilityMode:
     localStorage.getItem("baralho_accessibility_mode") === "true",
   showSortButton: localStorage.getItem("baralho_show_sort") === "true",
-  showCardMarkers: localStorage.getItem("baralho_show_card_markers") === "true",
-  cardMarkers: {},
+  mobileHandCarousel:
+    localStorage.getItem("baralho_mobile_hand_carousel") !== "false",
   players_data: {},
   mode: "1v1",
   recentEvents: [],
@@ -325,19 +323,11 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       return { showSortButton: newVal };
     }),
 
-  toggleCardMarkers: () =>
+  toggleMobileHandCarousel: () =>
     set((state) => {
-      const newVal = !state.showCardMarkers;
-      localStorage.setItem("baralho_show_card_markers", String(newVal));
-      return { showCardMarkers: newVal };
-    }),
-
-  setCardMarker: (cardId, color) =>
-    set((state) => {
-      const newMarkers = { ...state.cardMarkers };
-      if (color) newMarkers[cardId] = color;
-      else delete newMarkers[cardId];
-      return { cardMarkers: newMarkers };
+      const newVal = !state.mobileHandCarousel;
+      localStorage.setItem("baralho_mobile_hand_carousel", String(newVal));
+      return { mobileHandCarousel: newVal };
     }),
 
   kickPlayer: (playerId: number) => {
@@ -652,8 +642,6 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const new_round = server_data.round_count || 1;
     const new_dead_piles = server_data.dead_piles_count;
 
-    // Limpar marcadores ao iniciar nova partida/rodada, ao finalizar rodada ou se a rodada mudar
-    let cardMarkers = get().cardMarkers;
     let lastInfo = get().last_info;
 
     if (
@@ -661,7 +649,6 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       new_status === "ROUND_OVER" ||
       current_round !== new_round
     ) {
-      cardMarkers = {};
       lastInfo = null;
     }
 
@@ -698,7 +685,6 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       status: new_status,
       mode: server_data.mode,
       cardsPlayedThisTurn: total_cards_melded,
-      cardMarkers,
       last_info: lastInfo,
       deck_count: server_data.deck_count,
       deck_source: server_data.deck_source ?? "MAIN",

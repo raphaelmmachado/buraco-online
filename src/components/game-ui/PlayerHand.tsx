@@ -13,9 +13,6 @@ interface PlayerHandProps {
   onSortHand: () => void;
   isMobile: boolean;
   showSortButton?: boolean;
-  showCardMarkers?: boolean;
-  cardMarkers: Record<string, string>;
-  setCardMarker: (cardId: string, color: string | null) => void;
   focusedCardId?: string | null;
 }
 
@@ -71,9 +68,6 @@ export const PlayerHand = ({
   onSortHand,
   isMobile,
   showSortButton = false,
-  showCardMarkers = false,
-  cardMarkers,
-  setCardMarker,
   focusedCardId,
 }: PlayerHandProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -256,12 +250,6 @@ export const PlayerHand = ({
                   isLastDrawn={card.id === lastDrawnCardId}
                   onClick={() => onCardClick(card.id)}
                   onUseJoker={onUseJoker}
-                  markerColor={showCardMarkers ? cardMarkers[card.id] : null}
-                  onSetMarker={
-                    showCardMarkers
-                      ? (color) => setCardMarker(card.id, color)
-                      : undefined
-                  }
                 />
               </motion.div>
             );
@@ -400,14 +388,6 @@ export const PlayerHand = ({
                           isLastDrawn={card.id === lastDrawnCardId}
                           onClick={() => onCardClick(card.id)}
                           onUseJoker={onUseJoker}
-                          markerColor={
-                            showCardMarkers ? cardMarkers[card.id] : null
-                          }
-                          onSetMarker={
-                            showCardMarkers
-                              ? (color) => setCardMarker(card.id, color)
-                              : undefined
-                          }
                         />
                       </motion.div>
                     );

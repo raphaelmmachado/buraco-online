@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { type Card as CardType } from "../../../common/types/card";
 import { SuitIcon } from "./SuitIcon";
 import { getCardImageSrc } from "../../utils/card_image_map";
+import { getAccessibilityCardTheme } from "../../utils/accessibility_card_theme";
 import { useGameStore } from "../../store/useGameStore";
 import { useMobileCheck } from "../../hooks/useMobileCheck";
 import { useState } from "react";
@@ -63,7 +64,7 @@ const AccessibilityCardContent = ({
       {isJoker && (
         <>
           <AnimatePresence>
-            {(!isMobile && (isSelected || isHovered)) && abilityInfo && (
+            {!isMobile && (isSelected || isHovered) && abilityInfo && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.8, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -102,7 +103,11 @@ const AccessibilityCardContent = ({
       {/* Visual de Acessibilidade: Valor e Naipe empilhados e grandes */}
       <div className="self-start flex flex-col items-center leading-none z-10 gap-y-1 md:gap-y-2">
         <span className={`${valueClass}`}>
-          {isJoker ? (showMobileDetail ? abilityInfo.name.substring(0, 5) : "JK") : card.value}
+          {isJoker
+            ? showMobileDetail
+              ? abilityInfo.name.substring(0, 5)
+              : "JK"
+            : card.value}
         </span>
         <SuitIcon suit={card.suit.name} className={suitClass} />
       </div>
@@ -120,7 +125,7 @@ const AccessibilityCardContent = ({
       {/* Integrated description for mobile selection */}
       {showMobileDetail && (
         <div className="absolute bottom-1 left-0 right-0 px-1 text-center leading-tight z-20 pointer-events-none">
-          <div className="text-[8px] font-bold text-violet-900 leading-[1.1] uppercase">
+          <div className="text-[8px] font-bold text-white/90 leading-[1.1] uppercase">
             {abilityInfo.desc}
           </div>
         </div>
@@ -300,7 +305,9 @@ export const HandCard = ({
 
   const isRed = card.color === "red";
   const isJoker = card.value === "JOKER";
-  const isAccessibilityMode = useGameStore((state) => state.isAccessibilityMode);
+  const isAccessibilityMode = useGameStore(
+    (state) => state.isAccessibilityMode,
+  );
   const { isMobile } = useMobileCheck();
   const imageSrc = getCardImageSrc(card.value, card.suit.name);
 
@@ -308,20 +315,17 @@ export const HandCard = ({
     ? `font-bold text-2xl md:text-4xl scale-y-125 origin-top ${card.value === "10" ? "tracking-tighter" : ""}`
     : "font-black md:text-2xl";
 
-  const suitClass = isAccessibilityMode ? "w-6 h-6 md:w-8 md:h-8" : "w-4 h-4 md:w-5 md:h-5";
+  const suitClass = isAccessibilityMode
+    ? "w-6 h-6 md:w-8 md:h-8"
+    : "w-4 h-4 md:w-5 md:h-5";
 
-  let textColorClass = isRed ? "text-red-600" : isJoker ? "text-violet-700" : "text-slate-900";
+  const textColorClass = isRed
+    ? "text-red-600"
+    : isJoker
+      ? "text-violet-700"
+      : "text-slate-900";
 
-  if (isAccessibilityMode) {
-    const contrastColors: Record<string, string> = {
-      copas: "text-red-600",
-      ouro: "text-orange-600",
-      espadas: "text-slate-900",
-      paus: "text-blue-900",
-      joker: "text-violet-900",
-    };
-    textColorClass = contrastColors[card.suit.name] || textColorClass;
-  }
+  const accessibilityCardTheme = getAccessibilityCardTheme(card.suit.name);
 
   return (
     <motion.div
@@ -345,8 +349,14 @@ export const HandCard = ({
               ? "border-blue-400 ring-2 ring-blue-400/50 shadow-blue-500/30 z-10"
               : "border-slate-300 z-0"
         }
-        ${isJoker ? "bg-linear-to-br from-violet-100 to-indigo-200 border-violet-400" : "bg-white"}
-        ${textColorClass}
+        ${
+          isAccessibilityMode
+            ? `${accessibilityCardTheme.background} ${accessibilityCardTheme.text}`
+            : isJoker
+              ? "bg-linear-to-br from-violet-100 to-indigo-200 border-violet-400"
+              : "bg-white"
+        }
+        ${isAccessibilityMode ? "" : textColorClass}
         ${className}
       `}
       style={style}
@@ -374,7 +384,12 @@ export const HandCard = ({
           isMobile={isMobile}
         />
       ) : (
-        <NormalCardContent card={card} imageSrc={imageSrc} valueClass={valueClass} suitClass={suitClass} />
+        <NormalCardContent
+          card={card}
+          imageSrc={imageSrc}
+          valueClass={valueClass}
+          suitClass={suitClass}
+        />
       )}
     </motion.div>
   );

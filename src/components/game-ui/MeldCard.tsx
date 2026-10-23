@@ -4,6 +4,7 @@ import { type Card as CardType } from "../../../common/types/card";
 import { SuitIcon } from "./SuitIcon";
 import { useGameStore } from "../../store/useGameStore";
 import { getCardImageSrc } from "../../utils/card_image_map";
+import { getAccessibilityCardTheme } from "../../utils/accessibility_card_theme";
 import {
   type ScreenDirection,
   getAnimationOrigin,
@@ -86,22 +87,13 @@ export const MeldCard = ({
     ? "w-4 h-4 md:w-6 md:h-6"
     : "w-2.5 h-2.5 md:w-4 md:h-4";
 
-  let textColorClass = isRed
+  const textColorClass = isRed
     ? "text-red-600"
     : isJoker
       ? "text-violet-700"
       : "text-slate-900";
 
-  if (isAccessibilityMode) {
-    const contrastColors: Record<string, string> = {
-      copas: "text-red-600",
-      ouro: "text-orange-600",
-      espadas: "text-slate-900",
-      paus: "text-blue-900",
-      joker: "text-violet-900",
-    };
-    textColorClass = contrastColors[card.suit.name] || textColorClass;
-  }
+  const accessibilityCardTheme = getAccessibilityCardTheme(card.suit.name);
 
   return (
     <motion.div
@@ -116,8 +108,14 @@ export const MeldCard = ({
             ? "border-yellow-400 ring-2 ring-yellow-400/50 z-50 shadow-yellow-500/30"
             : "border-slate-200"
         }
-        ${isJoker ? "bg-linear-to-br from-violet-100 to-indigo-200 border-violet-400" : "bg-white"}
-        ${textColorClass}
+        ${
+          isAccessibilityMode
+            ? `${accessibilityCardTheme.background} ${accessibilityCardTheme.text}`
+            : isJoker
+              ? "bg-linear-to-br from-violet-100 to-indigo-200 border-violet-400"
+              : "bg-white"
+        }
+        ${isAccessibilityMode ? "" : textColorClass}
       `}
     >
       {/* Joker Glow Effect */}

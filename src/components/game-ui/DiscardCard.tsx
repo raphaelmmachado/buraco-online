@@ -3,6 +3,7 @@ import { type Card as CardType } from "../../../common/types/card";
 import { SuitIcon } from "./SuitIcon";
 import { useGameStore } from "../../store/useGameStore";
 import { getCardImageSrc } from "../../utils/card_image_map";
+import { getAccessibilityCardTheme } from "../../utils/accessibility_card_theme";
 import {
   type ScreenDirection,
   getAnimationOrigin,
@@ -109,7 +110,11 @@ export const DiscardCard = ({
   const showLayer5 = quantity > 16;
   const showLayer6 = quantity > 20;
 
-  const baseLayerStyle = `absolute inset-0 bg-white rounded-md border border-slate-300 shadow-sm select-none`;
+  const accessibilityCardTheme = getAccessibilityCardTheme(card.suit.name);
+
+  const baseLayerStyle = `absolute inset-0 ${
+    isAccessibilityMode ? accessibilityCardTheme.background : "bg-white"
+  } rounded-md border border-slate-300 shadow-sm select-none`;
 
   // Accessibility Styles
   const valueClass = isAccessibilityMode
@@ -120,31 +125,11 @@ export const DiscardCard = ({
     ? "w-5 h-5 md:w-8 md:h-8"
     : "w-3 h-3 md:w-5 md:h-5";
 
-  let textColorClass = isRed
+  const textColorClass = isRed
     ? "text-red-600"
     : isJoker
       ? "text-violet-700"
       : "text-slate-900";
-
-  if (isAccessibilityMode) {
-    switch (card.suit.name) {
-      case "copas":
-        textColorClass = "text-red-600";
-        break;
-      case "ouro":
-        textColorClass = "text-orange-600";
-        break;
-      case "espadas":
-        textColorClass = "text-slate-900";
-        break;
-      case "paus":
-        textColorClass = "text-blue-900";
-        break;
-      case "joker":
-        textColorClass = "text-violet-900";
-        break;
-    }
-  }
 
   return (
     <div className="relative w-14 h-20 md:w-20 md:h-32 flex flex-col items-center justify-center">
@@ -199,8 +184,14 @@ export const DiscardCard = ({
               ? "ring-4 ring-red-500/40 shadow-[0_0_15px_rgba(239,68,68,0.4)] z-10 border-transparent"
               : "border-slate-300"
         }
-        ${isJoker ? "bg-linear-to-br from-violet-100 to-indigo-200 border-violet-400" : "bg-white"}
-        ${textColorClass}
+        ${
+          isAccessibilityMode
+            ? `${accessibilityCardTheme.background} ${accessibilityCardTheme.text}`
+            : isJoker
+              ? "bg-linear-to-br from-violet-100 to-indigo-200 border-violet-400"
+              : "bg-white"
+        }
+        ${isAccessibilityMode ? "" : textColorClass}
       `}
       >
         {/* Joker Glow Effect */}

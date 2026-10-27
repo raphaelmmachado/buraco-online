@@ -1,6 +1,7 @@
+import { useEffect, useState } from "react";
 import { useGameStore } from "../../store/useGameStore";
 import { EventBar } from "../game-ui/EventBar";
-import { Bot, Globe, Loader2, Check, Sparkles } from "lucide-react";
+import { Bot, Globe, Loader2, Check, Sparkles, WifiOff } from "lucide-react";
 
 interface StartMenuProps {
   onPlayOnline: () => void;
@@ -25,11 +26,27 @@ export const StartMenu = ({
   const connectionStatus = useGameStore((state) => state.connectionStatus);
   const connectSocket = useGameStore((state) => state.connectSocket);
 
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine);
+
+  useEffect(() => {
+    const syncOnlineStatus = () => setIsOnline(navigator.onLine);
+
+    window.addEventListener("online", syncOnlineStatus);
+    window.addEventListener("offline", syncOnlineStatus);
+    return () => {
+      window.removeEventListener("online", syncOnlineStatus);
+      window.removeEventListener("offline", syncOnlineStatus);
+    };
+  }, []);
+
   const isConnected = connectionStatus === "CONNECTED";
   const isConnecting =
-    connectionStatus === "CONNECTING" || connectionStatus === "RECONNECTING";
+    isOnline &&
+    (connectionStatus === "CONNECTING" || connectionStatus === "RECONNECTING");
 
   const handleOnlineClick = () => {
+    if (!navigator.onLine) return;
+
     if (isConnected) {
       onPlayOnline();
     } else if (!isConnecting) {
@@ -86,11 +103,13 @@ export const StartMenu = ({
         {/* JOGAR ONLINE */}
         <button
           onClick={handleOnlineClick}
-          disabled={isConnecting}
+          disabled={isConnecting || !isOnline}
           className={`group bg-black/40 backdrop-blur-md p-8 rounded-2xl border transition-all flex flex-col items-center gap-4 shadow-2xl relative overflow-hidden ${
             isConnected
               ? "hover:bg-blue-900/20 border-white/10 hover:border-blue-500/50 hover:scale-[1.02] active:scale-95"
-              : "border-blue-500/5 opacity-60 hover:opacity-100 active:scale-95 cursor-pointer"
+              : !isOnline
+                ? "border-blue-500/5 opacity-45 cursor-not-allowed"
+                : "border-blue-500/5 opacity-60 hover:opacity-100 active:scale-95 cursor-pointer"
           }`}
         >
           <div
@@ -100,7 +119,13 @@ export const StartMenu = ({
                 : "bg-white/5 border-white/10 text-slate-500 grayscale"
             } ${isConnecting ? "animate-pulse" : ""}`}
           >
-            {isConnecting ? <Loader2 size={40} className="animate-spin" /> : <Globe size={40} />}
+            {!isOnline ? (
+              <WifiOff size={40} />
+            ) : isConnecting ? (
+              <Loader2 size={40} className="animate-spin" />
+            ) : (
+              <Globe size={40} />
+            )}
           </div>
 
           <div className="text-center flex flex-col items-center">
@@ -112,10 +137,23 @@ export const StartMenu = ({
             <p className={`text-[10px] font-mono uppercase tracking-widest transition-colors ${
                 isConnected ? "text-blue-300/60" : "text-slate-600"
             }`}>
-              {isConnected ? "Com outros jogadores" : isConnecting ? "Buscando Servidor..." : "Toque para conectar"}
+              {isConnected
+                ? "Com outros jogadores"
+                : !isOnline
+                  ? "Sem internet — jogue offline"
+                  : isConnecting
+                    ? "Buscando Servidor..."
+                    : "Toque para conectar"}
             </p>
           </div>
         </button>
+
+        {!isOnline && (
+          <p className="flex items-center justify-center gap-2 text-center text-[10px] font-mono uppercase tracking-widest text-yellow-500/80">
+            <WifiOff size={10} />
+            Você está sem internet. O modo offline continua funcionando.
+          </p>
+        )}
       </div>
 
       {/* FOOTER DE VERSÃO UNIFICADO (ULTRA DISCRETO) */}

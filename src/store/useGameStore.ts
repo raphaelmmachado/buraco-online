@@ -403,9 +403,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   },
 
   disconnectSocket: () => {
-    if (socket.connected) {
-      socket.disconnect();
-    }
+    // Garante que uma tentativa de conexão em andamento também seja cancelada.
+    socket.disconnect();
     set({ connectionStatus: "DISCONNECTED" });
   },
 

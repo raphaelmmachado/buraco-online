@@ -50,6 +50,33 @@ O jogo segue as regras do **Buraco Fechado**.
 
 ![Demonstração do Jogo](public/preview.png)
 
+## Jogando Sem Internet (Offline / PWA)
+
+O app é um **PWA**: depois de aberto uma vez com internet, ele salva no dispositivo a versão baixada (HTML, JavaScript, CSS, fontes, ícones e sons) e passa a abrir normalmente **sem conexão**, com o modo **Jogar Offline** (contra bots) funcionando por completo.
+
+- **Primeiro acesso:** precisa ser feito com internet, para o app ser baixado e salvo no dispositivo.
+- **Instalar:** no celular use "Adicionar à tela inicial" (Android/Chrome) ou "Adicionar à Tela de Início" (iPhone/Safari). No computador, use o ícone de instalação na barra de endereço do Chrome/Edge.
+- **Requisito:** o app precisa estar em **HTTPS** ou em **localhost**. Service workers — a tecnologia que permite abrir offline — não funcionam em `http://` com IP da rede local (ex.: `http://192.168.1.10:3000`).
+- **Atualizações:** quando há internet, a nova versão é baixada em segundo plano. O app continua abrindo na versão salva até você tocar em **"Nova Versão! Clique para Atualizar"** no menu.
+- **Modo online:** continua exigindo internet e o servidor ligado. Sem conexão, apenas o modo offline fica disponível.
+
+### Como testar o modo offline
+
+1. Gere o build de produção e sirva localmente:
+
+   ```bash
+   npm run build
+   npm run preview
+   ```
+
+2. Abra `http://localhost:4173`, espere o carregamento terminar (o service worker salva os arquivos em segundo plano).
+3. Pare o servidor (ou ative o modo "Offline" nas ferramentas do navegador) e recarregue a página.
+4. O menu deve abrir normalmente e o botão **Jogar Offline** deve funcionar.
+
+> O modo `npm run dev` mantém o service worker desligado de propósito, então o teste offline **não** funciona nele.
+
+---
+
 ## Como Hospedar o Próprio Jogo
 
 Você pode rodar o jogo na sua máquina local ou hospedar num servidor para jogar com amigos.

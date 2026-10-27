@@ -14,7 +14,9 @@ export const usePWA = () => {
       if (!r) return;
 
       // Checa se há atualização disponível quando o app é aberto (sem instalar automaticamente)
-      r.update().catch((e) => console.log('PWA: erro na verificação inicial:', e));
+      if (navigator.onLine) {
+        r.update().catch((e) => console.log('PWA: erro na verificação inicial:', e));
+      }
 
       if (visibilityBound.current) return;
       visibilityBound.current = true;
@@ -25,6 +27,12 @@ export const usePWA = () => {
           console.log('PWA: App focado/aberto. Checando se há novas versões...');
           r.update().catch((e) => console.log('PWA: erro na verificação ao focar:', e));
         }
+      });
+
+      // Se a internet voltar com o app aberto, aproveita para baixar a nova versão.
+      window.addEventListener('online', () => {
+        console.log('PWA: Internet restaurada. Checando se há novas versões...');
+        r.update().catch((e) => console.log('PWA: erro na verificação após reconectar:', e));
       });
     },
     onNeedRefresh() {
